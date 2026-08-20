@@ -50,6 +50,16 @@ export const SummaryCard = memo(function SummaryCard({
 
           <Text style={[styles.progress, { color: palette.primary }]}>{progressLine}</Text>
 
+          {summary.graded.length > 0 ? (
+            <Text style={[styles.hifz, { color: palette.textMuted }]}>
+              {summary.graded.length} {summary.graded.length === 1 ? 'ayah' : 'ayahs'} graded for revision
+              {weakest(summary) === null
+                ? ''
+                : ` · weakest ${weakest(summary)} — it comes back tomorrow`}
+              {summary.dueNow > 0 ? ` · ${summary.dueNow} due now` : ''}
+            </Text>
+          ) : null}
+
           {summary.hintedWords.length > 0 ? (
             <Text style={[styles.hintList, { color: palette.textMuted }]} numberOfLines={2}>
               Shaky: {summary.hintedWords.slice(0, 8).map(describeWord).join(' · ')}
@@ -68,10 +78,12 @@ export const SummaryCard = memo(function SummaryCard({
             <Pressable
               onPress={onPractise}
               accessibilityRole="button"
-              accessibilityLabel="Practise the shaky words"
+              accessibilityLabel="Practise the weakest ayah from this session"
               style={[styles.secondaryButton, { borderColor: palette.border }]}
             >
-              <Text style={[styles.secondaryLabel, { color: palette.text }]}>Practise shaky words</Text>
+              <Text style={[styles.secondaryLabel, { color: palette.text }]}>
+                {weakest(summary) === null ? 'Practise shaky words' : `Practise ${weakest(summary)}`}
+              </Text>
             </Pressable>
             <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Dismiss summary">
               <Text style={[styles.dismiss, { color: palette.textMuted }]}>Not now</Text>
@@ -95,6 +107,23 @@ function Stat({ label, value, palette }: { label: string; value: string; palette
 function describeWord(word: number): string {
   const ayah = ayahByGlobal(globalAyahOf(word));
   return `${ayah.surah}:${ayah.ayah}`;
+}
+
+/** The lowest-graded ayah of this session, as "surah:ayah". */
+function weakest(summary: SessionSummary): string | null {
+  if (summary.graded.length === 0) return null;
+  let worst = summary.graded[0];
+  for (const g of summary.graded) if (g.grade < worst.grade) worst = g;
+  const ayah = ayahByGlobal(worst.ayah);
+  return `${ayah.surah}:${ayah.ayah}`;
+}
+
+/** The global ayah index of the lowest-graded ayah, for the practise action. */
+export function weakestAyahOf(summary: SessionSummary): number | null {
+  if (summary.graded.length === 0) return null;
+  let worst = summary.graded[0];
+  for (const g of summary.graded) if (g.grade < worst.grade) worst = g;
+  return worst.ayah;
 }
 
 function describeProgress(summary: SessionSummary): string {
@@ -131,6 +160,7 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 20, fontWeight: '700' },
   statLabel: { fontSize: 11, marginTop: 2 },
   progress: { marginTop: space.md, fontSize: 14, fontWeight: '600', lineHeight: 20 },
+  hifz: { marginTop: space.xs, fontSize: 12, lineHeight: 18 },
   hintList: { marginTop: space.xs, fontSize: 12 },
   actions: { marginTop: space.lg, gap: space.sm, alignItems: 'stretch' },
   primaryButton: { borderRadius: radius.pill, paddingVertical: 13, alignItems: 'center' },

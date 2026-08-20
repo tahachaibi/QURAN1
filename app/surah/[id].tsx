@@ -34,7 +34,7 @@ import {
 } from '../../src/data/quran';
 import { PageDeck, type PageDeckHandle } from '../../src/components/PageDeck';
 import { MistakeSheet } from '../../src/components/MistakeSheet';
-import { SummaryCard } from '../../src/components/SummaryCard';
+import { SummaryCard, weakestAyahOf } from '../../src/components/SummaryCard';
 import { DebugOverlay } from '../../src/components/DebugOverlay';
 import {
   Chip,
@@ -91,6 +91,7 @@ export default function SurahScreen() {
     captureFixture,
     setRange,
     range,
+    practiseRange,
   } = recitation;
 
   const seedSurah = clampSurah(Number(params.id ?? '1'));
@@ -419,7 +420,7 @@ export default function SurahScreen() {
         onPractise={(word) => {
           const ayah = ayahByGlobal(globalAyahOf(word));
           const [from, to] = ayahWordRange(ayah.surah, ayah.ayah);
-          setRange({ from, to: to - 1 });
+          practiseRange(from, to - 1);
           setMistakesOpen(false);
         }}
         onPlayWord={(word) => {
@@ -438,12 +439,20 @@ export default function SurahScreen() {
           void logSummaryToTracker().then(dismissSummary);
         }}
         onPractise={() => {
-          if (summary !== null && summary.hintedWords.length > 0) {
-            const first = summary.hintedWords[0];
-            const ayah = ayahByGlobal(globalAyahOf(first));
-            const [from, to] = ayahWordRange(ayah.surah, ayah.ayah);
-            setRange({ from, to: to - 1 });
-            seekTo(from);
+          if (summary !== null) {
+            // Prefer the ayah the hifz scheduler graded lowest; fall back to the
+            // first word that needed a hint.
+            const weakest = weakestAyahOf(summary);
+            const target =
+              weakest !== null
+                ? ayahByGlobal(weakest)
+                : summary.hintedWords.length > 0
+                  ? ayahByGlobal(globalAyahOf(summary.hintedWords[0]))
+                  : null;
+            if (target !== null) {
+              const [from, to] = ayahWordRange(target.surah, target.ayah);
+              practiseRange(from, to - 1);
+            }
           }
           dismissSummary();
         }}

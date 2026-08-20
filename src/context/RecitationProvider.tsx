@@ -23,6 +23,7 @@ import * as Haptics from 'expo-haptics';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 
 import {
+  ayahStartWord,
   globalAyahOf,
   pageOf,
   pageWordRange,
@@ -31,6 +32,9 @@ import {
   TOTAL_WORDS,
   words,
 } from '../data/quran';
+import { collectEvidence } from '../engine/evidence';
+import { applyEvidence, dueQueue, summarize, type HifzDeck } from '../engine/hifz';
+import type { MistakeRecord } from '../engine/confusion';
 import { vocabulary } from '../engine/searchIndex';
 import {
   elapsedOf,
@@ -45,9 +49,12 @@ import { useRecitationRecognizer, type RecognizerHandle } from '../recognition/u
 import { useTheme } from '../theme/ThemeProvider';
 import {
   addDismissed,
+  appendMistakeLog,
   bestPreviousFor,
   loadDismissed,
+  loadHifzDeck,
   logSession,
+  saveHifzDeck,
   saveProgress,
   today,
   type LoggedSession,
@@ -73,6 +80,10 @@ export interface SessionSummary {
   surah: number;
   /** null when this surah has never been recited before */
   previousFurthest: number | null;
+  /** per-ayah hifz grades this session produced (0..5) */
+  graded: { ayah: number; grade: number }[];
+  /** how many ayahs are due for review right now, after this session */
+  dueNow: number;
 }
 
 export interface RecitationContextValue {
@@ -119,6 +130,9 @@ export interface RecitationContextValue {
 
   /** a capture of this session's recognizer events, exportable as a fixture (§9) */
   captureFixture: () => ReplayFixture;
+
+  /** start a practice run over a word range, from its first word */
+  practiseRange: (from: number, to: number) => void;
 }
 
 const RecitationContext = createContext<RecitationContextValue | null>(null);
@@ -136,6 +150,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
   const [interruption, setInterruption] = useState<string | null>(null);
   const [silenceTimedOut, setSilenceTimedOut] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
+  const hifzDeck = useRef<HifzDeck>({});
 
   const config = useMemo<SessionConfig>(
     () => ({
@@ -215,6 +230,9 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void loadDismissed().then((list) => {
       if (list.length > 0) dispatch({ type: 'restoreDismissed', words: list });
+    });
+    void loadHifzDeck().then((deck) => {
+      hifzDeck.current = deck;
     });
   }, [dispatch]);
 
@@ -299,6 +317,34 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       const versesCovered = new Set<number>();
       for (const w of state.matched) versesCovered.add(globalAyahOf(w));
       const attempted = state.matched.size + state.mistakes.length;
+
+      // Fold the session into the hifz deck. This is the part that makes the
+      // app remember which ayahs YOU are weak on rather than which ayahs exist.
+      const now = Date.now();
+      const revealed = new Set<number>();
+      for (const [word, level] of hints) if (level === 2) revealed.add(word);
+      const evidence = collectEvidence({
+        matched: state.matched,
+        missed: state.mistakes.map((m) => m.word),
+        hinted: state.hinted,
+        revealed,
+        globalAyahOf,
+        ayahWordCount: (globalAyah) => ayahStartWord[globalAyah + 1] - ayahStartWord[globalAyah],
+      });
+      const folded = applyEvidence(hifzDeck.current, evidence, now);
+      hifzDeck.current = folded.deck;
+      void saveHifzDeck(folded.deck);
+
+      // Record the mistakes for the confusion profile. Expected text comes from
+      // the word array, so the profile is built on the same normalization the
+      // matcher used.
+      const records: MistakeRecord[] = state.mistakes.map((m) => ({
+        word: m.word,
+        expected: words[m.word] ?? '',
+        heardInstead: m.heardInstead,
+      }));
+      void appendMistakeLog(records);
+
       return {
         wordsRecited: state.matched.size,
         versesCovered: versesCovered.size,
@@ -306,13 +352,15 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
         longestCleanRun: state.longestCleanRun,
         hintedWords: [...state.hinted].sort((a, b) => a - b),
         mistakes: state.mistakes,
-        durationMs: elapsedOf(state, Date.now()),
+        durationMs: elapsedOf(state, now),
         furthestWord: state.cursor,
         surah,
         previousFurthest: previous === null ? null : previous.furthestWord,
+        graded: folded.graded,
+        dueNow: dueQueue(folded.deck, now, 500).length,
       };
     },
-    [],
+    [hints],
   );
 
   const stop = useCallback(() => {
@@ -366,6 +414,15 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
 
   const hintLevelOf = useCallback((word: number): 0 | 1 | 2 => hints.get(word) ?? 0, [hints]);
 
+  const practiseRange = useCallback(
+    (from: number, to: number) => {
+      setRange({ from, to });
+      dispatch({ type: 'seek', to: from, at: Date.now() });
+      setViewedPage(pageOf(from));
+    },
+    [dispatch],
+  );
+
   const logSummaryToTracker = useCallback(async () => {
     if (summary === null) return;
     const entry: LoggedSession = {
@@ -418,6 +475,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       clearInterruption: () => setInterruption(null),
       silenceTimedOut,
       captureFixture: () => capture.current,
+      practiseRange,
     }),
     [
       session,
@@ -440,6 +498,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       logSummaryToTracker,
       interruption,
       silenceTimedOut,
+      practiseRange,
     ],
   );
 

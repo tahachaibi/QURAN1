@@ -5,8 +5,21 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { surahs } from '../../src/data/quran';
-import { loadPrayerChecks, loadSessions, today, type LoggedSession } from '../../src/data/storage';
+import { useRouter } from 'expo-router';
+
+import { ayahByGlobal, globalAyahOf, surahs } from '../../src/data/quran';
+import {
+  loadHifzDeck,
+  loadMistakeLog,
+  loadPrayerChecks,
+  loadSessions,
+  today,
+  type LoggedSession,
+} from '../../src/data/storage';
+import { buildProfile, type ConfusionProfile } from '../../src/engine/confusion';
+import type { HifzDeck } from '../../src/engine/hifz';
+import { HifzPanel } from '../../src/components/HifzPanel';
+import { useRecitation } from '../../src/context/RecitationProvider';
 import { useTheme } from '../../src/theme/ThemeProvider';
 import { radius, space, type Palette } from '../../src/theme/theme';
 import { formatDuration } from '../../src/components/controls';
@@ -15,14 +28,24 @@ const HEATMAP_WEEKS = 18;
 
 export default function TrackerScreen() {
   const { palette } = useTheme();
+  const router = useRouter();
+  const { practiseRange } = useRecitation();
   const [sessions, setSessions] = useState<LoggedSession[]>([]);
   const [prayerDays, setPrayerDays] = useState<string[]>([]);
+  const [deck, setDeck] = useState<HifzDeck>({});
+  const [profile, setProfile] = useState<ConfusionProfile>(() => buildProfile([]));
   const [refreshing, setRefreshing] = useState(false);
+  // A single timestamp for the whole render: due-ness and strength must not
+  // shift between two components in the same pass.
+  const [now, setNow] = useState(() => Date.now());
 
   const load = useCallback(async () => {
+    setNow(Date.now());
     setSessions(await loadSessions());
     const checks = await loadPrayerChecks();
     setPrayerDays(Object.keys(checks).filter((day) => (checks[day] ?? []).length > 0));
+    setDeck(await loadHifzDeck());
+    setProfile(buildProfile(await loadMistakeLog()));
   }, []);
 
   useEffect(() => {
@@ -77,6 +100,24 @@ export default function TrackerScreen() {
         <Stat label="Verses" value={String(totals.verses)} palette={palette} />
         <Stat label="Time" value={formatDuration(totals.ms)} palette={palette} />
       </View>
+
+      <HifzPanel
+        deck={deck}
+        profile={profile}
+        palette={palette}
+        now={now}
+        onPractise={(from, to) => {
+          practiseRange(from, to);
+          const ayah = ayahByGlobal(globalAyahOf(from));
+          router.push({
+            pathname: '/surah/[id]',
+            params: { id: String(ayah.surah), ayah: String(ayah.ayah) },
+          });
+        }}
+        onOpenAyah={(surah, ayah) => {
+          router.push({ pathname: '/surah/[id]', params: { id: String(surah), ayah: String(ayah) } });
+        }}
+      />
 
       <Text style={[styles.section, { color: palette.textMuted }]}>Last {HEATMAP_WEEKS} weeks</Text>
       <View style={styles.heatmap}>
