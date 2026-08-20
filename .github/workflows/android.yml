@@ -1,0 +1,122 @@
+name: android
+
+# Two jobs, on purpose:
+#   checks   fast, no Android SDK: typecheck, the full test suite, the data
+#            generators re-run from scratch, and the Metro bundle. Catches
+#            everything catchable in ~2 minutes.
+#   apk      the slow one, and the only place the Kotlin native module actually
+#            gets COMPILED. Produces a self-contained, installable APK so the
+#            §12 acceptance tests can be run on a real phone without an Expo
+#            account, EAS, or a Metro tunnel.
+#
+# The APK is release-built but signed with the debug keystore (Expo's Android
+# template wires release -> signingConfigs.debug), which is what makes it
+# installable straight from the artifact zip.
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Regenerate bundled data from source
+        # Not just "does it parse" — the generators re-derive all 77,429 words
+        # and the page tables, then verify_pages asserts 29 hand-checked mushaf
+        # facts. A data-source bump that shifts pagination fails here.
+        run: npm run gen
+
+      - name: Fail if regenerating the data changed it
+        run: |
+          if ! git diff --quiet -- src/assets; then
+            echo "::error::src/assets differs from what the generators produce. Run 'npm run gen' and commit."
+            git diff --stat -- src/assets
+            exit 1
+          fi
+
+      - run: npm run typecheck
+
+      - run: npm test -- --ci
+
+      - name: Engine latency budget
+        run: npm run bench
+
+      - name: Metro bundle resolves
+        run: npm run bundle:check
+
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+
+      - run: npm ci
+
+      - name: Prebuild the Android project
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Confirm the native module was autolinked
+        # If expo-arabic-speech is missing from settings.gradle the APK builds
+        # fine and then throws "native module not linked" on the phone. Catch it
+        # here instead.
+        run: |
+          grep -q "expo-arabic-speech" android/settings.gradle || {
+            echo "::error::expo-arabic-speech was not autolinked into settings.gradle"
+            cat android/settings.gradle
+            exit 1
+          }
+          echo "autolinked ok"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Compile the Kotlin module on its own first
+        # A focused target so a Kotlin error surfaces as a Kotlin error, not
+        # buried 400 lines into a full app build.
+        working-directory: android
+        run: ./gradlew :expo-arabic-speech:compileReleaseKotlin --stacktrace
+
+      - name: Build the APK
+        working-directory: android
+        run: ./gradlew :app:assembleRelease --stacktrace
+
+      - name: Name the artifact something installable
+        run: |
+          mkdir -p out
+          cp android/app/build/outputs/apk/release/app-release.apk \
+             "out/quran-habit-${GITHUB_SHA::7}.apk"
+          ls -la out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: quran-habit-apk
+          path: out/*.apk
+          if-no-files-found: error
+          retention-days: 30
