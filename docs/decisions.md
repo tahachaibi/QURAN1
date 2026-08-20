@@ -21,6 +21,9 @@ credentials. That splits the work cleanly:
 | The native module will be linked | `expo-modules-autolinking search` lists `expo-arabic-speech` |
 | Every Android API used exists with the signature assumed | read from AOSP `android14-release` source |
 | Every Expo Kotlin DSL symbol exists | read from the installed `expo-modules-core` Kotlin source |
+| **The Kotlin module compiles** | `:expo-arabic-speech:compileReleaseKotlin` green in CI |
+| Gradle actually links the module | `gradlew projects` lists `:expo-arabic-speech` |
+| Hifz scheduling and the confusion profile | `__tests__/hifz.test.ts`, `HifzPanel.test.tsx` |
 
 **Not verified, and cannot be here**
 
@@ -70,6 +73,25 @@ would give real line-breaking and justification but no per-word breathing
 underline, missed-word dot or reliable tap target. Arabic does not join across
 spaces, so nothing is lost in shaping. The cost is that `flexWrap` cannot justify
 only the full lines, so lines are centred rather than justified.
+
+## The one that would have wasted a day
+
+**The Kotlin module was never committed.** `.gitignore` had an unanchored
+`android/`, meant for the prebuild output at the repo root. Git matches that
+pattern against a directory of that name at *any* depth, so it also excluded
+`modules/expo-arabic-speech/android/` — the entire 619-line recognizer, its
+`build.gradle`, its manifest.
+
+Everything local kept passing, because the files were on disk. `expo export`
+bundled. `expo-modules-autolinking search` even found the module, because
+`expo-module.config.json` sits one level up and *was* committed. The first thing
+to notice was Gradle, by having no `:expo-arabic-speech` project to include.
+
+On a phone this would have surfaced as "native module not linked" with no visible
+cause — §10's "verify the device is running the code you think it is", except the
+code was never in the repo at all. Patterns are anchored now (`/android/`,
+`/ios/`) and both CI jobs assert the Kotlin exists in the checkout before
+anything tries to use it.
 
 ## Things I found and fixed while building
 

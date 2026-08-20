@@ -20,6 +20,7 @@ module.exports = {
       displayName: 'app',
       preset: 'jest-expo',
       testMatch: ['<rootDir>/__tests__/**/*.test.tsx'],
+      setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
     },
   ],
 };

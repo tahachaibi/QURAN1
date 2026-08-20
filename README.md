@@ -44,6 +44,35 @@ scripts/                 data generators, mushaf verification, bench, fixtures
 __tests__/               unit, alignment, session, fixture and render tests
 ```
 
+## Revision that knows what you are weak on
+
+The follow-along is the centrepiece; this is the part that makes it a habit app
+rather than a reading aid, and it is the clearest gap versus Tarteel.
+
+Every session already produces, per ayah, which words matched, which were missed
+and which needed a hint. `src/engine/hifz.ts` turns that into an SM-2 grade and a
+review date, so the Tracker tab can say *these* ayahs, *today* — weakest and most
+overdue first, grouped into contiguous passages rather than shuffled.
+
+Two departures from textbook SM-2, both deliberate: the second interval is 3 days
+instead of 6, and intervals cap at 90 days. An ayah left for a year is gone,
+whatever the easiness factor says.
+
+`src/engine/confusion.ts` builds a personal error profile from real mistakes, and
+is careful about blame in two ways that are enforced in code, not documentation:
+
+- It refuses letter-level attribution when what was heard is not a near
+  neighbour of what was expected. `heardInstead` is a heuristic, so blaming
+  letters off the back of it would invent findings.
+- It labels same-phonetic-class pairs as **likely the recognizer**, not as your
+  mispronunciation. Telling someone they say ظ for ض when Android's model cannot
+  hear the difference would be a lie. When most of the profile is recognizer
+  noise, the panel says so and points at the locale setting instead of handing
+  you a drill.
+
+There is no Memorize tab: §6.1 is explicit that memorization is a *mode* inside
+Read. Revision lives in Tracker, next to the streak.
+
 ## Setup
 
 ```bash
@@ -60,15 +89,35 @@ of silently mislabelling pages.
 
 ## Building
 
-The app needs a native module, so **Expo Go cannot run it**. Build a dev client:
+The app needs a native module, so **Expo Go cannot run it.**
+
+### The easy way: let CI build it
+
+`.github/workflows/android.yml` builds a self-contained, installable APK on
+every push — **no Expo account, no EAS, no Metro tunnel.** Open the Actions tab,
+pick the latest green run, and download the `quran-habit-apk` artifact.
+
+That workflow is also the only place the Kotlin module gets compiled, which is
+why it runs `:expo-arabic-speech:compileReleaseKotlin` on its own before the app
+build: a Kotlin error should read as a Kotlin error, not appear 400 lines into a
+full app build.
+
+The APK is release-built and signed with the Android debug key (Expo's template
+wires `release` → `signingConfigs.debug`), which is what lets it install without
+any account. ProGuard is off: Expo modules resolve `Record` types by Kotlin
+reflection, and a stripped build is a class of runtime failure not worth mixing
+into device testing.
+
+### EAS, if you want it
 
 ```bash
 npx eas login
-npx eas build --profile development --platform android   # produces an APK
+npx eas build --profile development --platform android
 ```
 
-Before rebuilding an APK, check bundling the fast way — seconds instead of
-minutes:
+### Either way, check bundling first
+
+Seconds instead of minutes:
 
 ```bash
 npm run bundle:check    # expo export --platform android
