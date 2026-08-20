@@ -1,0 +1,42 @@
+{
+  "name": "breath-restart",
+  "startCursor": 0,
+  "synthetic": true,
+  "notes": "Stop mid-verse, breathe, resume a few words earlier. Expected: livePos follows the voice back, the cursor holds, nothing is un-revealed and nothing is flagged.",
+  "events": [
+    {
+      "kind": "partial",
+      "alternatives": [
+        "اياك نعبد واياك"
+      ]
+    },
+    {
+      "kind": "final",
+      "alternatives": [
+        "اياك نعبد واياك نستعين اهدنا"
+      ]
+    },
+    {
+      "kind": "segment"
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "واياك نستعين"
+      ],
+      "dt": 2200
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "واياك نستعين اهدنا"
+      ]
+    },
+    {
+      "kind": "final",
+      "alternatives": [
+        "واياك نستعين اهدنا الصراط المستقيم"
+      ]
+    }
+  ]
+}

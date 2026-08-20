@@ -17,7 +17,8 @@
     "bundle:check": "expo export --platform android --output-dir /tmp/qh-export --clear",
     "postinstall": "patch-package",
     "bench": "tsc -p tsconfig.bench.json && node /tmp/qh-bench/scripts/bench-engine.js",
-    "eas-build-post-install": "patch-package"
+    "eas-build-post-install": "patch-package",
+    "fixtures": "tsc -p tsconfig.bench.json && node /tmp/qh-bench/scripts/make-fixtures.js"
   },
   "dependencies": {
     "@expo-google-fonts/amiri": "^0.2.3",
@@ -49,11 +50,13 @@
   "devDependencies": {
     "@types/jest": "^29.5.14",
     "@types/react": "~18.3.12",
+    "@types/react-test-renderer": "^18.3.0",
     "jest": "^29.7.0",
     "jest-expo": "~52.0.6",
     "patch-package": "^8.0.0",
     "quran-json": "^3.1.2",
     "quran-meta": "^6.0.17",
+    "react-test-renderer": "^18.3.1",
     "ts-jest": "^29.2.5",
     "typescript": "^5.3.3"
   }

@@ -1,0 +1,254 @@
+{
+  "name": "fatiha-clean",
+  "startCursor": 0,
+  "synthetic": true,
+  "notes": "Al-Fatiha at natural speed with the recognizer spellings Android actually emits (plene madd, مالك, المستقيم). Expected: cursor 29, zero mistakes.",
+  "events": [
+    {
+      "kind": "partial",
+      "alternatives": [
+        "بسم"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "بسم الله"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "بسم الله الرحمن"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "بسم الله الرحمن الرحيم"
+      ]
+    },
+    {
+      "kind": "final",
+      "alternatives": [
+        "بسم الله الرحمن الرحيم"
+      ]
+    },
+    {
+      "kind": "segment"
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "الحمد"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "الحمد لله"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "الحمد لله رب"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "الحمد لله رب العالمين"
+      ]
+    },
+    {
+      "kind": "final",
+      "alternatives": [
+        "الحمد لله رب العالمين"
+      ]
+    },
+    {
+      "kind": "segment"
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "الرحمن"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "الرحمن الرحيم"
+      ]
+    },
+    {
+      "kind": "final",
+      "alternatives": [
+        "الرحمن الرحيم"
+      ]
+    },
+    {
+      "kind": "segment"
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "مالك"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "مالك يوم"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "مالك يوم الدين"
+      ]
+    },
+    {
+      "kind": "final",
+      "alternatives": [
+        "مالك يوم الدين"
+      ]
+    },
+    {
+      "kind": "segment"
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "اياك"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "اياك نعبد"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "اياك نعبد واياك"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "اياك نعبد واياك نستعين"
+      ]
+    },
+    {
+      "kind": "final",
+      "alternatives": [
+        "اياك نعبد واياك نستعين"
+      ]
+    },
+    {
+      "kind": "segment"
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "اهدنا"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "اهدنا الصراط"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "اهدنا الصراط المستقيم"
+      ]
+    },
+    {
+      "kind": "final",
+      "alternatives": [
+        "اهدنا الصراط المستقيم"
+      ]
+    },
+    {
+      "kind": "segment"
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "صراط"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "صراط الذين"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "صراط الذين انعمت"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "صراط الذين انعمت عليهم"
+      ]
+    },
+    {
+      "kind": "final",
+      "alternatives": [
+        "صراط الذين انعمت عليهم"
+      ]
+    },
+    {
+      "kind": "segment"
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "غير"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "غير المغضوب"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "غير المغضوب عليهم"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "غير المغضوب عليهم ولا"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "غير المغضوب عليهم ولا الضالين"
+      ]
+    },
+    {
+      "kind": "final",
+      "alternatives": [
+        "غير المغضوب عليهم ولا الضالين"
+      ]
+    },
+    {
+      "kind": "segment"
+    }
+  ]
+}

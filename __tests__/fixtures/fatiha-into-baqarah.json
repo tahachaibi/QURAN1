@@ -1,0 +1,170 @@
+{
+  "name": "fatiha-into-baqarah",
+  "startCursor": 20,
+  "synthetic": true,
+  "notes": "Continuous recitation across a surah boundary. Expected: no localization jump, the cursor simply increments into Al-Baqarah.",
+  "events": [
+    {
+      "kind": "partial",
+      "alternatives": [
+        "صراط"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "صراط الذين"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "صراط الذين انعمت"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "صراط الذين انعمت عليهم"
+      ]
+    },
+    {
+      "kind": "final",
+      "alternatives": [
+        "صراط الذين انعمت عليهم"
+      ]
+    },
+    {
+      "kind": "segment"
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "غير"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "غير المغضوب"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "غير المغضوب عليهم"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "غير المغضوب عليهم ولا"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "غير المغضوب عليهم ولا الضالين"
+      ]
+    },
+    {
+      "kind": "final",
+      "alternatives": [
+        "غير المغضوب عليهم ولا الضالين"
+      ]
+    },
+    {
+      "kind": "segment"
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "بسم"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "بسم الله"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "بسم الله الرحمن"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "بسم الله الرحمن الرحيم"
+      ]
+    },
+    {
+      "kind": "final",
+      "alternatives": [
+        "بسم الله الرحمن الرحيم"
+      ]
+    },
+    {
+      "kind": "segment"
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "الم"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "الم ذلك"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "الم ذلك الكتاب"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "الم ذلك الكتاب لا"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "الم ذلك الكتاب لا ريب"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "الم ذلك الكتاب لا ريب فيه"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "الم ذلك الكتاب لا ريب فيه هدى"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "الم ذلك الكتاب لا ريب فيه هدى للمتقين"
+      ]
+    },
+    {
+      "kind": "final",
+      "alternatives": [
+        "الم ذلك الكتاب لا ريب فيه هدى للمتقين"
+      ]
+    },
+    {
+      "kind": "segment"
+    }
+  ]
+}

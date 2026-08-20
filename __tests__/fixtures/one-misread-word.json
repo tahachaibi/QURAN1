@@ -1,0 +1,37 @@
+{
+  "name": "one-misread-word",
+  "startCursor": 4,
+  "synthetic": true,
+  "notes": "العالمين dropped by every alternative. Expected: flagged exactly once, only after the reciter is more than three words clear of it.",
+  "events": [
+    {
+      "kind": "partial",
+      "alternatives": [
+        "الحمد لله رب"
+      ]
+    },
+    {
+      "kind": "final",
+      "alternatives": [
+        "الحمد لله رب الرحمن الرحيم",
+        "الحمد لله رب الرحمن الرحيم",
+        "الحمد لله رب الرحمن الرحيم"
+      ]
+    },
+    {
+      "kind": "segment"
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "مالك يوم الدين"
+      ]
+    },
+    {
+      "kind": "final",
+      "alternatives": [
+        "مالك يوم الدين"
+      ]
+    }
+  ]
+}

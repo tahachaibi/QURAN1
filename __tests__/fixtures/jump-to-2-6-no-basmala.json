@@ -1,0 +1,59 @@
+{
+  "name": "jump-to-2-6-no-basmala",
+  "startCursor": 0,
+  "synthetic": true,
+  "notes": "Open at Al-Fatiha, recite 2:6 with no basmala. Expected: lands on 2:6 within two partials, credits the whole verse, logs no mistakes.",
+  "events": [
+    {
+      "kind": "partial",
+      "alternatives": [
+        "ان الذين"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "ان الذين كفروا"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "ان الذين كفروا سواء"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "ان الذين كفروا سواء عليهم"
+      ]
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "ان الذين كفروا سواء عليهم انذرتهم"
+      ]
+    },
+    {
+      "kind": "final",
+      "alternatives": [
+        "ان الذين كفروا سواء عليهم انذرتهم ام لم تنذرهم"
+      ]
+    },
+    {
+      "kind": "segment"
+    },
+    {
+      "kind": "partial",
+      "alternatives": [
+        "لا يؤمنون"
+      ]
+    },
+    {
+      "kind": "final",
+      "alternatives": [
+        "لا يؤمنون"
+      ]
+    }
+  ]
+}
