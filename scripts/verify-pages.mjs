@@ -57,6 +57,9 @@ const checks = [
   ['surah table length', words.surahStartWord.length, 115],
   ['word count consistent', words.words.split(' ').length, words.count],
   ['al-fatiha word count', words.surahStartWord[1] - words.surahStartWord[0], 29],
+  // 2:72 is one word, not two: quran-json splits it across a space
+  ['2:72 word count', words.ayahStartWord[79] - words.ayahStartWord[78], 10],
+  ['total word count', words.count, 77428],
 ];
 
 let failed = 0;

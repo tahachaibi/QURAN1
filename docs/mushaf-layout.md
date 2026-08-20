@@ -20,6 +20,51 @@ alike. Five minutes of your time unblocks it permanently.
 5. **Export it.** SQLite is their primary export and is what I'd prefer; JSON is
    fine too.
 
+## STATUS: one more export needed
+
+You sent `qpcv215lines.db` — QCF V2 (1421H print), 604 pages, 15 lines, 9,046
+line records. It is structurally perfect and it agrees with every printed-mushaf
+fact this repo already asserts. Run `node --experimental-sqlite
+scripts/analyse-mushaf-layout.mjs` to see the whole analysis.
+
+What it established:
+
+- The id space tiles exactly, no gaps, no overlaps.
+- QUL's pagination agrees with mine on **579 of 604** pages, and on **all 10**
+  hand-checked printed-mushaf facts (2:6 on p3, 36:1 on p440, 114:1 on p604 …).
+  So both describe the same print.
+- It found a real bug in MY data: quran-json writes 2:72's فَٱدَّٰرَٰٔتُمۡ as two
+  space-separated pieces, so the word array had 77,429 words where the mushaf has
+  77,428, and the matcher expected two spoken words where there is one. Fixed by
+  fusing any token that begins with a combining mark, since no Arabic word can.
+- After that fix, the mapping is **exact and verified for pages 1–262** — 3,954
+  lines cross-checked against ayah-marker positions.
+
+What still blocks the import: **four words**, where QUL splits a word that
+quran-json joins. Each is localised to one page:
+
+| Surah | Page | Ayahs on that page |
+|---|---|---|
+| 15 | 262 | 15:1–15:15 |
+| 27 | 378 | 27:14–27:22 |
+| 36 | 441 | 36:13–36:27 |
+| 41 | 482 | 41:47–41:54 |
+
+The lines export gives id *ranges* only, so it cannot tell me which word inside
+those pages is split — and guessing would shift every later word onto the wrong
+line for the rest of each surah.
+
+**So: please export the same layout WORD BY WORD.** On QUL that is the
+per-word/`mushaf_words` export for QCF V2 15-lines — the one with a `text` column
+alongside `word_id`, `page_number`, `line_number`, `position_in_line`. With the
+text I can align it against my words and resolve all four exactly, then verify
+the whole mapping end to end.
+
+If you would rather not wait: I can import what I have with per-page anchoring,
+which is exact for 575 pages and possibly one word out of place on 29 of them. I
+would flag those pages rather than hide them. Say the word — but one more
+download is the better answer for a Quran app.
+
 ## What to send me
 
 - the exported file (SQLite or JSON)
@@ -50,7 +95,7 @@ recorded in the README.
 ## What I will verify before trusting it
 
 The load-bearing risk is word alignment. QUL's `word_id` is a global 1-based
-index over their `words` table; mine is a 0-based index over my own 77,429-word
+index over their `words` table; mine is a 0-based index over my own 77,428-word
 array. If the two tokenise identically, `mine = word_id - 1` — and if they do
 not, pages would silently render the wrong words on the wrong lines, which is
 worse than approximate line breaks.
@@ -59,7 +104,7 @@ So the generator will fail the build unless all of these hold:
 
 1. exactly 604 pages, every one non-empty;
 2. each page's distinct line count equals its `lines_count`;
-3. every one of my 77,429 words is assigned a page and line exactly once;
+3. every one of my 77,428 words is assigned a page and line exactly once;
 4. the page each word lands on matches the page my own verified table already
    gives it (scripts/verify-pages.mjs checks that table against a printed
    mushaf, so a disagreement means the word mapping is off, not the pages);

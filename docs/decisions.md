@@ -55,7 +55,7 @@ a device that lacks it. Android 8.0 is a 2017 release and the interesting
 features here are API 31/33 anyway.
 
 **`wordMeta` is typed arrays, not an object array.** §2 asks for a parallel
-`{surah, ayah, wordInAyah, page}[]`. Allocating 77,429 objects on a phone is a
+`{surah, ayah, wordInAyah, page}[]`. Allocating 77,428 objects on a phone is a
 poor trade for an O(1) lookup that four `Uint8Array`/`Uint16Array`s give for
 ~380 KB. `wordMeta(i)` returns exactly the specified shape; the storage
 underneath is different. Same for `words`: stored as one space-joined string and
@@ -172,7 +172,7 @@ never fuses, the recognizer one does, and it consults the Quran's own vocabulary
 before fusing so `ال فرعون` survives. The 1:1 invariant is asserted for all
 6,236 ayahs.
 
-Fixing this also moved the word count from 77,405 to **77,429** — the classical
+Fixing this also moved the word count from 77,405 to **77,429**, and later to 77,428 once 2:72 was fused (see below) — the classical
 count.
 
 **A single repeated word dragged the cursor backwards.** §5.3's backwards

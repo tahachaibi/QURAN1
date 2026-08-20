@@ -37,7 +37,7 @@ import { normalizeAyah } from '../src/engine/normalize';
 describe('the flat word array (§2)', () => {
   it('has the classical word count and matching offset tables', () => {
     expect(words.length).toBe(TOTAL_WORDS);
-    expect(TOTAL_WORDS).toBe(77429);
+    expect(TOTAL_WORDS).toBe(77428);
     expect(ayahStartWord.length).toBe(TOTAL_AYAHS + 1);
     expect(pageStartWord.length).toBe(TOTAL_PAGES + 1);
     expect(surahStartWord.length).toBe(TOTAL_SURAHS + 1);
@@ -117,6 +117,28 @@ describe('page composition', () => {
       '1:7',
     ]);
     expect(ayahsOnPage(604).some((a) => a.surah === 114 && a.ayah === 6)).toBe(true);
+  });
+});
+
+describe('source words split across a space are fused back together', () => {
+  it('treats 2:72 فَٱدَّٰرَٰٔتُمۡ as one word, as every printed mushaf does', () => {
+    // quran-json writes it as `فَٱدَّـٰرَ` + `ٰٔتُمۡ`, and the second piece
+    // normalizes to an ordinary-looking `تم`, so without the fusion rule the
+    // matcher expects two spoken words where there is one — and the word array
+    // disagrees with the mushaf by a token, which is how a layout import ends up
+    // one word out of step for everything that follows.
+    const a = ayahAt(2, 72);
+    const [from, to] = ayahWordRange(2, 72);
+    expect(to - from).toBe(10);
+    expect(ayahDisplayWords(a)).toHaveLength(10);
+    expect(words.slice(from, to)).not.toContain('تم');
+    expect(words.slice(from, to)).toContain('فادرتم');
+  });
+
+  it('never fuses a token that legitimately begins a word', () => {
+    // the rule must only fire on tokens starting with a COMBINING mark
+    expect(ayahDisplayWords(ayahAt(1, 1))).toHaveLength(4);
+    expect(ayahDisplayWords(ayahAt(2, 255))).toHaveLength(50);
   });
 });
 

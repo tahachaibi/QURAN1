@@ -64,11 +64,22 @@ export interface AyahTokens {
   normalized: string[];
 }
 
+/** A word cannot begin with a combining mark, so such a token continues the previous one. */
+const STARTS_WITH_MARK = /^[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/;
+
 /**
  * Canonical tokenizer for mushaf text. Guarantees
- * `display.length === normalized.length` and that no normalized token is
- * empty, by fusing a token that normalizes to nothing into its neighbour
- * (quran-json splits `فَٱدَّـٰرَ ٰٔتُمۡ` in 2:72 that way).
+ * `display.length === normalized.length` and that no normalized token is empty.
+ *
+ * Two fusion rules, both about the SOURCE splitting one word across a space:
+ *
+ *  - a token that normalizes to nothing belongs to its neighbour;
+ *  - a token that BEGINS WITH A COMBINING MARK continues the previous word,
+ *    because no Arabic word can start with one. quran-json writes 2:72's
+ *    فَٱدَّٰرَٰٔتُمۡ as `فَٱدَّـٰرَ` + `ٰٔتُمۡ`, and the second piece normalizes to
+ *    a perfectly ordinary-looking `تم` — so without this rule the matcher
+ *    expects the reciter to say two words where there is one, and the word array
+ *    disagrees with every printed mushaf by one token.
  */
 export function tokenizeAyah(text: string): AyahTokens {
   const raw = text.split(/\s+/).filter((t) => t.length > 0);
@@ -76,6 +87,13 @@ export function tokenizeAyah(text: string): AyahTokens {
   const normalized: string[] = [];
   for (const token of raw) {
     const n = normalizeWord(token);
+    if (n !== '' && display.length > 0 && STARTS_WITH_MARK.test(token)) {
+      display[display.length - 1] += token;
+      normalized[normalized.length - 1] = normalizeWord(
+        display[display.length - 1],
+      );
+      continue;
+    }
     if (n === '') {
       if (display.length > 0) {
         // fuse backwards into the previous word

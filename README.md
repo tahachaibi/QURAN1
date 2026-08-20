@@ -10,7 +10,7 @@ layout and the verse-search index are all bundled at build time.
 ## The one architectural idea
 
 The reciter's position is **a single integer index into a flat array of every
-word in the Quran** (77,429 words). Not a position within a surah — a position
+word in the Quran** (77,428 words). Not a position within a surah — a position
 in the Quran.
 
 ```
