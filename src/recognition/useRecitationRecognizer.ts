@@ -51,6 +51,8 @@ export interface RecognizerCallbacks {
 
 export interface RecognizerHandle {
   status: RecognizerStatus;
+  /** last audio-focus event, for the debug overlay only; never pauses a session */
+  audioFocus: 'held' | 'lost';
   /** 0..1, smoothed; drives the mic pulse and the voice underline */
   level: Animated.Value;
   strategy: SpeechStrategy | null;
@@ -85,6 +87,7 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
   const [lastError, setLastError] = useState<SpeechErrorEvent | null>(null);
   const [lastRelayGapMs, setLastRelayGapMs] = useState(0);
   const [watchdogRestarts, setWatchdogRestarts] = useState(0);
+  const [audioFocus, setAudioFocus] = useState<'held' | 'lost'>('held');
 
   const level = useRef(new Animated.Value(0)).current;
   const levelValue = useRef(0);
@@ -173,11 +176,20 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
           case 'ready':
             if (wantsToListen.current) setStatus('listening');
             break;
-          case 'interrupted':
+          case 'audio-focus-lost':
+            // Deliberately does nothing to the session. See the note on this
+            // state in ArabicSpeech.types.ts: reacting to focus loss is what
+            // made the app take the microphone from itself.
+            setAudioFocus('lost');
+            break;
+          case 'audio-focus-regained':
+            setAudioFocus('held');
+            break;
+          case 'mic-unavailable':
             if (wantsToListen.current) {
               wantsToListen.current = false;
               setStatus('paused');
-              callbacks.current.onInterrupted('Another app took the microphone');
+              callbacks.current.onInterrupted('The microphone is in use elsewhere');
             }
             break;
           case 'failed':
@@ -234,7 +246,10 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
   // ---------------------------------------------------------------------
   useEffect(() => {
     const sub = AppState.addEventListener('change', (next: AppStateStatus) => {
-      if (next !== 'active' && wantsToListen.current) {
+      // Only 'background'. Android reports 'inactive' transiently — during a
+      // permission dialog, or when the privacy indicator appears — and treating
+      // that as backgrounding is another way to pause a session nobody left.
+      if (next === 'background' && wantsToListen.current) {
         wantsToListen.current = false;
         void ArabicSpeech().stop().catch(() => undefined);
         setStatus('paused');
@@ -302,6 +317,7 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
 
   return {
     status,
+    audioFocus,
     level,
     strategy,
     capabilities,

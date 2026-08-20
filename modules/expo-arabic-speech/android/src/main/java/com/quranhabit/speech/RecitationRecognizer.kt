@@ -377,6 +377,20 @@ class RecitationRecognizer(
   // audio focus
   // -------------------------------------------------------------------------
 
+  /**
+   * Request audio focus so other apps stop playing sound into the microphone.
+   *
+   * Losing that focus is reported but NEVER treated as losing the microphone.
+   * Audio focus governs PLAYBACK, not capture, and the two are routinely
+   * confused. Pausing recitation on focus loss made the app take the microphone
+   * from itself: the system recognition service requests focus for its own
+   * session the moment it starts listening, which revokes ours, so every session
+   * paused immediately with "another app took the microphone" while no other app
+   * was involved. A notification chime would have done the same.
+   *
+   * Real microphone loss arrives as ERROR_AUDIO from the recognizer, which is
+   * handled in the listener below as a recoverable interruption.
+   */
   private fun requestAudioFocus() {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
       val attributes = AudioAttributes.Builder()
@@ -389,8 +403,10 @@ class RecitationRecognizer(
           when (change) {
             AudioManager.AUDIOFOCUS_LOSS,
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT,
-            -> emitState("interrupted")
-            AudioManager.AUDIOFOCUS_GAIN -> emitState("focus-regained")
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK,
+            -> emitState("audio-focus-lost")
+            AudioManager.AUDIOFOCUS_GAIN -> emitState("audio-focus-regained")
+            else -> Unit
           }
         }
         .build()
@@ -461,11 +477,20 @@ class RecitationRecognizer(
         // restart silently; the session is not over because the recognizer
         // heard nothing for a moment
         main.postDelayed({ if (active) launch(fresh = false) }, RESTART_DELAY_MS)
-      } else {
+        return
+      }
+      if (error == SpeechRecognizer.ERROR_AUDIO) {
+        // The ONLY signal that actually means the microphone is gone. Recoverable
+        // by tapping resume once whatever holds it lets go, so it is an
+        // interruption rather than a failed session.
         active = false
         abandonAudioFocus()
-        emitState("failed")
+        emitState("mic-unavailable")
+        return
       }
+      active = false
+      abandonAudioFocus()
+      emitState("failed")
     }
 
     override fun onResults(results: Bundle?) {
@@ -600,7 +625,8 @@ class RecitationRecognizer(
       SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE ->
         "The Arabic offline pack is not downloaded yet. Tap 'Install Arabic offline' on the recitation screen."
       SpeechRecognizer.ERROR_AUDIO ->
-        "The microphone could not be read. Another app may hold it — close voice calls or recorders and try again."
+        "The microphone could not be read. Something else is holding it — end any call, voice recorder or " +
+          "assistant, then tap resume."
       SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT ->
         "The recognizer fell back to the network and could not reach it. Install the Arabic offline pack to work fully offline."
       SpeechRecognizer.ERROR_SERVER, SpeechRecognizer.ERROR_SERVER_DISCONNECTED ->

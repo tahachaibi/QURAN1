@@ -93,6 +93,37 @@ code was never in the repo at all. Patterns are anchored now (`/android/`,
 `/ios/`) and both CI jobs assert the Kotlin exists in the checkout before
 anything tries to use it.
 
+## The first bug a real device found
+
+**Every session paused instantly with "Another app took the microphone", with no
+other app involved.** The app was taking the microphone from itself.
+
+I wired the audio-focus change listener to pause the session on
+`AUDIOFOCUS_LOSS` / `AUDIOFOCUS_LOSS_TRANSIENT`. But audio focus governs
+**playback**, not capture. The system recognition service requests focus for its
+own session the moment it starts listening, which revokes ours — so the very act
+of starting to listen produced the event that stopped listening. A notification
+chime would have done the same thing, mid-ayah.
+
+The focus request itself is correct and stays: `GAIN_TRANSIENT_EXCLUSIVE` is the
+documented way to ask other apps to stop playing sound into your microphone. It
+is the *reaction* that was wrong. Focus loss is now reported as
+`audio-focus-lost`, shown in the debug overlay, and does nothing to the session.
+
+Real microphone loss has exactly one reliable signal: `ERROR_AUDIO` from the
+recognizer. That now raises `mic-unavailable`, which is treated as a *recoverable*
+interruption with a one-tap resume rather than a failed session.
+
+Two related hardenings came out of the same look:
+
+- §4's "pause any Listen-tab playback when the mic starts" is now done
+  explicitly, by the provider calling a stopper the Listen panel registers.
+  Leaning on audio focus for that was the thinking that caused the bug.
+- The AppState pause now fires only on `background`, not on any non-`active`
+  state. Android reports `inactive` transiently — during a permission dialog, or
+  when the privacy indicator appears — and that was another way to pause a
+  session nobody had left.
+
 ## Things I found and fixed while building
 
 **The article-collapse bug.** §5.1 says to collapse the definite article's

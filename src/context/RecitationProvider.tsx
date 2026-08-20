@@ -133,6 +133,13 @@ export interface RecitationContextValue {
 
   /** start a practice run over a word range, from its first word */
   practiseRange: (from: number, to: number) => void;
+
+  /**
+   * Register a function that stops Listen-tab playback. Called when the mic
+   * starts (§4) — done explicitly rather than by relying on audio focus, which
+   * governs playback and says nothing about who holds the microphone.
+   */
+  registerPlaybackStopper: (stop: (() => void) | null) => void;
 }
 
 const RecitationContext = createContext<RecitationContextValue | null>(null);
@@ -163,6 +170,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
    * of a single recitation.
    */
   const gradedSessionAt = useRef(0);
+  const playbackStopper = useRef<(() => void) | null>(null);
 
   const config = useMemo<SessionConfig>(
     () => ({
@@ -306,8 +314,15 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
     void saveProgress(persistSurah, session.cursor);
   }, [persistSurah, session.cursor, session.status]);
 
+  const registerPlaybackStopper = useCallback((stop: (() => void) | null) => {
+    playbackStopper.current = stop;
+  }, []);
+
   const start = useCallback(
     (fromWord?: number) => {
+      // Reciting and listening at once would feed the reciter's own audio back
+      // into the recognizer (§4).
+      playbackStopper.current?.();
       const cursor = fromWord ?? session.cursor;
       capture.current = { name: `session-${new Date().toISOString()}`, startCursor: cursor, events: [] };
       lastEventAt.current = 0;
@@ -498,6 +513,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       silenceTimedOut,
       captureFixture: () => capture.current,
       practiseRange,
+      registerPlaybackStopper,
     }),
     [
       session,
@@ -521,6 +537,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       interruption,
       silenceTimedOut,
       practiseRange,
+      registerPlaybackStopper,
     ],
   );
 

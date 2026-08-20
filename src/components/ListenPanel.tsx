@@ -32,6 +32,8 @@ export interface ListenPanelProps {
   width: number;
   page: number;
   onPageChange: (page: number) => void;
+  /** lets the recitation session stop playback before it opens the mic (§4) */
+  registerPlaybackStopper?: (stop: (() => void) | null) => void;
 }
 
 export function ListenPanel(props: ListenPanelProps) {
@@ -47,6 +49,7 @@ export function ListenPanel(props: ListenPanelProps) {
     hintLevelOf,
     width,
     page,
+    registerPlaybackStopper,
   } = props;
 
   const [playing, setPlaying] = useState(false);
@@ -70,6 +73,16 @@ export function ListenPanel(props: ListenPanelProps) {
     },
     [unload],
   );
+
+  // Hand the provider a way to silence playback when the microphone opens.
+  useEffect(() => {
+    if (registerPlaybackStopper === undefined) return undefined;
+    registerPlaybackStopper(() => {
+      void sound.current?.pauseAsync().catch(() => undefined);
+      setPlaying(false);
+    });
+    return () => registerPlaybackStopper(null);
+  }, [registerPlaybackStopper]);
 
   const playAyah = useCallback(
     async (target: number) => {

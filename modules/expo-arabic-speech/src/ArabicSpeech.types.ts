@@ -56,8 +56,16 @@ export interface SpeechStateEvent {
     | 'stopped'
     | 'cancelled'
     | 'failed'
-    | 'interrupted'
-    | 'focus-regained'
+    /**
+     * Audio focus was lost. INFORMATIONAL ONLY — audio focus governs playback,
+     * not capture, so this must never pause a recitation. A notification chime
+     * emits this, and so does the system recognition service taking focus for
+     * its own session.
+     */
+    | 'audio-focus-lost'
+    | 'audio-focus-regained'
+    /** the microphone really is gone (ERROR_AUDIO); offer a one-tap resume */
+    | 'mic-unavailable'
     | 'segmented-unsupported';
   strategy: SpeechStrategy;
   /** measured gap, in ms, between releasing one recognizer and the next (§4.3) */

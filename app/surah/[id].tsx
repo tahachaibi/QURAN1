@@ -92,6 +92,7 @@ export default function SurahScreen() {
     setRange,
     range,
     practiseRange,
+    registerPlaybackStopper,
   } = recitation;
 
   const seedSurah = clampSurah(Number(params.id ?? '1'));
@@ -272,6 +273,7 @@ export default function SurahScreen() {
             width={width}
             page={viewedPage}
             onPageChange={setViewedPage}
+            registerPlaybackStopper={registerPlaybackStopper}
           />
         )}
       </Pressable>

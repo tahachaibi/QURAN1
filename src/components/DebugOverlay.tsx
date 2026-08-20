@@ -56,6 +56,7 @@ export const DebugOverlay = memo(function DebugOverlay({
           <Row label="progress" value={String(d.progress)} palette={palette} />
           <Row label="engine latency" value={`${d.latencyMs} ms`} palette={palette} />
           <Row label="relay gap" value={`${recognizer.lastRelayGapMs} ms`} palette={palette} />
+          <Row label="audio focus" value={recognizer.audioFocus} palette={palette} />
           <Row label="watchdog restarts" value={String(recognizer.watchdogRestarts)} palette={palette} />
           <Row label="segmented proven" value={String(recognizer.capabilities?.segmentedProven ?? false)} palette={palette} />
           <Row label="on-device" value={String(recognizer.capabilities?.onDeviceAvailable ?? false)} palette={palette} />
