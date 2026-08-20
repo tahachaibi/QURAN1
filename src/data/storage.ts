@@ -6,6 +6,8 @@
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import type { MistakeRecord } from '../engine/confusion';
+import type { HifzDeck } from '../engine/hifz';
 import type { FontStep } from '../theme/theme';
 
 const KEY = {
@@ -16,6 +18,8 @@ const KEY = {
   streak: 'qh:streak:v1',
   prayerCache: 'qh:prayer-cache:v1',
   onboarded: 'qh:onboarded:v1',
+  hifz: 'qh:hifz:v1',
+  mistakeLog: 'qh:mistake-log:v1',
 } as const;
 
 export interface Prefs {
@@ -216,4 +220,46 @@ export function today(date = new Date()): string {
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
+}
+
+// ---------------------------------------------------------------------------
+// hifz deck: the spaced-repetition state, keyed by global ayah index
+// ---------------------------------------------------------------------------
+
+export const loadHifzDeck = (): Promise<HifzDeck> => readJson<HifzDeck>(KEY.hifz, {});
+
+export const saveHifzDeck = (deck: HifzDeck): Promise<void> => writeJson(KEY.hifz, deck);
+
+// ---------------------------------------------------------------------------
+// mistake history, for the confusion profile
+// ---------------------------------------------------------------------------
+
+/** Keep a bounded window: enough to see a pattern, small enough to parse fast. */
+export const MISTAKE_LOG_CAP = 500;
+
+export async function loadMistakeLog(): Promise<MistakeRecord[]> {
+  try {
+    const raw = await AsyncStorage.getItem(KEY.mistakeLog);
+    if (raw === null) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (r): r is MistakeRecord =>
+        r !== null &&
+        typeof r === 'object' &&
+        typeof (r as MistakeRecord).word === 'number' &&
+        typeof (r as MistakeRecord).expected === 'string' &&
+        typeof (r as MistakeRecord).heardInstead === 'string',
+    );
+  } catch {
+    return [];
+  }
+}
+
+export async function appendMistakeLog(records: readonly MistakeRecord[]): Promise<MistakeRecord[]> {
+  if (records.length === 0) return loadMistakeLog();
+  const all = [...(await loadMistakeLog()), ...records];
+  const trimmed = all.slice(Math.max(0, all.length - MISTAKE_LOG_CAP));
+  await writeJson(KEY.mistakeLog, trimmed);
+  return trimmed;
 }

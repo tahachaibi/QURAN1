@@ -50,6 +50,9 @@ jobs:
             exit 1
           fi
 
+      - name: Native module source is committed
+        run: test -f modules/expo-arabic-speech/android/src/main/java/com/quranhabit/speech/RecitationRecognizer.kt
+
       - run: npm run typecheck
 
       - run: npm test -- --ci
@@ -82,6 +85,22 @@ jobs:
 
       - name: Prebuild the Android project
         run: npx expo prebuild --platform android --no-install
+
+      - name: Confirm the native module source is actually in the repo
+        # A .gitignore line of "android/" matches that directory name at ANY
+        # depth, which once excluded this entire module from git while it sat
+        # happily on disk passing every local check. Assert the Kotlin exists in
+        # the CHECKOUT, before anything tries to compile it.
+        run: |
+          for f in \
+            modules/expo-arabic-speech/android/build.gradle \
+            modules/expo-arabic-speech/android/src/main/AndroidManifest.xml \
+            modules/expo-arabic-speech/android/src/main/java/com/quranhabit/speech/ArabicSpeechModule.kt \
+            modules/expo-arabic-speech/android/src/main/java/com/quranhabit/speech/RecitationRecognizer.kt
+          do
+            test -f "$f" || { echo "::error::$f is missing from the checkout — is it gitignored?"; exit 1; }
+          done
+          echo "native module source present"
 
       - name: Confirm autolinking discovers the native module
         # NOT a grep of settings.gradle: Expo's template calls useExpoModules()

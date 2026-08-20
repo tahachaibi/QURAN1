@@ -14,6 +14,10 @@ yarn-error.*
 *.orig.*
 .env
 .env.local
-android/
-ios/
+# Anchored to the repo root ON PURPOSE. An unanchored "android/" matches a
+# directory of that name at ANY depth, which silently excluded the whole native
+# module at modules/expo-arabic-speech/android/ — the Kotlin was on disk, passed
+# every local check, and was never committed.
+/android/
+/ios/
 coverage/

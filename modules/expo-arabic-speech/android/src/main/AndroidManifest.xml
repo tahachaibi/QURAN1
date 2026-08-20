@@ -1,0 +1,14 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <uses-permission android:name="android.permission.RECORD_AUDIO" />
+  <!--
+    Android 11+ package visibility: without this the app cannot see, and
+    therefore cannot bind to, the system recognition service. Omitting it makes
+    SpeechRecognizer.isRecognitionAvailable() return false on a device that in
+    fact has a perfectly good recognizer.
+  -->
+  <queries>
+    <intent>
+      <action android:name="android.speech.RecognitionService" />
+    </intent>
+  </queries>
+</manifest>
