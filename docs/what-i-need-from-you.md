@@ -80,24 +80,16 @@ three real sessions are worth more than anything I can synthesise.
 
 ## 3. Two decisions only you can make
 
-### a) True 15-line mushaf pages — licence question
+### a) True 15-line mushaf pages — download one file from QUL
 
-Right now page **boundaries** are exact (verified against a printed mushaf) but
-line breaks inside the page are approximate: the text wraps. Real 15-line pages
-need per-word line data, and the datasets I found have **no licence file**:
+Page **boundaries** are exact (verified against a printed mushaf); line breaks
+inside the page are computed by the app rather than matching the print. The real
+per-word line data lives on QUL — Tarteel's own open library — which this
+environment's proxy blocks me from reaching.
 
-- `zonetecde/mushaf-layout` — exactly the right shape (604 JSON files,
-  per-word `location` + line), **no LICENSE**
-- `blueheron786/quranic-universal-library-mushaf-layouts` — QUL's layouts as
-  SQLite, **no LICENSE**
-- QUL itself (`qul.tarteel.ai`) — blocked from my environment, so I could not
-  read their terms
-
-I am not going to bundle Quran layout data of unclear provenance into your app.
-If you can either confirm the licence, or point me at a source you're happy with,
-say the word and I'll build the generator, the structural validator (604 pages ×
-15 lines, every word assigned exactly once, consistent with the page boundaries I
-already verified) and the line-aware renderer.
+**See `docs/mushaf-layout.md`** for the five-minute version: what to download,
+which layout to pick, the licence line to copy off the resource page, and the
+five checks the generator will run before I trust the file.
 
 Be aware of the one thing I cannot do here: **I cannot look at the result.** I
 can prove it is structurally correct; I cannot tell you it looks like a mushaf.
