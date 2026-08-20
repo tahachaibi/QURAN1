@@ -48,6 +48,9 @@ if (globalAyah !== q.meta.numAyahs) {
 }
 
 mkdirSync('src/assets', { recursive: true });
-writeFileSync('src/assets/quran-data.json', JSON.stringify(rows));
-const bytes = JSON.stringify(rows).length;
+const json = JSON.stringify(rows);
+writeFileSync('src/assets/quran-data.json', json);
+// Byte length, not string length: Arabic is two bytes per character in UTF-8,
+// so `.length` reports about half the real file size.
+const bytes = Buffer.byteLength(json, 'utf8');
 console.log(`quran-data.json: 114 surahs, ${globalAyah} ayahs, ${(bytes / 1024 / 1024).toFixed(2)} MB`);

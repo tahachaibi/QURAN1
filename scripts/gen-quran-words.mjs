@@ -63,8 +63,9 @@ const out = {
   pageStartWord,
   surahStartWord,
 };
-writeFileSync('src/assets/quran-words.json', JSON.stringify(out));
-const bytes = JSON.stringify(out).length;
+const json = JSON.stringify(out);
+writeFileSync('src/assets/quran-words.json', json);
+const bytes = Buffer.byteLength(json, 'utf8');
 console.log(
   `quran-words.json: ${words.length} words, ${(bytes / 1024 / 1024).toFixed(2)} MB, ` +
     `unique ${new Set(words).size}`,
