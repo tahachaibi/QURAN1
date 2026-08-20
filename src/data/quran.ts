@@ -247,8 +247,36 @@ export function ayahDisplayWords(a: Ayah): string[] {
   return tokenizeAyah(a.text).display;
 }
 
-export const juzStartPage = (jz: number): number => {
-  const target = jz < 1 ? 1 : jz > TOTAL_JUZ ? TOTAL_JUZ : jz | 0;
-  for (const row of DATA) for (const v of row[5]) if (v[3] === target) return v[2];
-  return 1;
-};
+/**
+ * The first ayah of each juz, resolved once.
+ *
+ * Only a handful of juz begin at a surah boundary, so `surahs.find(s => s.juz
+ * === n)` finds nothing for juz 2, 3, 5 ... and silently falls back to
+ * Al-Fatiha. The juz jump has to be built from the ayah table.
+ */
+const JUZ_START: readonly { surah: number; ayah: number; page: number; word: number }[] = (() => {
+  const out: { surah: number; ayah: number; page: number; word: number }[] = [];
+  let g = 0;
+  let seen = 0;
+  for (const row of DATA) {
+    for (const v of row[5]) {
+      const juz = v[3];
+      if (juz === seen + 1) {
+        out.push({ surah: row[0], ayah: v[0], page: v[2], word: ayahStartWord[g] });
+        seen = juz;
+      }
+      g++;
+    }
+  }
+  if (out.length !== TOTAL_JUZ) {
+    throw new Error(`built ${out.length} juz starts, expected ${TOTAL_JUZ}`);
+  }
+  return out;
+})();
+
+const clampJuz = (jz: number): number => (jz < 1 ? 1 : jz > TOTAL_JUZ ? TOTAL_JUZ : jz | 0);
+
+export const juzStart = (jz: number): { surah: number; ayah: number; page: number; word: number } =>
+  JUZ_START[clampJuz(jz) - 1];
+
+export const juzStartPage = (jz: number): number => juzStart(jz).page;

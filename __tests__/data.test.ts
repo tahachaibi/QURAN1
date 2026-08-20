@@ -15,6 +15,7 @@ import {
   ayahStartWord,
   ayahWordRange,
   globalAyahOf,
+  juzStart,
   pageOf,
   pageStartWord,
   pageWordRange,
@@ -154,4 +155,41 @@ describe('display tokens correspond 1:1 with word indices (load-bearing)', () =>
       expect(ayahDisplayWords(a)).toHaveLength(to - from);
     }
   });
+});
+
+describe('juz jump targets', () => {
+  it('resolves all 30 juz starts, monotonically, to the right ayah', () => {
+    let previousWord = -1;
+    for (let juz = 1; juz <= 30; juz++) {
+      const start = juzStart(juz);
+      expect(start.word).toBeGreaterThan(previousWord);
+      previousWord = start.word;
+      // the ayah it names really is the first ayah of that juz
+      expect(ayahAt(start.surah, start.ayah).juz).toBe(juz);
+      expect(ayahAt(start.surah, start.ayah).page).toBe(start.page);
+      expect(wordIndexOf(start.surah, start.ayah)).toBe(start.word);
+    }
+  });
+
+  it('matches the juz boundaries every mushaf prints', () => {
+    // hand-checked against a printed mushaf, not read back from the generator
+    const expected: [number, number, number][] = [
+      [1, 1, 1],
+      [2, 2, 142],
+      [3, 2, 253],
+      [4, 3, 93],
+      [11, 9, 93], // 9:93, not the commonly-misremembered 9:94
+      [16, 18, 75],
+      [22, 33, 31],
+      [30, 78, 1],
+    ];
+    for (const [juz, surah, ayah] of expected) {
+      expect({ juz, ...pick(juzStart(juz)) }).toEqual({ juz, surah, ayah });
+    }
+  });
+});
+
+const pick = (s: { surah: number; ayah: number }): { surah: number; ayah: number } => ({
+  surah: s.surah,
+  ayah: s.ayah,
 });

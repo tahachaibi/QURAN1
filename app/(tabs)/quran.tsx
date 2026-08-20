@@ -7,7 +7,7 @@ import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-na
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-import { ayahByGlobal, globalAyahOf, juzStartPage, surahs, TOTAL_JUZ, type SurahInfo } from '../../src/data/quran';
+import { ayahByGlobal, globalAyahOf, juzStart, surahs, TOTAL_JUZ, type SurahInfo } from '../../src/data/quran';
 import { lastPosition } from '../../src/data/storage';
 import { useRecitation } from '../../src/context/RecitationProvider';
 import { useTheme } from '../../src/theme/ThemeProvider';
@@ -106,12 +106,10 @@ export default function QuranScreen() {
         ListHeaderComponent={
           <JuzStrip
             onJump={(juz) => {
-              const page = juzStartPage(juz);
-              setViewedPage(page);
-              const first = ayahByGlobal(0);
-              // find the surah/ayah that opens this juz for a correct seed
-              const target = surahs.find((s) => s.juz === juz) ?? { number: first.surah };
-              open(target.number);
+              const start = juzStart(juz);
+              seekTo(start.word);
+              setViewedPage(start.page);
+              open(start.surah, start.ayah);
             }}
             palette={palette}
           />
