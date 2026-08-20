@@ -93,6 +93,43 @@ code was never in the repo at all. Patterns are anchored now (`/android/`,
 `/ios/`) and both CI jobs assert the Kotlin exists in the checkout before
 anything tries to use it.
 
+## The bug a real device found that no test could
+
+**The tashkeel rendered red, and a fifth of the Quran was silently missing a
+diacritic.** Both from the same cause, and both invisible from here.
+
+`@expo-google-fonts/amiri-quran` does not ship Amiri Quran. It ships Amiri Quran
+**Coloured**: the TTF carries `COLR` (8,366 bytes) and `CPAL` tables painting 612
+glyphs from a four-colour palette — `#CC3333` red, `#00A550` green, `#EE9933`
+orange, `#336699` blue. Android honours COLRv0 from API 26, so it faithfully
+painted the marks. That is not merely a taste question: red is the missed-word
+signal (§6.3, "no red text on the sacred text"), so a red-marked text destroys
+the error channel entirely, and the palette's `#EE9933` sits almost on top of the
+accent gold `#C9A227`.
+
+Checking the font's coverage against the text it has to render then turned up the
+worse problem. **Amiri Quran has no glyph for U+065E** (ARABIC FATHA WITH TWO
+DOTS), which the bundled Uthmani text uses **1,807 times across 1,241 ayahs** — a
+fifth of the Quran. A missing *combining mark* renders as nothing rather than a
+tofu box, so every page still looked plausible. And Al-Fatiha contains none of
+them, so the one page anybody would test on could never reveal it; the first
+affected page is page 3.
+
+Plain **Amiri** covers all 73 codepoints the text uses and carries no colour
+tables, so the ayah text now uses Amiri. This is a deliberate departure from §7,
+made for the reason §7 gives for specifying a font at all — "correct
+tashkeel/Quranic marks". Amiri Quran demonstrably renders 1,807 of them as
+nothing.
+
+I did not ship a "coloured marks" toggle. Coloured Quranic marks are a legitimate
+scholarly convention, but the only coloured font available here is the one with
+the glyph hole, and offering a knowingly-broken option is worse than not offering
+it. The right fix, if it is wanted, is a complete coloured Quranic font.
+
+`scripts/verify-fonts.mjs` now parses the sfnt directory and cmap in pure Node
+and fails the build on either condition. Pointed at Amiri Quran it rejects it on
+both counts, which is the only reason to trust it.
+
 ## The first bug a real device found
 
 **Every session paused instantly with "Another app took the microphone", with no

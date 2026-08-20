@@ -13,7 +13,6 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import { Amiri_400Regular, Amiri_700Bold } from '@expo-google-fonts/amiri';
-import { AmiriQuran_400Regular } from '@expo-google-fonts/amiri-quran';
 
 import { RecitationProvider } from '../src/context/RecitationProvider';
 import { ThemeProvider, useTheme } from '../src/theme/ThemeProvider';
@@ -23,10 +22,27 @@ import { lightPalette } from '../src/theme/theme';
 export default function RootLayout() {
   // Every hook runs before any early return (§10): rendering nothing while the
   // fonts load must not change the hook order on the next pass.
+  /**
+   * Amiri, not Amiri Quran, for the ayah text — a deliberate departure from §7,
+   * for the reason §7 gives for choosing a font at all ("correct
+   * tashkeel/Quranic marks"):
+   *
+   *   - Amiri Quran has NO GLYPH for U+065E, which the bundled Uthmani text uses
+   *     1,807 times across 1,241 ayahs. A missing combining mark renders as
+   *     nothing, so a fifth of the Quran silently lost a diacritic while every
+   *     page still looked right. Al-Fatiha contains none, so the obvious test
+   *     page could never show it.
+   *   - Amiri Quran is really Amiri Quran *Coloured*: COLR/CPAL paint 612 glyphs
+   *     red, green, orange and blue. Android honours COLRv0 from API 26, so the
+   *     tashkeel came out red on device — colliding with red as the missed-word
+   *     signal (§6.3) and with the accent gold.
+   *
+   * Amiri covers all 73 codepoints the text uses and carries no colour tables.
+   * scripts/verify-fonts.mjs asserts both properties on every CI run.
+   */
   const [fontsLoaded, fontError] = useFonts({
     Amiri_400Regular,
     Amiri_700Bold,
-    AmiriQuran_400Regular,
   });
 
   if (fontError !== null) {
@@ -35,8 +51,8 @@ export default function RootLayout() {
         <Text style={[styles.error, { color: lightPalette.error }]}>
           Amiri could not be loaded: {fontError.message}
           {'\n\n'}
-          The Quran text needs Amiri Quran for correct tashkeel. Reinstall dependencies with
-          `npm install` and rebuild the dev client.
+          The Quran text needs Amiri for correct tashkeel. Reinstall dependencies with
+          `npm install` and rebuild the app.
         </Text>
       </View>
     );

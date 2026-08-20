@@ -99,7 +99,7 @@ export const duration = {
 } as const;
 
 export const fonts = {
-  quran: 'AmiriQuran_400Regular',
+  quran: 'Amiri_400Regular',
   arabic: 'Amiri_400Regular',
   arabicBold: 'Amiri_700Bold',
 } as const;

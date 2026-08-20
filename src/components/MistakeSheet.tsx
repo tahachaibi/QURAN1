@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
   },
   rowText: { flex: 1 },
   phrase: {
-    fontFamily: 'AmiriQuran_400Regular',
+    fontFamily: 'Amiri_400Regular',
     fontSize: 19,
     lineHeight: 42,
     textAlign: 'right',

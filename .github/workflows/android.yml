@@ -50,6 +50,9 @@ jobs:
             exit 1
           fi
 
+      - name: Ayah font can render the mushaf, and paints no colours of its own
+        run: npm run gen:verify-fonts
+
       - name: Native module source is committed
         run: test -f modules/expo-arabic-speech/android/src/main/java/com/quranhabit/speech/RecitationRecognizer.kt
 

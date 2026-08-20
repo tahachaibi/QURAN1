@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
     gap: space.xs,
   },
   patternHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
-  patternGlyph: { fontFamily: 'AmiriQuran_400Regular', fontSize: 22, writingDirection: 'rtl' },
+  patternGlyph: { fontFamily: 'Amiri_400Regular', fontSize: 22, writingDirection: 'rtl' },
   patternTag: {
     borderRadius: radius.pill,
     borderWidth: StyleSheet.hairlineWidth,

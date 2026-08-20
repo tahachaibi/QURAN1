@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
   },
   basmala: {
-    fontFamily: 'AmiriQuran_400Regular',
+    fontFamily: 'Amiri_400Regular',
     fontSize: 20,
     marginTop: space.xs,
     lineHeight: 44,
