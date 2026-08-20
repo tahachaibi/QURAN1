@@ -80,6 +80,20 @@ class RecitationRecognizer(
   /** set once this device has proved it ignores EXTRA_SEGMENTED_SESSION */
   private var segmentedFailed = false
 
+  /**
+   * Whether to still ask for offline recognition.
+   *
+   * Starts as the caller's preference and is dropped for the rest of the session
+   * the first time the recognizer says it has no offline model. Forcing
+   * EXTRA_PREFER_OFFLINE on a device with no Arabic pack makes the recognizer
+   * return ERROR_LANGUAGE_UNAVAILABLE and produce NOTHING: the microphone opens,
+   * the level meter moves, and not one word is ever recognised.
+   */
+  private var offlineViable = true
+
+  /** results seen from the current recognizer instance; drives the demotions */
+  private var resultsThisInstance = 0
+
   /** the live recognizer, and the outgoing one during a relay handover */
   private var current: SpeechRecognizer? = null
   private var outgoing: SpeechRecognizer? = null
@@ -230,6 +244,7 @@ class RecitationRecognizer(
     }
     active = true
     segmentedAttempts = 0
+    offlineViable = options.preferOnDevice
     requestAudioFocus()
     strategy = chooseStrategy()
     emitState("starting")
@@ -297,6 +312,7 @@ class RecitationRecognizer(
 
       val gap = if (relayStartedAt == 0L) 0L else System.currentTimeMillis() - relayStartedAt
       relayStartedAt = System.currentTimeMillis()
+      resultsThisInstance = 0
 
       runCatching {
         recognizer.startListening(buildIntent(options.locale, segmented = strategy == Strategy.SEGMENTED))
@@ -358,7 +374,8 @@ class RecitationRecognizer(
         options.minimumLengthMs,
       )
 
-      if (options.preferOnDevice) {
+      // Only ask for offline while it is still believed to work; see offlineViable.
+      if (offlineViable) {
         putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
       }
 
@@ -488,6 +505,19 @@ class RecitationRecognizer(
         emitState("mic-unavailable")
         return
       }
+      // No offline Arabic model. This is not a dead session, it is a wrong
+      // request. Drop the offline preference and carry on; the alternative is a
+      // microphone that listens forever and recognises nothing.
+      val noOfflineModel =
+        error == SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE ||
+          error == SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED
+      if (noOfflineModel && offlineViable) {
+        offlineViable = false
+        emitState("offline-unavailable")
+        main.postDelayed({ if (active) launch(fresh = false) }, RESTART_DELAY_MS)
+        return
+      }
+
       active = false
       abandonAudioFocus()
       emitState("failed")
@@ -496,6 +526,7 @@ class RecitationRecognizer(
     override fun onResults(results: Bundle?) {
       if (stale) return
       lastResultAt = System.currentTimeMillis()
+      resultsThisInstance++
       emitTranscript("final", results)
       // A non-segmented session is finished after its results. Relay onwards.
       if (active && strategy != Strategy.SEGMENTED) {
@@ -506,6 +537,7 @@ class RecitationRecognizer(
     override fun onPartialResults(partialResults: Bundle?) {
       if (stale) return
       lastResultAt = System.currentTimeMillis()
+      resultsThisInstance++
       emitTranscript("partial", partialResults)
     }
 
@@ -514,6 +546,7 @@ class RecitationRecognizer(
       // Arriving here proves the device honours segmented mode.
       segmentedProven = true
       lastResultAt = System.currentTimeMillis()
+      resultsThisInstance++
       emitTranscript("final", segmentResults)
     }
 

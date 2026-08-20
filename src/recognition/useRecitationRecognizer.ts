@@ -31,6 +31,18 @@ export type RecognizerStatus = 'idle' | 'starting' | 'listening' | 'paused' | 'e
 const SPEECH_RMS_DB = 1.5;
 /** Speech seen but no result for this long means the recognizer is dead (§4). */
 const WATCHDOG_MS = 2500;
+/**
+ * How long a freshly started recognizer is left alone.
+ *
+ * The §4 rule on its own ("speech but no result for 2.5 s means dead") is unsafe
+ * as a blanket policy: a recognizer that simply has not produced its first
+ * partial yet looks identical to a dead one, so the watchdog would cancel and
+ * restart it every 2.5 seconds forever and nothing would ever be recognised. A
+ * new instance gets this long to say its first word.
+ */
+const WATCHDOG_GRACE_MS = 8000;
+/** Consecutive watchdog restarts before we stop and admit something is wrong. */
+const MAX_WATCHDOG_RESTARTS = 3;
 /** How often the watchdog checks. */
 const WATCHDOG_TICK_MS = 500;
 /** True silence for this long ends the session with a gentle prompt (§4). */
@@ -63,6 +75,10 @@ export interface RecognizerHandle {
   lastRelayGapMs: number;
   /** how many times the watchdog had to resurrect a dead recognizer */
   watchdogRestarts: number;
+  /** true once any transcript has arrived this session */
+  heardSomething: boolean;
+  /** the Arabic offline model was missing, so recognition went online */
+  offlineDropped: boolean;
   linked: boolean;
   start: () => void;
   stop: () => void;
@@ -87,6 +103,10 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
   const [lastError, setLastError] = useState<SpeechErrorEvent | null>(null);
   const [lastRelayGapMs, setLastRelayGapMs] = useState(0);
   const [watchdogRestarts, setWatchdogRestarts] = useState(0);
+  /** has ANY result arrived this session — the difference between "quiet" and "deaf" */
+  const [heardSomething, setHeardSomething] = useState(false);
+  /** the offline model was missing, so the session fell back to online */
+  const [offlineDropped, setOfflineDropped] = useState(false);
   const [audioFocus, setAudioFocus] = useState<'held' | 'lost'>('held');
 
   const level = useRef(new Animated.Value(0)).current;
@@ -98,6 +118,8 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
   const lastResultAt = useRef(0);
   const lastSpeechAt = useRef(0);
   const sessionStartedAt = useRef(0);
+  const instanceStartedAt = useRef(0);
+  const consecutiveRestarts = useRef(0);
   const callbacks = useRef(config);
   callbacks.current = config;
 
@@ -109,6 +131,7 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
     const now = Date.now();
     lastResultAt.current = now;
     lastSpeechAt.current = now;
+    instanceStartedAt.current = now;
     void ArabicSpeech()
       .start({
         locale: configRef.current.locale,
@@ -143,10 +166,14 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
     const subs = [
       speech.addListener('partial', (event: TranscriptEvent) => {
         lastResultAt.current = Date.now();
+        consecutiveRestarts.current = 0;
+        setHeardSomething(true);
         callbacks.current.onPartial(event);
       }),
       speech.addListener('final', (event: TranscriptEvent) => {
         lastResultAt.current = Date.now();
+        consecutiveRestarts.current = 0;
+        setHeardSomething(true);
         callbacks.current.onFinal(event);
       }),
       speech.addListener('endOfSegment', () => {
@@ -192,6 +219,11 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
               callbacks.current.onInterrupted('The microphone is in use elsewhere');
             }
             break;
+          case 'offline-unavailable':
+            // Not fatal: the session continues online. Recorded so the UI can
+            // explain why recitation is no longer private on this device.
+            setOfflineDropped(true);
+            break;
           case 'failed':
             setStatus('error');
             break;
@@ -226,8 +258,26 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
       }
 
       // The watchdog proper: there WAS a voice recently, yet nothing has come
-      // back. That is a dead recognizer, not a quiet reciter.
-      if (sinceResult > WATCHDOG_MS && sinceSpeech < WATCHDOG_MS) {
+      // back. That is a dead recognizer, not a quiet reciter — but only once the
+      // instance has had its grace period, and only a few times before we stop
+      // guessing and say so.
+      const started = now - instanceStartedAt.current;
+      if (sinceResult > WATCHDOG_MS && sinceSpeech < WATCHDOG_MS && started > WATCHDOG_GRACE_MS) {
+        if (consecutiveRestarts.current >= MAX_WATCHDOG_RESTARTS) {
+          wantsToListen.current = false;
+          void ArabicSpeech().stop().catch(() => undefined);
+          setStatus('error');
+          setLastError({
+            code: -2,
+            name: 'no-recognition',
+            transient: false,
+            message:
+              'The microphone is working but the recognizer returned nothing after several restarts. ' +
+              'Install the Arabic offline pack, or try a different locale in Settings (ar-EG, ar-MA).',
+          });
+          return;
+        }
+        consecutiveRestarts.current += 1;
         setWatchdogRestarts((n) => n + 1);
         lastResultAt.current = now;
         void ArabicSpeech()
@@ -266,8 +316,11 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
     }
     wantsToListen.current = true;
     sessionStartedAt.current = Date.now();
+    consecutiveRestarts.current = 0;
     setStatus('starting');
     setLastError(null);
+    setHeardSomething(false);
+    setOfflineDropped(false);
     nativeStart();
   }, [linked, nativeStart]);
 
@@ -325,6 +378,8 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
     lastError,
     lastRelayGapMs,
     watchdogRestarts,
+    heardSomething,
+    offlineDropped,
     linked,
     start,
     stop,

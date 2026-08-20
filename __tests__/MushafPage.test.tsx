@@ -199,3 +199,105 @@ function countNodes(node: Json): number {
   walk(node);
   return count;
 }
+
+describe('measure-then-justify layout', () => {
+  /**
+   * react-test-renderer never fires layout events, so the justified pass has to
+   * be driven by hand. This simulates the words of page 1 landing on three
+   * lines and asserts the second pass stretches every line except the last.
+   */
+  function drive(page: number, linesOfY: number[]): ReactTestRenderer {
+    const tree = render(page);
+    const hosts = hostsWithLayout(tree);
+    expect(hosts.length).toBeGreaterThan(0);
+    act(() => {
+      hosts.forEach((h, i) => {
+        h.props.onLayout({
+          nativeEvent: { layout: { x: 0, y: linesOfY[i % linesOfY.length], width: 40, height: 40 } },
+        });
+      });
+    });
+    return tree;
+  }
+
+  /**
+   * Host nodes only. findAll returns both the composite element and the host it
+   * renders to, so an unfiltered search counts every match twice.
+   */
+  const hostsWithLayout = (tree: ReactTestRenderer) =>
+    tree.root.findAll((n) => typeof n.type === 'string' && typeof n.props.onLayout === 'function');
+
+  const flatten = (style: unknown): Record<string, unknown> | null => {
+    if (Array.isArray(style)) return Object.assign({}, ...style.filter(Boolean));
+    return style !== null && typeof style === 'object' ? (style as Record<string, unknown>) : null;
+  };
+
+  const rowsWith = (tree: ReactTestRenderer, value: string): number =>
+    tree.root.findAll((n) => {
+      if (typeof n.type !== 'string') return false;
+      const flat = flatten(n.props.style);
+      return flat !== null && flat.flexDirection === 'row-reverse' && flat.justifyContent === value;
+    }).length;
+
+  it('starts in a single continuous wrap so ayahs do not each begin a line', () => {
+    const tree = render(1);
+    // one wrapping container for the whole page, not one per ayah
+    const wraps = tree.root.findAll((n) => {
+      if (typeof n.type !== 'string') return false;
+      const flat = flatten(n.props.style);
+      return flat !== null && flat.flexWrap === 'wrap';
+    });
+    expect(wraps).toHaveLength(1);
+    tree.unmount();
+  });
+
+  it('justifies every line but the last once the words have been measured', () => {
+    const tree = drive(2, [0, 0, 0, 60, 60, 60, 120, 120]);
+    // three distinct y values -> three lines: two justified, the last flush right
+    expect(rowsWith(tree, 'space-between')).toBe(2);
+    expect(rowsWith(tree, 'flex-start')).toBe(1);
+    tree.unmount();
+  });
+
+  it('keeps every word after re-laying the lines: nothing is dropped', () => {
+    const before = collectText(render(3).toJSON()).join(' ');
+    const tree = drive(3, [0, 40, 80, 120]);
+    const after = collectText(tree.toJSON()).join(' ');
+    for (const word of before.split(/\s+/).filter((w) => w.length > 2)) {
+      expect(after).toContain(word);
+    }
+    tree.unmount();
+  });
+
+  it('falls back to the plain wrap when not every word reports a layout', () => {
+    const tree = render(1);
+    const hosts = hostsWithLayout(tree);
+    act(() => {
+      // only half the words report — grouping must not run on partial data
+      hosts.slice(0, Math.floor(hosts.length / 2)).forEach((h) => {
+        h.props.onLayout({ nativeEvent: { layout: { x: 0, y: 0, width: 40, height: 40 } } });
+      });
+    });
+    expect(rowsWith(tree, 'space-between')).toBe(0);
+    expect(tree.toJSON()).not.toBeNull();
+    tree.unmount();
+  });
+
+  it('scales the type down on a dense page so it still fits one screen', () => {
+    const sizeOn = (page: number): number => {
+      const tree = render(page);
+      const texts = tree.root.findAll(
+        (n) => typeof n.type === 'string' && Array.isArray(n.props.style),
+      );
+      let max = 0;
+      for (const t of texts) {
+        const flat = Object.assign({}, ...t.props.style.filter(Boolean));
+        if (typeof flat.fontSize === 'number') max = Math.max(max, flat.fontSize);
+      }
+      tree.unmount();
+      return max;
+    };
+    // Al-Fatiha is a sparse page; a mid-Baqarah page is dense
+    expect(sizeOn(1)).toBeGreaterThan(sizeOn(49));
+  });
+});

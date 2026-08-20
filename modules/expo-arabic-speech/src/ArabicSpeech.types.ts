@@ -66,6 +66,13 @@ export interface SpeechStateEvent {
     | 'audio-focus-regained'
     /** the microphone really is gone (ERROR_AUDIO); offer a one-tap resume */
     | 'mic-unavailable'
+    /**
+     * The recognizer has no offline Arabic model, so the offline preference was
+     * dropped and the session continues online. Informational: the session is
+     * still alive, and this is the difference between recognising something and
+     * recognising nothing at all.
+     */
+    | 'offline-unavailable'
     | 'segmented-unsupported';
   strategy: SpeechStrategy;
   /** measured gap, in ms, between releasing one recognizer and the next (§4.3) */

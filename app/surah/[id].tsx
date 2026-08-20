@@ -329,6 +329,40 @@ export default function SurahScreen() {
           <OfflineBadge palette={palette} label="Recitation needs the dev-client build" />
         ) : null}
 
+        {/* A dead recognizer used to fail in complete silence: the microphone
+            opened, the level meter moved, and nothing was ever recognised, with
+            no indication why. Every one of these states is now visible. */}
+        {recognizer.status === 'error' && recognizer.lastError !== null ? (
+          <Chip
+            label={recognizer.lastError.message}
+            icon="alert-circle-outline"
+            tone="error"
+            palette={palette}
+            onPress={() => router.push('/settings')}
+            accessibilityHint="Opens settings, where you can change the recognizer locale"
+          />
+        ) : null}
+
+        {listening && !recognizer.heardSomething ? (
+          <Chip
+            label="Listening — nothing recognised yet"
+            icon="ellipsis-horizontal"
+            palette={palette}
+            onPress={() => setTranscriptOpen(true)}
+            accessibilityHint="The microphone is open but the recognizer has not returned any words yet"
+          />
+        ) : null}
+
+        {recognizer.offlineDropped ? (
+          <Chip
+            label="No offline Arabic — recognising online"
+            icon="cloud-outline"
+            palette={palette}
+            onPress={() => void recognizer.requestLanguagePack()}
+            accessibilityHint="Downloads the on-device Arabic model so recitation stays on your phone"
+          />
+        ) : null}
+
         {recognizer.languageStatus !== null &&
         recognizer.languageStatus.supported &&
         recognizer.languageStatus.localeInstalled === false ? (
