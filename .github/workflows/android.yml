@@ -50,6 +50,9 @@ jobs:
             exit 1
           fi
 
+      - name: Mushaf layout maps onto the word array with zero drift
+        run: npm run gen:layout-check
+
       - name: Ayah font can render the mushaf, and paints no colours of its own
         run: npm run gen:verify-fonts
 

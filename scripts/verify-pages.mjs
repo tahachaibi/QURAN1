@@ -57,9 +57,11 @@ const checks = [
   ['surah table length', words.surahStartWord.length, 115],
   ['word count consistent', words.words.split(' ').length, words.count],
   ['al-fatiha word count', words.surahStartWord[1] - words.surahStartWord[0], 29],
+  // the four ayahs where the source joins words the mushaf writes separately
+  ['15:7 word count', words.ayahStartWord[1808] - words.ayahStartWord[1807], 8],
   // 2:72 is one word, not two: quran-json splits it across a space
   ['2:72 word count', words.ayahStartWord[79] - words.ayahStartWord[78], 10],
-  ['total word count', words.count, 77428],
+  ['total word count', words.count, 77432],
 ];
 
 let failed = 0;

@@ -30,13 +30,13 @@ const surahStartWord = [];
 let lastPage = 0;
 for (const [surah, , , , , verses] of data) {
   surahStartWord[surah - 1] = words.length;
-  for (const [, , page, , text] of verses) {
+  for (const [ayahNo, , page, , text] of verses) {
     ayahStartWord.push(words.length);
     while (lastPage < page) {
       pageStartWord[lastPage] = words.length;
       lastPage += 1;
     }
-    const ws = normalizeAyah(text);
+    const ws = normalizeAyah(text, surah, ayahNo);
     if (ws.length === 0) throw new Error(`surah ${surah}: ayah normalized to zero words: ${text}`);
     for (const w of ws) {
       if (w.includes(' ')) throw new Error(`normalized word contains a space: ${JSON.stringify(w)}`);

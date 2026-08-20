@@ -37,7 +37,7 @@ import { normalizeAyah } from '../src/engine/normalize';
 describe('the flat word array (§2)', () => {
   it('has the classical word count and matching offset tables', () => {
     expect(words.length).toBe(TOTAL_WORDS);
-    expect(TOTAL_WORDS).toBe(77428);
+    expect(TOTAL_WORDS).toBe(77432);
     expect(ayahStartWord.length).toBe(TOTAL_AYAHS + 1);
     expect(pageStartWord.length).toBe(TOTAL_PAGES + 1);
     expect(surahStartWord.length).toBe(TOTAL_SURAHS + 1);

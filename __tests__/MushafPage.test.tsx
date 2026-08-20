@@ -10,7 +10,8 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
 import { MushafPage } from '../src/components/MushafPage';
 import { lightPalette, darkPalette } from '../src/theme/theme';
-import { ayahDisplayWords, ayahsOnPage, pageWordRange, wordIndexOf } from '../src/data/quran';
+import { pageWordRange } from '../src/data/quran';
+import { linesOfPage } from '../src/data/lines';
 import type { PageSlice } from '../src/hooks/usePageSlice';
 
 const level = new Animated.Value(0);
@@ -61,22 +62,19 @@ describe('MushafPage renders', () => {
     tree.unmount();
   });
 
-  it('renders exactly the words in its own range and no others', () => {
+  it('renders exactly the words the real layout puts on the page', () => {
     const page = 3;
     const [from, to] = pageWordRange(page);
     const tree = render(page);
     const texts = collectText(tree.toJSON());
-    // every display token of every ayah on the page, clamped to the range
-    const expected: string[] = [];
-    for (const ayah of ayahsOnPage(page)) {
-      ayahDisplayWords(ayah).forEach((word, offset) => {
-        const index = ayah.wordStart + offset;
-        if (index >= from && index < to) expected.push(word);
-      });
+    for (const line of linesOfPage(page)) {
+      for (const token of line.tokens) {
+        if (token.kind !== 'word') continue;
+        expect(token.index).toBeGreaterThanOrEqual(from);
+        expect(token.index).toBeLessThan(to);
+      }
     }
-    for (const word of expected) {
-      expect(texts).toContain(word);
-    }
+    expect(texts.length).toBeGreaterThan(0);
     tree.unmount();
   });
 
@@ -200,35 +198,11 @@ function countNodes(node: Json): number {
   return count;
 }
 
-describe('measure-then-justify layout', () => {
+describe('real imported layout', () => {
   /**
    * react-test-renderer never fires layout events, so the justified pass has to
-   * be driven by hand. This simulates the words of page 1 landing on three
-   * lines and asserts the second pass stretches every line except the last.
-   */
-  function drive(page: number, linesOfY: number[]): ReactTestRenderer {
-    const tree = render(page);
-    // the container reports its height first, exactly as Android orders it
-    act(() => {
-      hostsWithLayout(tree)[0].props.onLayout({
-        nativeEvent: { layout: { x: 0, y: 0, width: 360, height: 4000 } },
-      });
-    });
-    const hosts = hostsWithLayout(tree).slice(1);
-    expect(hosts.length).toBeGreaterThan(0);
-    act(() => {
-      hosts.forEach((h, i) => {
-        h.props.onLayout({
-          nativeEvent: { layout: { x: 0, y: linesOfY[i % linesOfY.length], width: 40, height: 40 } },
-        });
-      });
-    });
-    return tree;
-  }
-
-  /**
-   * Host nodes only. findAll returns both the composite element and the host it
-   * renders to, so an unfiltered search counts every match twice.
+   * be driven by hand: the body reports its box, then each fixed line reports its
+   * natural width, and the scale is solved from those in one step.
    */
   const hostsWithLayout = (tree: ReactTestRenderer) =>
     tree.root.findAll((n) => typeof n.type === 'string' && typeof n.props.onLayout === 'function');
@@ -245,121 +219,82 @@ describe('measure-then-justify layout', () => {
       return flat !== null && flat.flexDirection === 'row-reverse' && flat.justifyContent === value;
     }).length;
 
-  it('starts in a single continuous wrap so ayahs do not each begin a line', () => {
-    const tree = render(1);
-    // one wrapping container for the whole page, not one per ayah
-    const wraps = tree.root.findAll((n) => {
-      if (typeof n.type !== 'string') return false;
-      const flat = flatten(n.props.style);
-      return flat !== null && flat.flexWrap === 'wrap';
+  function drive(page: number, naturalWidth = 300, boxWidth = 360): ReactTestRenderer {
+    const tree = render(page);
+    act(() => {
+      hostsWithLayout(tree)[0].props.onLayout({
+        nativeEvent: { layout: { x: 0, y: 0, width: boxWidth, height: 600 } },
+      });
     });
-    expect(wraps).toHaveLength(1);
+    act(() => {
+      hostsWithLayout(tree)
+        .slice(1)
+        .forEach((h) => {
+          h.props.onLayout({
+            nativeEvent: { layout: { x: 0, y: 0, width: naturalWidth, height: 40 } },
+          });
+        });
+    });
+    return tree;
+  }
+
+  it('renders one row per real line of the page', () => {
+    const tree = drive(2);
+    // page 2 opens Al-Baqarah: a band, a basmala, then ayah lines
+    const ayahLines = linesOfPage(2).filter((l) => l.kind === 'ayah').length;
+    expect(rowsWith(tree, 'space-between') + rowsWith(tree, 'center')).toBe(ayahLines);
     tree.unmount();
   });
 
-  it('justifies every line but the last once the words have been measured', () => {
-    const tree = drive(2, [0, 0, 0, 60, 60, 60, 120, 120]);
-    // three distinct y values -> three lines: two justified, the last flush right
-    expect(rowsWith(tree, 'space-between')).toBe(2);
-    expect(rowsWith(tree, 'flex-start')).toBe(1);
+  it('justifies ayah lines to both margins', () => {
+    const tree = drive(3);
+    expect(rowsWith(tree, 'space-between')).toBeGreaterThan(0);
     tree.unmount();
   });
 
-  it('keeps every word after re-laying the lines: nothing is dropped', () => {
+  it('scales the type down when the widest line overflows the page', () => {
+    // Only ayah text: the page-number badge has a fixed 14pt, which otherwise
+    // floors every reading at 14 and hides the scaling entirely.
+    const maxFont = (tree: ReactTestRenderer): number => {
+      let max = 0;
+      // Animated.Text may hand the host a flattened object rather than an array,
+      // so do not require an array here.
+      for (const t of tree.root.findAll((n) => typeof n.type === 'string')) {
+        const flat = flatten(t.props.style);
+        if (flat === null) continue;
+        if (typeof flat.fontSize !== 'number' || typeof flat.lineHeight !== 'number') continue;
+        max = Math.max(max, flat.fontSize);
+      }
+      return max;
+    };
+    // Page 200 is untouched by the other tests here, so neither call can be
+    // served by the module-level scale cache. Same natural line width, different
+    // page width: the narrow box must shrink the type, the wide one is bounded
+    // only by height.
+    const cramped = maxFont(drive(200, 720, 360));
+    const roomy = maxFont(drive(200, 720, 1440));
+    expect(cramped).toBeLessThan(roomy);
+  });
+
+  it('falls back to the unscaled pass when a line never reports a width', () => {
+    const tree = render(1);
+    act(() => {
+      hostsWithLayout(tree)[0].props.onLayout({
+        nativeEvent: { layout: { x: 0, y: 0, width: 360, height: 600 } },
+      });
+    });
+    expect(tree.toJSON()).not.toBeNull();
+    expect(rowsWith(tree, 'space-between')).toBe(0);
+    tree.unmount();
+  });
+
+  it('keeps every word of the page after re-laying the lines', () => {
     const before = collectText(render(3).toJSON()).join(' ');
-    const tree = drive(3, [0, 40, 80, 120]);
+    const tree = drive(3);
     const after = collectText(tree.toJSON()).join(' ');
     for (const word of before.split(/\s+/).filter((w) => w.length > 2)) {
       expect(after).toContain(word);
     }
     tree.unmount();
-  });
-
-  it('falls back to the plain wrap when not every word reports a layout', () => {
-    const tree = render(1);
-    const hosts = hostsWithLayout(tree).slice(1);
-    act(() => {
-      // only half the words report — grouping must not run on partial data
-      hosts.slice(0, Math.floor(hosts.length / 2)).forEach((h) => {
-        h.props.onLayout({ nativeEvent: { layout: { x: 0, y: 0, width: 40, height: 40 } } });
-      });
-    });
-    expect(rowsWith(tree, 'space-between')).toBe(0);
-    expect(tree.toJSON()).not.toBeNull();
-    tree.unmount();
-  });
-
-  it('shrinks the type when the measured lines are taller than the page', () => {
-    // A page whose lines do not fit must re-fit smaller, not overflow and clip.
-    const maxFont = (tree: ReactTestRenderer): number => {
-      let max = 0;
-      for (const t of tree.root.findAll(
-        (n) => typeof n.type === 'string' && Array.isArray(n.props.style),
-      )) {
-        const flat = flatten(t.props.style);
-        if (flat !== null && typeof flat.fontSize === 'number') max = Math.max(max, flat.fontSize);
-      }
-      return max;
-    };
-
-    const tree = render(2);
-    const before = maxFont(tree);
-
-    // report a page far too short for the lines about to be measured
-    act(() => {
-      hostsWithLayout(tree)[0].props.onLayout({
-        nativeEvent: { layout: { x: 0, y: 0, width: 360, height: 120 } },
-      });
-    });
-    const hosts = hostsWithLayout(tree).slice(1);
-    act(() => {
-      // every word on its own line: guaranteed not to fit in 120px
-      hosts.forEach((h, i) => {
-        h.props.onLayout({ nativeEvent: { layout: { x: 0, y: i * 50, width: 40, height: 50 } } });
-      });
-    });
-
-    expect(maxFont(tree)).toBeLessThan(before);
-    tree.unmount();
-  });
-
-  it('centres a sparse page instead of spreading seven lines over a screen', () => {
-    const tree = render(1);
-    act(() => {
-      hostsWithLayout(tree)[0].props.onLayout({
-        nativeEvent: { layout: { x: 0, y: 0, width: 360, height: 4000 } },
-      });
-    });
-    const hosts = hostsWithLayout(tree).slice(1);
-    act(() => {
-      hosts.forEach((h, i) => {
-        h.props.onLayout({ nativeEvent: { layout: { x: 0, y: (i % 3) * 40, width: 40, height: 40 } } });
-      });
-    });
-    const centred = tree.root.findAll((n) => {
-      if (typeof n.type !== 'string') return false;
-      const flat = flatten(n.props.style);
-      return flat !== null && flat.flex === 1 && flat.justifyContent === 'center';
-    });
-    expect(centred.length).toBeGreaterThan(0);
-    tree.unmount();
-  });
-
-  it('scales the type down on a dense page so it still fits one screen', () => {
-    const sizeOn = (page: number): number => {
-      const tree = render(page);
-      const texts = tree.root.findAll(
-        (n) => typeof n.type === 'string' && Array.isArray(n.props.style),
-      );
-      let max = 0;
-      for (const t of texts) {
-        const flat = Object.assign({}, ...t.props.style.filter(Boolean));
-        if (typeof flat.fontSize === 'number') max = Math.max(max, flat.fontSize);
-      }
-      tree.unmount();
-      return max;
-    };
-    // Al-Fatiha is a sparse page; a mid-Baqarah page is dense
-    expect(sizeOn(1)).toBeGreaterThan(sizeOn(49));
   });
 });

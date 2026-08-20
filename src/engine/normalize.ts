@@ -64,6 +64,43 @@ export interface AyahTokens {
   normalized: string[];
 }
 
+/**
+ * Places where the source text joins two words that every Uthmani mushaf writes
+ * SEPARATELY: `[surah, ayah, tokenIndex, splitAfterCodeUnits]`.
+ *
+ * All four are the same phenomenon — مَا or لَوْ fused to what follows — and all
+ * four matter twice over. For the reciter they are two spoken words, so a joined
+ * expectation could never match what the recognizer emits and would have logged a
+ * false mistake every time. For the mushaf they are two positions on a line, so a
+ * joined word left the word array one token short of the printed page, four times
+ * over, which is exactly the drift the QUL layout analysis surfaced.
+ *
+ * Offsets were derived, not hand-counted: each is the unique split whose halves
+ * normalize to the two expected forms and whose second half does not begin with a
+ * combining mark. `npm run gen` re-derives and re-checks them.
+ */
+const SOURCE_SPLITS: readonly [number, number, number, number][] = [
+  [15, 7, 0, 5], // لَّوۡمَا   -> لَّوۡ + مَا
+  [27, 20, 3, 3], // مَالِيَ    -> مَا + لِيَ
+  [36, 22, 0, 5], // وَمَالِيَ  -> وَمَا + لِيَ
+  [41, 47, 24, 3], // مَامِنَّا  -> مَا + مِنَّا
+];
+
+/**
+ * Apply the split table to one ayah's raw tokens. Identity for every ayah that
+ * is not in the table, which is 6,232 of the 6,236.
+ */
+function applySourceSplits(surah: number, ayah: number, tokens: string[]): string[] {
+  let out = tokens;
+  for (const [s, a, index, at] of SOURCE_SPLITS) {
+    if (s !== surah || a !== ayah) continue;
+    const token = out[index];
+    if (token === undefined || at <= 0 || at >= token.length) continue;
+    out = [...out.slice(0, index), token.slice(0, at), token.slice(at), ...out.slice(index + 1)];
+  }
+  return out;
+}
+
 /** A word cannot begin with a combining mark, so such a token continues the previous one. */
 const STARTS_WITH_MARK = /^[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/;
 
@@ -81,8 +118,8 @@ const STARTS_WITH_MARK = /^[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/;
  *    expects the reciter to say two words where there is one, and the word array
  *    disagrees with every printed mushaf by one token.
  */
-export function tokenizeAyah(text: string): AyahTokens {
-  const raw = text.split(/\s+/).filter((t) => t.length > 0);
+export function tokenizeAyah(text: string, surah = 0, ayah = 0): AyahTokens {
+  const raw = applySourceSplits(surah, ayah, text.split(/\s+/).filter((t) => t.length > 0));
   const display: string[] = [];
   const normalized: string[] = [];
   for (const token of raw) {
@@ -117,8 +154,8 @@ export function tokenizeAyah(text: string): AyahTokens {
 }
 
 /** Just the normalized words of an ayah, in order. */
-export function normalizeAyah(text: string): string[] {
-  return tokenizeAyah(text).normalized;
+export function normalizeAyah(text: string, surah = 0, ayah = 0): string[] {
+  return tokenizeAyah(text, surah, ayah).normalized;
 }
 
 const PROCLITICS = 'وفبلك'; // و ف ب ل ك

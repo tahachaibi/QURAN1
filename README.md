@@ -73,6 +73,27 @@ is careful about blame in two ways that are enforced in code, not documentation:
 There is no Memorize tab: §6.1 is explicit that memorization is a *mode* inside
 Read. Revision lives in Tracker, next to the streak.
 
+## The page is the printed page
+
+Page boundaries **and line breaks** come from the QUL QCF V2 (1421H) layout —
+Tarteel's own open library, and the same data their app renders. So a page here
+is the printed Madani page: 15 lines, ayah markers where the print puts them,
+and the surah bands that close a page with the text beginning overleaf (18
+surahs do this; no computed layout would ever produce it).
+
+`src/assets/layout/qpc-v2-15-lines.db` is the export, committed so the build is
+reproducible. `scripts/gen-mushaf-lines.mjs` turns it into a 113 KB
+`quran-lines.json` and adopts its pagination; `scripts/analyse-mushaf-layout.mjs`
+proves the mapping first and runs in CI.
+
+The mapping is worth understanding, because getting it wrong is silent. QUL's
+word-id space interleaves one ayah-end marker after each ayah, so the id of word
+`i` is `i + 1 + ayahIndexOf(i)`. That identity was initially out by three, and
+tracking down the drift found five real defects in the word array — one word the
+source split across a space (2:72) and four it joined that every mushaf writes
+separately (15:7, 27:20, 36:22, 41:47). All five mattered to the matcher too: a
+joined مَا لِيَ can never match two spoken words.
+
 ## Setup
 
 ```bash

@@ -244,7 +244,7 @@ export const surahHasBasmalaHeader = (surah: number): boolean => surah !== 1 && 
  * generator used, and __tests__/data.test.ts asserts the correspondence.
  */
 export function ayahDisplayWords(a: Ayah): string[] {
-  return tokenizeAyah(a.text).display;
+  return tokenizeAyah(a.text, a.surah, a.ayah).display;
 }
 
 /**
