@@ -58,9 +58,18 @@ class RecitationRecognizer(
     val maxResults: Int = 5,
     val preferOnDevice: Boolean = true,
     val allowSegmented: Boolean = true,
-    /** complete / possibly-complete silence windows: a breath must not end it */
+    /**
+     * Complete silence ends the SESSION, so it stays long: a breath between
+     * ayahs must never stop the microphone.
+     *
+     * Possibly-complete silence ends the UTTERANCE, and that is a latency knob,
+     * not a robustness one. At 6 s the recognizer held one utterance open across
+     * a whole passage, so every partial was re-aligned from an anchor that had
+     * not moved in half a minute and the app felt a beat behind. A natural pause
+     * at the end of an ayah is the right place to commit.
+     */
     val completeSilenceMs: Int = 6_000,
-    val possiblyCompleteSilenceMs: Int = 6_000,
+    val possiblyCompleteSilenceMs: Int = 1_800,
     /** minimum session length; doubles as the segmented-session end condition */
     val minimumLengthMs: Int = 30_000,
   )

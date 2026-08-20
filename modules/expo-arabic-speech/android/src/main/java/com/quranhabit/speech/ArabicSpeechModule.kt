@@ -23,7 +23,7 @@ class StartOptions(
   @Field var preferOnDevice: Boolean = true,
   @Field var allowSegmented: Boolean = true,
   @Field var completeSilenceMs: Int = 6_000,
-  @Field var possiblyCompleteSilenceMs: Int = 6_000,
+  @Field var possiblyCompleteSilenceMs: Int = 1_800,
   @Field var minimumLengthMs: Int = 30_000,
 ) : Record {
   fun toOptions() = RecitationRecognizer.Options(

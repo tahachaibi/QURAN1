@@ -50,6 +50,13 @@ export const SILENCE_TIMEOUT_MS = 3 * 60 * 1000;
 /** Smoothing for the voice-level animation; the only continuous animation (§7). */
 const LEVEL_ATTACK = 0.5;
 const LEVEL_DECAY = 0.12;
+/**
+ * Minimum gap between writes to the shared level value, and the smallest change
+ * worth writing. RMS arrives faster than a screen can show it, and every write
+ * walks the animated graph on the JS thread — the same thread doing alignment.
+ */
+const LEVEL_MIN_INTERVAL_MS = 66;
+const LEVEL_MIN_DELTA = 0.02;
 
 export interface RecognizerCallbacks {
   onPartial: (event: TranscriptEvent) => void;
@@ -119,6 +126,7 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
   const lastSpeechAt = useRef(0);
   const sessionStartedAt = useRef(0);
   const instanceStartedAt = useRef(0);
+  const lastLevelWriteAt = useRef(0);
   const consecutiveRestarts = useRef(0);
   const callbacks = useRef(config);
   callbacks.current = config;
@@ -180,13 +188,19 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
         callbacks.current.onEndOfSegment();
       }),
       speech.addListener('rms', ({ level: db }) => {
+        const now = Date.now();
+        if (db >= SPEECH_RMS_DB) lastSpeechAt.current = now;
         // dB in, 0..1 out, with a fast attack and a slow decay so the underline
         // breathes rather than flickers.
         const target = Math.max(0, Math.min(1, (db + 2) / 12));
         const k = target > levelValue.current ? LEVEL_ATTACK : LEVEL_DECAY;
-        levelValue.current += (target - levelValue.current) * k;
-        level.setValue(levelValue.current);
-        if (db >= SPEECH_RMS_DB) lastSpeechAt.current = Date.now();
+        const next = levelValue.current + (target - levelValue.current) * k;
+        const changed = Math.abs(next - levelValue.current) >= LEVEL_MIN_DELTA;
+        levelValue.current = next;
+        if (changed && now - lastLevelWriteAt.current >= LEVEL_MIN_INTERVAL_MS) {
+          lastLevelWriteAt.current = now;
+          level.setValue(next);
+        }
       }),
       speech.addListener('error', (event: SpeechErrorEvent) => {
         // Transient codes are restarted by the native side without surfacing

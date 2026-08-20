@@ -208,7 +208,13 @@ describe('measure-then-justify layout', () => {
    */
   function drive(page: number, linesOfY: number[]): ReactTestRenderer {
     const tree = render(page);
-    const hosts = hostsWithLayout(tree);
+    // the container reports its height first, exactly as Android orders it
+    act(() => {
+      hostsWithLayout(tree)[0].props.onLayout({
+        nativeEvent: { layout: { x: 0, y: 0, width: 360, height: 4000 } },
+      });
+    });
+    const hosts = hostsWithLayout(tree).slice(1);
     expect(hosts.length).toBeGreaterThan(0);
     act(() => {
       hosts.forEach((h, i) => {
@@ -271,7 +277,7 @@ describe('measure-then-justify layout', () => {
 
   it('falls back to the plain wrap when not every word reports a layout', () => {
     const tree = render(1);
-    const hosts = hostsWithLayout(tree);
+    const hosts = hostsWithLayout(tree).slice(1);
     act(() => {
       // only half the words report — grouping must not run on partial data
       hosts.slice(0, Math.floor(hosts.length / 2)).forEach((h) => {
@@ -280,6 +286,62 @@ describe('measure-then-justify layout', () => {
     });
     expect(rowsWith(tree, 'space-between')).toBe(0);
     expect(tree.toJSON()).not.toBeNull();
+    tree.unmount();
+  });
+
+  it('shrinks the type when the measured lines are taller than the page', () => {
+    // A page whose lines do not fit must re-fit smaller, not overflow and clip.
+    const maxFont = (tree: ReactTestRenderer): number => {
+      let max = 0;
+      for (const t of tree.root.findAll(
+        (n) => typeof n.type === 'string' && Array.isArray(n.props.style),
+      )) {
+        const flat = flatten(t.props.style);
+        if (flat !== null && typeof flat.fontSize === 'number') max = Math.max(max, flat.fontSize);
+      }
+      return max;
+    };
+
+    const tree = render(2);
+    const before = maxFont(tree);
+
+    // report a page far too short for the lines about to be measured
+    act(() => {
+      hostsWithLayout(tree)[0].props.onLayout({
+        nativeEvent: { layout: { x: 0, y: 0, width: 360, height: 120 } },
+      });
+    });
+    const hosts = hostsWithLayout(tree).slice(1);
+    act(() => {
+      // every word on its own line: guaranteed not to fit in 120px
+      hosts.forEach((h, i) => {
+        h.props.onLayout({ nativeEvent: { layout: { x: 0, y: i * 50, width: 40, height: 50 } } });
+      });
+    });
+
+    expect(maxFont(tree)).toBeLessThan(before);
+    tree.unmount();
+  });
+
+  it('centres a sparse page instead of spreading seven lines over a screen', () => {
+    const tree = render(1);
+    act(() => {
+      hostsWithLayout(tree)[0].props.onLayout({
+        nativeEvent: { layout: { x: 0, y: 0, width: 360, height: 4000 } },
+      });
+    });
+    const hosts = hostsWithLayout(tree).slice(1);
+    act(() => {
+      hosts.forEach((h, i) => {
+        h.props.onLayout({ nativeEvent: { layout: { x: 0, y: (i % 3) * 40, width: 40, height: 40 } } });
+      });
+    });
+    const centred = tree.root.findAll((n) => {
+      if (typeof n.type !== 'string') return false;
+      const flat = flatten(n.props.style);
+      return flat !== null && flat.flex === 1 && flat.justifyContent === 'center';
+    });
+    expect(centred.length).toBeGreaterThan(0);
     tree.unmount();
   });
 

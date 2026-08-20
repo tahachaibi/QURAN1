@@ -81,13 +81,6 @@ function AyahWordImpl({
   const showFirstLetterOnly = hidden && hintLevel === 1 && !revealed;
   const [head, tail] = showFirstLetterOnly ? firstGrapheme(text) : ['', ''];
 
-  const underlineOpacity = reduceMotion
-    ? 1
-    : level.interpolate({ inputRange: [0, 1], outputRange: [0.35, 1] });
-  const underlineScale = reduceMotion
-    ? 1
-    : level.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] });
-
   const textColor = palette.ink;
 
   return (
@@ -125,16 +118,7 @@ function AyahWordImpl({
         {/* current word: a gold underline that breathes with the voice, never a
             filled box over the sacred text (§6.3) */}
         {state === 'current' ? (
-          <Animated.View
-            style={[
-              styles.underline,
-              {
-                backgroundColor: palette.accent,
-                opacity: underlineOpacity,
-                transform: [{ scaleX: underlineScale }],
-              },
-            ]}
-          />
+          <VoiceUnderline palette={palette} level={level} reduceMotion={reduceMotion} />
         ) : null}
 
         {/* a hinted word keeps a dashed gold underline as a record (§6.3) */}
@@ -150,6 +134,42 @@ function AyahWordImpl({
     </Pressable>
   );
 }
+
+/**
+ * The breathing underline, split out so the interpolation nodes exist ONLY for
+ * the word that is currently being recited.
+ *
+ * Calling level.interpolate() in the body of AyahWord attached two animated
+ * nodes per word whether or not that word was current — around 400 nodes on a
+ * dense page, every one of them recomputed on each RMS frame at 10-20 Hz. That
+ * is thousands of JS-thread node updates a second competing with alignment and
+ * render for the very budget §5.7 is about.
+ */
+const VoiceUnderline = memo(function VoiceUnderline({
+  palette,
+  level,
+  reduceMotion,
+}: {
+  palette: Palette;
+  level: Animated.Value;
+  reduceMotion: boolean;
+}) {
+  if (reduceMotion) {
+    return <View style={[styles.underline, { backgroundColor: palette.accent }]} />;
+  }
+  return (
+    <Animated.View
+      style={[
+        styles.underline,
+        {
+          backgroundColor: palette.accent,
+          opacity: level.interpolate({ inputRange: [0, 1], outputRange: [0.35, 1] }),
+          transform: [{ scaleX: level.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }],
+        },
+      ]}
+    />
+  );
+});
 
 const styles = StyleSheet.create({
   press: {},
