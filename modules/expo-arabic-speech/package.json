@@ -1,0 +1,7 @@
+{
+  "name": "expo-arabic-speech",
+  "version": "1.0.0",
+  "description": "Continuous Arabic speech recognition around android.speech.SpeechRecognizer, built for Quran recitation follow-along.",
+  "main": "index.ts",
+  "private": true
+}

@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "target": "es2020",
+    "outDir": "/tmp/qh-bench",
+    "jsx": "react-jsx",
+    "skipLibCheck": true,
+    "esModuleInterop": true
+  },
+  "include": ["scripts/bench-engine.ts", "src/engine/**/*.ts", "src/data/**/*.ts"]
+}

@@ -15,7 +15,9 @@
     "test": "jest",
     "typecheck": "tsc --noEmit",
     "bundle:check": "expo export --platform android --output-dir /tmp/qh-export --clear",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "bench": "tsc -p tsconfig.bench.json && node /tmp/qh-bench/scripts/bench-engine.js",
+    "eas-build-post-install": "patch-package"
   },
   "dependencies": {
     "@expo-google-fonts/amiri": "^0.2.3",
@@ -23,6 +25,7 @@
     "@expo/vector-icons": "~14.0.4",
     "@react-native-async-storage/async-storage": "1.23.1",
     "expo": "~52.0.47",
+    "expo-asset": "~11.0.5",
     "expo-av": "~15.0.2",
     "expo-build-properties": "~0.13.3",
     "expo-constants": "~17.0.8",

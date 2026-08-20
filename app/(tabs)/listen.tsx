@@ -1,0 +1,121 @@
+/**
+ * Listen tab entry point: pick a surah, then the surah screen's Listen tab does
+ * the playback with the shared page renderer.
+ */
+import { useCallback } from 'react';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+
+import { surahs, type SurahInfo } from '../../src/data/quran';
+import { RECITERS } from '../../src/data/audio';
+import { useTheme } from '../../src/theme/ThemeProvider';
+import { radius, space } from '../../src/theme/theme';
+
+export default function ListenTab() {
+  const { palette, prefs, setPrefs } = useTheme();
+  const router = useRouter();
+
+  const open = useCallback(
+    (surah: number) => {
+      router.push({ pathname: '/surah/[id]', params: { id: String(surah), tab: 'listen' } });
+    },
+    [router],
+  );
+
+  const renderItem = useCallback(
+    ({ item }: { item: SurahInfo }) => (
+      <Pressable
+        onPress={() => open(item.number)}
+        accessibilityRole="button"
+        accessibilityLabel={`Listen to ${item.transliteration}`}
+        style={[styles.row, { backgroundColor: palette.surface, borderColor: palette.border }]}
+      >
+        <Ionicons name="play-circle-outline" size={24} color={palette.primary} />
+        <View style={styles.rowMain}>
+          <Text style={[styles.translit, { color: palette.text }]}>{item.transliteration}</Text>
+          <Text style={[styles.meta, { color: palette.textMuted }]}>{item.totalVerses} verses</Text>
+        </View>
+        <Text style={[styles.arabic, { color: palette.text }]}>{item.name}</Text>
+      </Pressable>
+    ),
+    [open, palette],
+  );
+
+  return (
+    <View style={styles.root}>
+      <View style={styles.reciterBar}>
+        <Text style={[styles.reciterLabel, { color: palette.textMuted }]}>Reciter</Text>
+        <FlatList
+          horizontal
+          data={RECITERS}
+          keyExtractor={(r) => r.id}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.reciterList}
+          renderItem={({ item }) => {
+            const selected = item.id === prefs.reciter;
+            return (
+              <Pressable
+                onPress={() => setPrefs({ reciter: item.id })}
+                accessibilityRole="radio"
+                accessibilityState={{ selected }}
+                accessibilityLabel={item.name}
+                style={[
+                  styles.reciter,
+                  {
+                    backgroundColor: selected ? palette.primary : palette.surface,
+                    borderColor: selected ? palette.primary : palette.border,
+                  },
+                ]}
+              >
+                <Text style={[styles.reciterName, { color: selected ? palette.paper : palette.text }]}>
+                  {item.name}
+                </Text>
+              </Pressable>
+            );
+          }}
+        />
+      </View>
+      <FlatList
+        data={surahs}
+        keyExtractor={(s) => String(s.number)}
+        renderItem={renderItem}
+        contentContainerStyle={styles.list}
+        initialNumToRender={12}
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+  reciterBar: { paddingTop: space.sm },
+  reciterLabel: {
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    paddingHorizontal: space.md,
+    marginBottom: space.xs,
+  },
+  reciterList: { paddingHorizontal: space.md, gap: space.sm, paddingBottom: space.sm },
+  reciter: {
+    borderRadius: radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: space.md,
+    paddingVertical: 7,
+  },
+  reciterName: { fontSize: 12, fontWeight: '600' },
+  list: { paddingHorizontal: space.md, paddingBottom: space.xl, gap: space.sm },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    borderRadius: radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: space.md,
+  },
+  rowMain: { flex: 1 },
+  translit: { fontSize: 15, fontWeight: '600' },
+  meta: { fontSize: 11, marginTop: 1 },
+  arabic: { fontFamily: 'Amiri_700Bold', fontSize: 20 },
+});

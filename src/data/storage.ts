@@ -1,0 +1,219 @@
+/**
+ * Persistence (spec §1: AsyncStorage, no database, no backend, no accounts).
+ *
+ * Every key is namespaced and every read is defensive: a corrupt or
+ * partially-written value must degrade to the default, never crash a session.
+ */
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import type { FontStep } from '../theme/theme';
+
+const KEY = {
+  prefs: 'qh:prefs:v1',
+  progress: 'qh:progress:v1',
+  dismissed: 'qh:dismissed:v1',
+  sessions: 'qh:sessions:v1',
+  streak: 'qh:streak:v1',
+  prayerCache: 'qh:prayer-cache:v1',
+  onboarded: 'qh:onboarded:v1',
+} as const;
+
+export interface Prefs {
+  theme: 'system' | 'light' | 'dark';
+  fontStep: FontStep;
+  reduceMotion: boolean;
+  highContrast: boolean;
+  haptics: boolean;
+  /** recognizer locale; quality varies, so let the user try (§4) */
+  locale: string;
+  preferOnDevice: boolean;
+  allowSegmented: boolean;
+  reciter: string;
+  hiddenMode: boolean;
+  showDebugOverlay: boolean;
+}
+
+export const DEFAULT_PREFS: Prefs = {
+  theme: 'system',
+  fontStep: 1,
+  reduceMotion: false,
+  highContrast: false,
+  haptics: true,
+  locale: 'ar-SA',
+  preferOnDevice: true,
+  allowSegmented: true,
+  reciter: 'ar.alafasy',
+  hiddenMode: false,
+  showDebugOverlay: false,
+};
+
+async function readJson<T>(key: string, fallback: T): Promise<T> {
+  try {
+    const raw = await AsyncStorage.getItem(key);
+    if (raw === null) return fallback;
+    const parsed = JSON.parse(raw) as unknown;
+    if (parsed === null || typeof parsed !== 'object') return fallback;
+    return { ...fallback, ...(parsed as object) } as T;
+  } catch {
+    return fallback;
+  }
+}
+
+async function writeJson(key: string, value: unknown): Promise<void> {
+  try {
+    await AsyncStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // A failed preference write is not worth interrupting a recitation.
+  }
+}
+
+export const loadPrefs = (): Promise<Prefs> => readJson(KEY.prefs, DEFAULT_PREFS);
+export const savePrefs = (prefs: Prefs): Promise<void> => writeJson(KEY.prefs, prefs);
+
+// ---------------------------------------------------------------------------
+// per-surah resume position (§6.7)
+// ---------------------------------------------------------------------------
+
+export type ProgressMap = Record<string, { cursor: number; at: number }>;
+
+export const loadProgress = (): Promise<ProgressMap> => readJson<ProgressMap>(KEY.progress, {});
+
+export async function saveProgress(surah: number, cursor: number): Promise<void> {
+  const all = await loadProgress();
+  all[String(surah)] = { cursor, at: Date.now() };
+  await writeJson(KEY.progress, all);
+}
+
+/** The single most recent position across all surahs, for "continue reading". */
+export async function lastPosition(): Promise<{ surah: number; cursor: number } | null> {
+  const all = await loadProgress();
+  let best: { surah: number; cursor: number; at: number } | null = null;
+  for (const [surah, entry] of Object.entries(all)) {
+    if (best === null || entry.at > best.at) best = { surah: Number(surah), cursor: entry.cursor, at: entry.at };
+  }
+  return best === null ? null : { surah: best.surah, cursor: best.cursor };
+}
+
+// ---------------------------------------------------------------------------
+// permanently dismissed false mistakes (§5.6)
+// ---------------------------------------------------------------------------
+
+export async function loadDismissed(): Promise<number[]> {
+  try {
+    const raw = await AsyncStorage.getItem(KEY.dismissed);
+    if (raw === null) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? parsed.filter((n): n is number => typeof n === 'number') : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function addDismissed(word: number): Promise<void> {
+  const all = await loadDismissed();
+  if (all.includes(word)) return;
+  all.push(word);
+  await writeJson(KEY.dismissed, all);
+}
+
+// ---------------------------------------------------------------------------
+// session log -> tracker streak (§6.6, §8)
+// ---------------------------------------------------------------------------
+
+export interface LoggedSession {
+  id: string;
+  /** ISO date, local, YYYY-MM-DD */
+  day: string;
+  at: number;
+  surah: number;
+  wordsRecited: number;
+  versesCovered: number;
+  accuracy: number;
+  longestCleanRun: number;
+  hintsUsed: number;
+  mistakes: number;
+  durationMs: number;
+  /** furthest word index reached, for "you got further than last time" */
+  furthestWord: number;
+}
+
+export async function loadSessions(): Promise<LoggedSession[]> {
+  try {
+    const raw = await AsyncStorage.getItem(KEY.sessions);
+    if (raw === null) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? (parsed as LoggedSession[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function logSession(session: LoggedSession): Promise<void> {
+  const all = await loadSessions();
+  all.push(session);
+  // keep two years of history; a habit app does not need more and this keeps
+  // the AsyncStorage value small enough to parse instantly on cold start
+  const trimmed = all.slice(Math.max(0, all.length - 800));
+  await writeJson(KEY.sessions, trimmed);
+}
+
+export async function bestPreviousFor(surah: number): Promise<LoggedSession | null> {
+  const all = await loadSessions();
+  let best: LoggedSession | null = null;
+  for (const s of all) {
+    if (s.surah !== surah) continue;
+    if (best === null || s.furthestWord > best.furthestWord) best = s;
+  }
+  return best;
+}
+
+// ---------------------------------------------------------------------------
+// prayer times cache (§8: cache the last successful response for offline)
+// ---------------------------------------------------------------------------
+
+export interface PrayerCache {
+  day: string;
+  latitude: number;
+  longitude: number;
+  timings: Record<string, string>;
+  fetchedAt: number;
+}
+
+export const loadPrayerCache = (): Promise<PrayerCache | null> =>
+  AsyncStorage.getItem(KEY.prayerCache)
+    .then((raw) => (raw === null ? null : (JSON.parse(raw) as PrayerCache)))
+    .catch(() => null);
+
+export const savePrayerCache = (cache: PrayerCache): Promise<void> => writeJson(KEY.prayerCache, cache);
+
+// ---------------------------------------------------------------------------
+// prayer check-offs and first run
+// ---------------------------------------------------------------------------
+
+export type PrayerChecks = Record<string, string[]>;
+
+export const loadPrayerChecks = (): Promise<PrayerChecks> => readJson<PrayerChecks>(KEY.streak, {});
+
+export async function togglePrayerCheck(day: string, prayer: string): Promise<PrayerChecks> {
+  const all = await loadPrayerChecks();
+  const list = all[day] ?? [];
+  all[day] = list.includes(prayer) ? list.filter((p) => p !== prayer) : [...list, prayer];
+  await writeJson(KEY.streak, all);
+  return all;
+}
+
+export const hasOnboarded = (): Promise<boolean> =>
+  AsyncStorage.getItem(KEY.onboarded)
+    .then((v) => v === '1')
+    .catch(() => false);
+
+export const setOnboarded = (): Promise<void> =>
+  AsyncStorage.setItem(KEY.onboarded, '1').catch(() => undefined);
+
+/** Local YYYY-MM-DD, which is what a streak should be counted in. */
+export function today(date = new Date()): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}

@@ -1,0 +1,61 @@
+{
+  "expo": {
+    "name": "Quran Habit",
+    "slug": "quran-habit",
+    "version": "1.0.0",
+    "scheme": "quranhabit",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": false,
+    "assetBundlePatterns": ["**/*"],
+    "android": {
+      "package": "com.quranhabit.app",
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "adaptiveIcon": {
+        "backgroundColor": "#1B4332"
+      },
+      "softwareKeyboardLayoutMode": "pan"
+    },
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "origin": false
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "minSdkVersion": 24,
+            "buildToolsVersion": "35.0.0",
+            "enableProguardInReleaseBuilds": true,
+            "enableJetifier": true
+          }
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Quran Habit uses your location once to calculate accurate prayer times. It is never stored or sent anywhere else."
+        }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Quran Habit listens while you recite so it can follow along on the page. Audio is processed on your device and never uploaded."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
