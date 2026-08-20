@@ -151,6 +151,18 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
   const [silenceTimedOut, setSilenceTimedOut] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
   const hifzDeck = useRef<HifzDeck>({});
+  /**
+   * The deck loads asynchronously. Grading against an empty deck because the
+   * load had not landed yet would overwrite real review history with a fresh
+   * card, so the summary path awaits the load instead of assuming it.
+   */
+  const hifzLoaded = useRef<Promise<void> | null>(null);
+  /**
+   * Guards against double-grading. Applying one session's evidence twice would
+   * push every ayah in it a step further up the interval ladder on the strength
+   * of a single recitation.
+   */
+  const gradedSessionAt = useRef(0);
 
   const config = useMemo<SessionConfig>(
     () => ({
@@ -231,7 +243,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
     void loadDismissed().then((list) => {
       if (list.length > 0) dispatch({ type: 'restoreDismissed', words: list });
     });
-    void loadHifzDeck().then((deck) => {
+    hifzLoaded.current = loadHifzDeck().then((deck) => {
       hifzDeck.current = deck;
     });
   }, [dispatch]);
@@ -311,6 +323,9 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
 
   const buildSummary = useCallback(
     async (state: SessionState): Promise<SessionSummary> => {
+      // never grade the same session twice
+      const alreadyGraded = gradedSessionAt.current === state.startedAt && state.startedAt !== 0;
+      if (hifzLoaded.current !== null) await hifzLoaded.current;
       const surah = surahOf(state.cursor);
       const [surahStart] = surahWordRange(surah);
       const previous = await bestPreviousFor(surah);
@@ -331,19 +346,26 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
         globalAyahOf,
         ayahWordCount: (globalAyah) => ayahStartWord[globalAyah + 1] - ayahStartWord[globalAyah],
       });
-      const folded = applyEvidence(hifzDeck.current, evidence, now);
-      hifzDeck.current = folded.deck;
-      void saveHifzDeck(folded.deck);
+      const folded = alreadyGraded
+        ? { deck: hifzDeck.current, graded: [] as { ayah: number; grade: number }[] }
+        : applyEvidence(hifzDeck.current, evidence, now);
+      if (!alreadyGraded) {
+        gradedSessionAt.current = state.startedAt;
+        hifzDeck.current = folded.deck;
+        void saveHifzDeck(folded.deck);
+      }
 
       // Record the mistakes for the confusion profile. Expected text comes from
       // the word array, so the profile is built on the same normalization the
       // matcher used.
-      const records: MistakeRecord[] = state.mistakes.map((m) => ({
-        word: m.word,
-        expected: words[m.word] ?? '',
-        heardInstead: m.heardInstead,
-      }));
-      void appendMistakeLog(records);
+      if (!alreadyGraded) {
+        const records: MistakeRecord[] = state.mistakes.map((m) => ({
+          word: m.word,
+          expected: words[m.word] ?? '',
+          heardInstead: m.heardInstead,
+        }));
+        void appendMistakeLog(records);
+      }
 
       return {
         wordsRecited: state.matched.size,
