@@ -83,19 +83,38 @@ jobs:
       - name: Prebuild the Android project
         run: npx expo prebuild --platform android --no-install
 
-      - name: Confirm the native module was autolinked
-        # If expo-arabic-speech is missing from settings.gradle the APK builds
-        # fine and then throws "native module not linked" on the phone. Catch it
-        # here instead.
+      - name: Confirm autolinking discovers the native module
+        # NOT a grep of settings.gradle: Expo's template calls useExpoModules()
+        # and never names individual modules, so that check can never pass. Ask
+        # autolinking itself instead.
         run: |
-          grep -q "expo-arabic-speech" android/settings.gradle || {
-            echo "::error::expo-arabic-speech was not autolinked into settings.gradle"
-            cat android/settings.gradle
-            exit 1
-          }
-          echo "autolinked ok"
+          npx expo-modules-autolinking search --platform android --json \
+            | node -e "
+              let raw = '';
+              process.stdin.on('data', (c) => (raw += c));
+              process.stdin.on('end', () => {
+                const found = Object.keys(JSON.parse(raw));
+                if (!found.includes('expo-arabic-speech')) {
+                  console.error('::error::expo-arabic-speech was not discovered by autolinking. Found: ' + found.join(', '));
+                  process.exit(1);
+                }
+                console.log('autolinking discovered expo-arabic-speech among ' + found.length + ' modules');
+              });
+            "
 
       - uses: gradle/actions/setup-gradle@v4
+
+      - name: Confirm Gradle actually included the module project
+        # The definitive linkage check: if useExpoModules() did not include it,
+        # this Gradle project simply does not exist and the next step could not
+        # compile it.
+        working-directory: android
+        run: |
+          ./gradlew projects --quiet | tee /tmp/projects.txt
+          grep -q "expo-arabic-speech" /tmp/projects.txt || {
+            echo "::error::Gradle has no :expo-arabic-speech project — useExpoModules() did not include it"
+            exit 1
+          }
 
       - name: Compile the Kotlin module on its own first
         # A focused target so a Kotlin error surfaces as a Kotlin error, not
