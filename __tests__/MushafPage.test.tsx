@@ -198,6 +198,39 @@ function countNodes(node: Json): number {
   return count;
 }
 
+describe('ayah markers', () => {
+  it('draws the marker as digits only — never with U+06DD as well', () => {
+    // In KFGQPC Uthmanic Hafs each Arabic-Indic digit is already drawn inside the
+    // rosette. Prefixing U+06DD ARABIC END OF AYAH put a second, EMPTY rosette
+    // beside every numbered one, which is exactly how it looked on device.
+    const tree = render(1);
+    const texts = collectText(tree.toJSON()).join('');
+    expect(texts).not.toContain('\u06DD');
+    // and the numbers are still there, in Arabic-Indic digits
+    expect(texts).toContain('١');
+    tree.unmount();
+  });
+
+  it('puts the page number in reserved space, not floating over the text', () => {
+    // As an absolutely positioned badge it sat on top of the last line.
+    const tree = render(3);
+    const absolute = tree.root.findAll((n) => {
+      if (typeof n.type !== 'string') return false;
+      const st = n.props.style;
+      const flat = Array.isArray(st) ? Object.assign({}, ...st.filter(Boolean)) : st;
+      return (
+        flat !== null &&
+        typeof flat === 'object' &&
+        (flat as Record<string, unknown>).position === 'absolute' &&
+        typeof (flat as Record<string, unknown>).borderRadius === 'number' &&
+        (flat as Record<string, unknown>).borderRadius === 16
+      );
+    });
+    expect(absolute).toHaveLength(0);
+    tree.unmount();
+  });
+});
+
 describe('real imported layout', () => {
   /**
    * react-test-renderer never fires layout events, so the justified pass has to

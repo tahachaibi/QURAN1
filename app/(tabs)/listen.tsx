@@ -8,12 +8,12 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { surahs, type SurahInfo } from '../../src/data/quran';
-import { RECITERS } from '../../src/data/audio';
+import { reciterById, reciterLabel } from '../../src/data/audio';
 import { useTheme } from '../../src/theme/ThemeProvider';
 import { radius, space } from '../../src/theme/theme';
 
 export default function ListenTab() {
-  const { palette, prefs, setPrefs } = useTheme();
+  const { palette, prefs } = useTheme();
   const router = useRouter();
 
   const open = useCallback(
@@ -44,37 +44,13 @@ export default function ListenTab() {
 
   return (
     <View style={styles.root}>
-      <View style={styles.reciterBar}>
-        <Text style={[styles.reciterLabel, { color: palette.textMuted }]}>Reciter</Text>
-        <FlatList
-          horizontal
-          data={RECITERS}
-          keyExtractor={(r) => r.id}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.reciterList}
-          renderItem={({ item }) => {
-            const selected = item.id === prefs.reciter;
-            return (
-              <Pressable
-                onPress={() => setPrefs({ reciter: item.id })}
-                accessibilityRole="radio"
-                accessibilityState={{ selected }}
-                accessibilityLabel={item.name}
-                style={[
-                  styles.reciter,
-                  {
-                    backgroundColor: selected ? palette.primary : palette.surface,
-                    borderColor: selected ? palette.primary : palette.border,
-                  },
-                ]}
-              >
-                <Text style={[styles.reciterName, { color: selected ? palette.paper : palette.text }]}>
-                  {item.name}
-                </Text>
-              </Pressable>
-            );
-          }}
-        />
+      {/* Which reciter is set, at a glance. The full searchable list lives in the
+          player, so it is not duplicated as a wall of chips here. */}
+      <View style={[styles.reciterBar, { borderColor: palette.border }]}>
+        <Ionicons name="person-outline" size={15} color={palette.primary} />
+        <Text style={[styles.reciterName, { color: palette.textMuted }]} numberOfLines={1}>
+          {reciterLabel(reciterById(prefs.reciter))}
+        </Text>
       </View>
       <FlatList
         data={surahs}
@@ -89,22 +65,17 @@ export default function ListenTab() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  reciterBar: { paddingTop: space.sm },
-  reciterLabel: {
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    paddingHorizontal: space.md,
+  reciterBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    marginHorizontal: space.md,
+    marginTop: space.sm,
     marginBottom: space.xs,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingBottom: space.sm,
   },
-  reciterList: { paddingHorizontal: space.md, gap: space.sm, paddingBottom: space.sm },
-  reciter: {
-    borderRadius: radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: space.md,
-    paddingVertical: 7,
-  },
-  reciterName: { fontSize: 12, fontWeight: '600' },
+  reciterName: { flex: 1, fontSize: 12, fontWeight: '600' },
   list: { paddingHorizontal: space.md, paddingBottom: space.xl, gap: space.sm },
   row: {
     flexDirection: 'row',

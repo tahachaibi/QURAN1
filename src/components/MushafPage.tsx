@@ -220,8 +220,10 @@ function MushafPageImpl({
           )}
         </View>
 
-        <View style={[styles.pageBadge, { borderColor: palette.accent }]}>
-          <Text style={[styles.pageBadgeText, { color: palette.textMuted }]}>{toArabicDigits(page)}</Text>
+        {/* Reserved footer, not an absolute overlay: as a floating circle this
+            sat on top of the last line of dense pages. */}
+        <View style={styles.footer}>
+          <Text style={[styles.footerText, { color: palette.textMuted }]}>{toArabicDigits(page)}</Text>
         </View>
       </View>
     </View>
@@ -252,11 +254,10 @@ function SurahBand({ surah, palette, fontSize }: { surah: number; palette: Palet
 /**
  * The ayah-end marker as the print draws it.
  *
- * U+06DD ARABIC END OF AYAH is an enclosing mark: the digits that follow it are
- * drawn INSIDE the ornament by the font itself. So the correct marker is one
- * text run — U+06DD followed by the Arabic-Indic digits — not a circle drawn in
- * flexbox with a number centred in it, which is what made the page read as an
- * app rather than a mushaf.
+ * In KFGQPC Uthmanic Hafs the Arabic-Indic digits ALREADY carry the ornament —
+ * each digit glyph is drawn inside the rosette. Prefixing U+06DD, as this did at
+ * first, therefore produced two shapes per marker: the empty rosette from U+06DD
+ * and the numbered one from the digit. The digits alone are the marker.
  */
 function AyahMarker({
   number,
@@ -276,7 +277,7 @@ function AyahMarker({
       // the words either side of it
       style={[styles.markerText, { color: palette.accent, fontSize, lineHeight }]}
     >
-      {`\u06DD${toArabicDigits(number)}`}
+      {toArabicDigits(number)}
     </Text>
   );
 }
@@ -288,15 +289,15 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
-    paddingTop: space.md,
-    paddingBottom: space.xl,
+    paddingTop: space.sm,
+    paddingBottom: space.sm,
     paddingHorizontal: space.md,
   },
   topRule: { position: 'absolute', top: 0, left: 0, right: 0, height: 2, opacity: 0.7 },
   ribbonTrack: {
     position: 'absolute',
-    top: space.md,
-    bottom: space.xl,
+    top: space.sm,
+    bottom: space.lg,
     right: 2,
     width: 3,
     borderRadius: 2,
@@ -333,18 +334,8 @@ const styles = StyleSheet.create({
     writingDirection: 'rtl',
     marginHorizontal: 1,
   },
-  pageBadge: {
-    position: 'absolute',
-    bottom: space.sm,
-    alignSelf: 'center',
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pageBadgeText: { fontFamily: 'Amiri_400Regular', fontSize: 14 },
+  footer: { alignItems: 'center', paddingTop: 2 },
+  footerText: { fontFamily: 'Amiri_400Regular', fontSize: 12, opacity: 0.75 },
 });
 
 export const MushafPage = memo(MushafPageImpl, (a, b) =>

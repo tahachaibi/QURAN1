@@ -62,6 +62,52 @@ export function SegmentedControl<T extends string>({
 
 // ---------------------------------------------------------------------------
 
+export interface IconToggleProps<T extends string> {
+  options: { value: T; icon: keyof typeof Ionicons.glyphMap; label: string; hint: string }[];
+  value: T;
+  onChange: (value: T) => void;
+  palette: Palette;
+}
+
+/**
+ * A two-state toggle drawn as icons, for the bottom bar.
+ *
+ * Follow/Hidden lived in the header as a labelled segmented control, which cost
+ * a whole band of vertical space above the page. As icons in the bottom bar it
+ * is both inside thumb reach (§6.4) and hands that space back to the text.
+ */
+export function IconToggle<T extends string>({ options, value, onChange, palette }: IconToggleProps<T>) {
+  return (
+    <View
+      style={[styles.iconToggle, { backgroundColor: palette.surface, borderColor: palette.border }]}
+      accessibilityRole="tablist"
+    >
+      {options.map((option) => {
+        const selected = option.value === value;
+        return (
+          <Pressable
+            key={option.value}
+            onPress={() => onChange(option.value)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected }}
+            accessibilityLabel={option.label}
+            accessibilityHint={option.hint}
+            style={[styles.iconToggleItem, selected && { backgroundColor: palette.primary }]}
+          >
+            <Ionicons
+              name={option.icon}
+              size={18}
+              color={selected ? palette.paper : palette.textMuted}
+            />
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+
 export interface MicButtonProps {
   listening: boolean;
   /** 0..1 voice level; the button pulses with your ACTUAL voice, not a timer */
@@ -297,6 +343,17 @@ const styles = StyleSheet.create({
   segmentLabel: {
     fontSize: 13,
     fontWeight: '600',
+  },
+  iconToggle: {
+    flexDirection: 'row',
+    borderRadius: radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 3,
+  },
+  iconToggleItem: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: radius.pill,
   },
   micWrap: {
     alignItems: 'center',

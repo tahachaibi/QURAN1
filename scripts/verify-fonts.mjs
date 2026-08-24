@@ -153,7 +153,8 @@ if (missing.length === 0) {
 
 // --- 3. glyphs the renderer itself depends on -----------------------------
 const RENDERER_GLYPHS = [
-  [0x06dd, 'ARABIC END OF AYAH — the ornament the ayah marker is drawn with'],
+  // The ayah marker is the digits alone: in this face each digit glyph is drawn
+  // inside the rosette, so adding U+06DD would draw a second, empty one.
   [0x0660, 'ARABIC-INDIC DIGIT ZERO'],
   [0x0661, 'ARABIC-INDIC DIGIT ONE'],
   [0x0662, 'ARABIC-INDIC DIGIT TWO'],
@@ -167,7 +168,7 @@ const RENDERER_GLYPHS = [
 ];
 const missingRenderer = RENDERER_GLYPHS.filter(([cp]) => !covered.has(cp));
 if (missingRenderer.length === 0) {
-  console.log('  ok   has the ayah-end ornament and Arabic-Indic digits');
+  console.log('  ok   has the Arabic-Indic digits the ayah marker is drawn with');
 } else {
   failed = true;
   console.log('  FAIL the renderer needs glyphs the font does not have:');

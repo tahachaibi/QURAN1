@@ -39,9 +39,9 @@ import { DebugOverlay } from '../../src/components/DebugOverlay';
 import {
   Chip,
   HeardPill,
+  IconToggle,
   MicButton,
   OfflineBadge,
-  SegmentedControl,
   StatsColumn,
 } from '../../src/components/controls';
 import { useRecitation, type ReadMode } from '../../src/context/RecitationProvider';
@@ -98,6 +98,8 @@ export default function SurahScreen() {
   const seedSurah = clampSurah(Number(params.id ?? '1'));
   const seedAyah = params.ayah === undefined ? 1 : Number(params.ayah);
 
+  // The entry point decides: Listen tab -> listening, Quran tab -> reading.
+  // Showing both choices on the surah screen was redundant with the tab bar.
   const [tab, setTab] = useState<Tab>(params.tab === 'listen' ? 'listen' : 'read');
   const [headerVisible, setHeaderVisible] = useState(true);
   const [mistakesOpen, setMistakesOpen] = useState(false);
@@ -177,8 +179,18 @@ export default function SurahScreen() {
   const modeOptions = useMemo(
     () =>
       [
-        { value: 'follow' as ReadMode, label: 'Follow', hint: 'Everything visible; recited words settle into full ink' },
-        { value: 'hidden' as ReadMode, label: 'Hidden', hint: 'Words are concealed and revealed as you recite them' },
+        {
+          value: 'follow' as ReadMode,
+          icon: 'eye-outline' as const,
+          label: 'Follow mode',
+          hint: 'Everything visible; recited words settle into full ink',
+        },
+        {
+          value: 'hidden' as ReadMode,
+          icon: 'eye-off-outline' as const,
+          label: 'Hidden mode',
+          hint: 'Words are concealed and revealed as you recite them',
+        },
       ],
     [],
   );
@@ -187,6 +199,19 @@ export default function SurahScreen() {
     if (listening) stop();
     else start();
   }, [listening, start, stop]);
+
+  /**
+   * First run lands here via router.replace from onboarding, so there is no
+   * history to pop and the back arrow did nothing at all. Fall back to the tab
+   * this screen belongs to.
+   */
+  const goBack = useCallback(() => {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+    router.replace(tab === 'listen' ? '/(tabs)/listen' : '/(tabs)/quran');
+  }, [router, tab]);
 
   const nextHintTarget = session.livePos;
 
@@ -198,7 +223,7 @@ export default function SurahScreen() {
         {headerVisible ? (
           <View style={styles.header}>
             <Pressable
-              onPress={() => router.back()}
+              onPress={goBack}
               hitSlop={12}
               accessibilityRole="button"
               accessibilityLabel="Back"
@@ -222,22 +247,6 @@ export default function SurahScreen() {
           </View>
         ) : null}
 
-        {headerVisible ? (
-          <View style={styles.tabRow}>
-            <SegmentedControl
-              options={[
-                { value: 'listen' as Tab, label: 'Listen', hint: 'Play the recitation and follow along' },
-                { value: 'read' as Tab, label: 'Read', hint: 'Recite yourself and be followed on the page' },
-              ]}
-              value={tab}
-              onChange={setTab}
-              palette={palette}
-            />
-            {tab === 'read' ? (
-              <SegmentedControl options={modeOptions} value={mode} onChange={setMode} palette={palette} />
-            ) : null}
-          </View>
-        ) : null}
       </SafeAreaView>
 
       {/* One tap anywhere brings the header back (§6.4) */}
@@ -260,20 +269,12 @@ export default function SurahScreen() {
           />
         ) : (
           <ListenPanel
-            surah={viewedSurah}
             palette={palette}
             reciter={prefs.reciter}
             onReciterChange={(reciter) => setPrefs({ reciter })}
             onFollowWord={seekTo}
-            session={session}
+            cursor={session.livePos}
             fontStep={fontStep}
-            reduceMotion={reduceMotion}
-            level={level}
-            hintLevelOf={hintLevelOf}
-            width={width}
-            page={viewedPage}
-            onPageChange={setViewedPage}
-            registerPlaybackStopper={registerPlaybackStopper}
           />
         )}
       </Pressable>
@@ -405,7 +406,11 @@ export default function SurahScreen() {
         />
 
         <View style={styles.bottomActions}>
-          {mode === 'hidden' ? (
+          {tab === 'read' ? (
+            <IconToggle options={modeOptions} value={mode} onChange={setMode} palette={palette} />
+          ) : null}
+
+          {mode === 'hidden' && tab === 'read' ? (
             <Pressable
               onPress={() => requestHint(nextHintTarget)}
               accessibilityRole="button"
@@ -418,7 +423,7 @@ export default function SurahScreen() {
                 {hintLevelOf(nextHintTarget) === 0 ? 'Hint' : hintLevelOf(nextHintTarget) === 1 ? 'Reveal' : 'Shown'}
               </Text>
             </Pressable>
-          ) : (
+          ) : tab === 'read' ? (
             <Pressable
               onPress={() => setSelecting(session.livePos)}
               accessibilityRole="button"
@@ -427,9 +432,8 @@ export default function SurahScreen() {
               style={[styles.hintButton, { borderColor: palette.border }]}
             >
               <Ionicons name="repeat" size={18} color={palette.textMuted} />
-              <Text style={[styles.hintLabel, { color: palette.textMuted }]}>Range</Text>
             </Pressable>
-          )}
+          ) : null}
 
           <MicButton
             listening={listening}
@@ -520,14 +524,6 @@ const styles = StyleSheet.create({
   headerCentre: { alignItems: 'center' },
   headerArabic: { fontFamily: 'Amiri_700Bold', fontSize: 22 },
   headerLatin: { fontSize: 11, marginTop: 1 },
-  tabRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: space.md,
-    paddingBottom: space.sm,
-    gap: space.sm,
-  },
   deck: { flex: 1 },
   floating: {
     position: 'absolute',
