@@ -146,7 +146,13 @@ function MushafPageImpl({
 
     const tokens = line.tokens.map((token) =>
       token.kind === 'marker' ? (
-        <AyahMarker key={`m${token.ayah}-${i}`} number={token.ayah} palette={palette} fontSize={fontSize} />
+        <AyahMarker
+          key={`m${token.ayah}-${i}`}
+          number={token.ayah}
+          palette={palette}
+          fontSize={fontSize}
+          lineHeight={lineHeight}
+        />
       ) : (
         <AyahWord
           key={token.index}
@@ -243,14 +249,35 @@ function SurahBand({ surah, palette, fontSize }: { surah: number; palette: Palet
   );
 }
 
-function AyahMarker({ number, palette, fontSize }: { number: number; palette: Palette; fontSize: number }) {
-  const size = Math.round(fontSize * 0.9);
+/**
+ * The ayah-end marker as the print draws it.
+ *
+ * U+06DD ARABIC END OF AYAH is an enclosing mark: the digits that follow it are
+ * drawn INSIDE the ornament by the font itself. So the correct marker is one
+ * text run — U+06DD followed by the Arabic-Indic digits — not a circle drawn in
+ * flexbox with a number centred in it, which is what made the page read as an
+ * app rather than a mushaf.
+ */
+function AyahMarker({
+  number,
+  palette,
+  fontSize,
+  lineHeight,
+}: {
+  number: number;
+  palette: Palette;
+  fontSize: number;
+  lineHeight: number;
+}) {
   return (
-    <View style={[styles.marker, { borderColor: palette.accent, width: size, height: size }]}>
-      <Text style={[styles.markerText, { color: palette.accent, fontSize: Math.round(fontSize * 0.44) }]}>
-        {toArabicDigits(number)}
-      </Text>
-    </View>
+    <Text
+      allowFontScaling={false}
+      // shares the line's metrics so the ornament sits on the same baseline as
+      // the words either side of it
+      style={[styles.markerText, { color: palette.accent, fontSize, lineHeight }]}
+    >
+      {`\u06DD${toArabicDigits(number)}`}
+    </Text>
   );
 }
 
@@ -284,7 +311,7 @@ const styles = StyleSheet.create({
   bandRow: { alignItems: 'center' },
   centeredRow: { alignItems: 'center' },
   basmala: {
-    fontFamily: 'Amiri_400Regular',
+    fontFamily: 'KFGQPC-Hafs',
     textAlign: 'center',
     writingDirection: 'rtl',
   },
@@ -301,14 +328,11 @@ const styles = StyleSheet.create({
   },
   surahName: { fontFamily: 'Amiri_700Bold', writingDirection: 'rtl' },
   surahOrnament: {},
-  marker: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 2,
+  markerText: {
+    fontFamily: 'KFGQPC-Hafs',
+    writingDirection: 'rtl',
+    marginHorizontal: 1,
   },
-  markerText: { fontFamily: 'Amiri_400Regular' },
   pageBadge: {
     position: 'absolute',
     bottom: space.sm,

@@ -99,7 +99,8 @@ export const duration = {
 } as const;
 
 export const fonts = {
-  quran: 'Amiri_400Regular',
+  /** the printed mushaf's own typeface */
+  quran: 'KFGQPC-Hafs',
   arabic: 'Amiri_400Regular',
   arabicBold: 'Amiri_700Bold',
 } as const;

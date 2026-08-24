@@ -28,19 +28,21 @@ export default function RootLayout() {
    * tashkeel/Quranic marks"):
    *
    *   - Amiri Quran has NO GLYPH for U+065E, which the bundled Uthmani text uses
-   *     1,807 times across 1,241 ayahs. A missing combining mark renders as
-   *     nothing, so a fifth of the Quran silently lost a diacritic while every
-   *     page still looked right. Al-Fatiha contains none, so the obvious test
-   *     page could never show it.
+   *     1,807 times across 1,241 ayahs, and a missing combining mark renders as
+   *     nothing at all.
    *   - Amiri Quran is really Amiri Quran *Coloured*: COLR/CPAL paint 612 glyphs
-   *     red, green, orange and blue. Android honours COLRv0 from API 26, so the
-   *     tashkeel came out red on device — colliding with red as the missed-word
-   *     signal (§6.3) and with the accent gold.
+   *     red, green, orange and blue, which destroys red as the missed-word signal.
    *
-   * Amiri covers all 73 codepoints the text uses and carries no colour tables.
-   * scripts/verify-fonts.mjs asserts both properties on every CI run.
+   * Ayah text is now KFGQPC Uthmanic Script HAFS, the typeface the printed mushaf
+   * is set in, so the page reads as the mushaf rather than as a web page. Amiri
+   * stays for Latin-adjacent Arabic UI (surah names, the heard pill).
+   * scripts/verify-fonts.mjs asserts full coverage and no colour tables in CI.
    */
   const [fontsLoaded, fontError] = useFonts({
+    // The typeface the printed mushaf is actually set in. Bundled whole and
+    // never subsetted: its licence grants Use/Copy/Distribute free of cost and
+    // forbids modification, so a subsetting step would breach it.
+    'KFGQPC-Hafs': require('../src/assets/fonts/UthmanicHafs.otf'),
     Amiri_400Regular,
     Amiri_700Bold,
   });

@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   word: {
-    fontFamily: 'Amiri_400Regular',
+    fontFamily: 'KFGQPC-Hafs',
     textAlign: 'center',
     // writingDirection is a STYLE in React Native, not a prop
     writingDirection: 'rtl',

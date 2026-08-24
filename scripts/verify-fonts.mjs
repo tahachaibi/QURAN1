@@ -11,19 +11,23 @@
  *     looked plausible. Al-Fatiha contains none of them, so the obvious test
  *     page could never reveal it.
  *
- *  2. COLOUR TABLES. Amiri Quran is in fact Amiri Quran *Coloured*: it carries
- *     COLR/CPAL painting 612 glyphs from a palette of red, green, orange and
- *     blue. Android honours COLRv0 from API 26, so the tashkeel came out red on
- *     device. That collides with the design on purpose-built channels: red is
+ *  2. COLOUR TABLES. Amiri Quran turned out to be Amiri Quran *Coloured*: it
+ *     carried COLR/CPAL painting 612 glyphs from a palette of red, green, orange
+ *     and blue. Android honours COLRv0 from API 26, so the tashkeel came out red
+ *     on device. That collides with the design on purpose-built channels: red is
  *     the missed-word signal (§6.3, "no red text on the sacred text") and the
  *     palette's #EE9933 sits almost on top of the accent gold #C9A227.
+ *
+ * The ayah font is now KFGQPC Uthmanic Script HAFS — the typeface the printed
+ * mushaf is set in. Its licence grants Use, Copy and Distribute free of cost and
+ * forbids modification, so it is bundled whole and never subsetted.
  *
  * Pure Node, no dependencies: parses the sfnt table directory and the cmap
  * subtable directly.
  */
 import { readFileSync } from 'node:fs';
 
-const AYAH_FONT = 'node_modules/@expo-google-fonts/amiri/Amiri_400Regular.ttf';
+const AYAH_FONT = 'src/assets/fonts/UthmanicHafs.otf';
 const DATA = 'src/assets/quran-data.json';
 
 function tables(buf) {
@@ -117,8 +121,15 @@ for (const surah of data) {
   }
 }
 
+/**
+ * Whitespace is a separator, never a rendered glyph. 2:72 uses a THIN SPACE
+ * (U+2009) inside فَٱدَّٰرَٰٔتُمۡ, which the tokenizer's fusion drops, so the font
+ * never has to draw it.
+ */
+const isSpace = (cp) => /\s/u.test(String.fromCodePoint(cp));
+
 const missing = [...used.entries()]
-  .filter(([cp]) => cp !== 0x20 && !covered.has(cp))
+  .filter(([cp]) => !isSpace(cp) && !covered.has(cp))
   .sort((a, b) => b[1] - a[1]);
 
 // --- 2. the ayah font must not paint its own colours ---
@@ -137,6 +148,31 @@ if (missing.length === 0) {
   console.log(`  FAIL ${missing.length} codepoint(s) used by the text have no glyph:`);
   for (const [cp, n] of missing) {
     console.log(`         U+${cp.toString(16).toUpperCase().padStart(4, '0')} used ${n} times`);
+  }
+}
+
+// --- 3. glyphs the renderer itself depends on -----------------------------
+const RENDERER_GLYPHS = [
+  [0x06dd, 'ARABIC END OF AYAH — the ornament the ayah marker is drawn with'],
+  [0x0660, 'ARABIC-INDIC DIGIT ZERO'],
+  [0x0661, 'ARABIC-INDIC DIGIT ONE'],
+  [0x0662, 'ARABIC-INDIC DIGIT TWO'],
+  [0x0663, 'ARABIC-INDIC DIGIT THREE'],
+  [0x0664, 'ARABIC-INDIC DIGIT FOUR'],
+  [0x0665, 'ARABIC-INDIC DIGIT FIVE'],
+  [0x0666, 'ARABIC-INDIC DIGIT SIX'],
+  [0x0667, 'ARABIC-INDIC DIGIT SEVEN'],
+  [0x0668, 'ARABIC-INDIC DIGIT EIGHT'],
+  [0x0669, 'ARABIC-INDIC DIGIT NINE'],
+];
+const missingRenderer = RENDERER_GLYPHS.filter(([cp]) => !covered.has(cp));
+if (missingRenderer.length === 0) {
+  console.log('  ok   has the ayah-end ornament and Arabic-Indic digits');
+} else {
+  failed = true;
+  console.log('  FAIL the renderer needs glyphs the font does not have:');
+  for (const [cp, name] of missingRenderer) {
+    console.log(`         U+${cp.toString(16).toUpperCase().padStart(4, '0')} ${name}`);
   }
 }
 
