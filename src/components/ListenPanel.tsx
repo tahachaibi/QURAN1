@@ -80,6 +80,7 @@ export function ListenPanel({
   const [reciters, setReciters] = useState<readonly Reciter[]>(BUILTIN_RECITERS);
   const [listSource, setListSource] = useState<'builtin' | 'cached' | 'live'>('builtin');
   const [refreshing, setRefreshing] = useState(false);
+  const [listError, setListError] = useState<string | null>(null);
   const sound = useRef<Audio.Sound | null>(null);
 
   const info = surahInfo(surah);
@@ -93,13 +94,17 @@ export function ListenPanel({
   const refresh = useCallback(
     async (explicit: boolean) => {
       if (explicit) setRefreshing(true);
+      setListError(null);
       try {
         const live = await fetchReciters();
         setReciters(live);
         setListSource('live');
         void saveCachedReciters(live);
-      } catch {
-        // offline or unparseable: whatever we already have stays
+      } catch (e) {
+        // Offline or unparseable: keep whatever list we already have, but SAY so.
+        // Failing silently here is what left the picker showing five reciters
+        // with no explanation.
+        setListError(e instanceof Error ? e.message : 'could not load the reciter list');
       } finally {
         if (explicit) setRefreshing(false);
       }
@@ -286,6 +291,7 @@ export function ListenPanel({
         current={current.id}
         reciters={reciters}
         source={listSource}
+        error={listError}
         refreshing={refreshing}
         onRefresh={() => void refresh(true)}
         palette={palette}
@@ -308,6 +314,7 @@ function ReciterPicker({
   current,
   reciters,
   source,
+  error,
   refreshing,
   onRefresh,
   palette,
@@ -318,6 +325,7 @@ function ReciterPicker({
   current: string;
   reciters: readonly Reciter[];
   source: 'builtin' | 'cached' | 'live';
+  error: string | null;
   refreshing: boolean;
   onRefresh: () => void;
   palette: Palette;
@@ -369,10 +377,13 @@ function ReciterPicker({
         <View style={styles.sheetHeader}>
           <View>
             <Text style={[styles.sheetTitle, { color: palette.text }]}>Reciter</Text>
-            <Text style={[styles.sheetSub, { color: palette.textMuted }]}>
-              {reciters.length} available
-              {source === 'builtin' ? ' · built-in list, tap refresh for all' : ''}
-              {source === 'cached' ? ' · saved list' : ''}
+            <Text
+              style={[styles.sheetSub, { color: error === null ? palette.textMuted : palette.error }]}
+              numberOfLines={2}
+            >
+              {error !== null
+                ? `${reciters.length} shown — ${error}`
+                : `${reciters.length} available${source === 'builtin' ? ' · built-in, tap refresh for all' : ''}${source === 'cached' ? ' · saved list' : ''}`}
             </Text>
           </View>
           <View style={styles.sheetActions}>

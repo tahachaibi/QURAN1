@@ -43,6 +43,8 @@ const WATCHDOG_MS = 2500;
 const WATCHDOG_GRACE_MS = 8000;
 /** Consecutive watchdog restarts before we stop and admit something is wrong. */
 const MAX_WATCHDOG_RESTARTS = 3;
+/** How long a passing notice stays on screen before clearing itself. */
+const NOTICE_MS = 4000;
 /** How often the watchdog checks. */
 const WATCHDOG_TICK_MS = 500;
 /** True silence for this long ends the session with a gentle prompt (§4). */
@@ -234,8 +236,8 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
             }
             break;
           case 'offline-unavailable':
-            // Not fatal: the session continues online. Recorded so the UI can
-            // explain why recitation is no longer private on this device.
+            // Not fatal: the session continues online. Announced briefly and
+            // then cleared -- as a persistent banner it just covered the page.
             setOfflineDropped(true);
             break;
           case 'failed':
@@ -304,6 +306,13 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
     }, WATCHDOG_TICK_MS);
     return () => clearInterval(id);
   }, [linked, nativeStart]);
+
+  /** Transient: say it once, then get out of the way. */
+  useEffect(() => {
+    if (!offlineDropped) return undefined;
+    const id = setTimeout(() => setOfflineDropped(false), NOTICE_MS);
+    return () => clearTimeout(id);
+  }, [offlineDropped]);
 
   // ---------------------------------------------------------------------
   // app backgrounding

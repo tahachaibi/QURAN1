@@ -246,6 +246,23 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
     ),
   });
 
+  /**
+   * Interruption and silence notices clear themselves. Left up permanently they
+   * sat over the page and over the Listen controls; the mic button is always
+   * there to resume, so the chip does not need to be.
+   */
+  useEffect(() => {
+    if (interruption === null) return undefined;
+    const id = setTimeout(() => setInterruption(null), 5000);
+    return () => clearTimeout(id);
+  }, [interruption]);
+
+  useEffect(() => {
+    if (!silenceTimedOut) return undefined;
+    const id = setTimeout(() => setSilenceTimedOut(false), 6000);
+    return () => clearTimeout(id);
+  }, [silenceTimedOut]);
+
   // --- restore permanently dismissed false positives (§5.6) ---
   useEffect(() => {
     void loadDismissed().then((list) => {

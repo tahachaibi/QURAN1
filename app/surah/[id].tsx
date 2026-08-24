@@ -280,7 +280,14 @@ export default function SurahScreen() {
       </Pressable>
 
       {/* floating affordances, all inside the bottom third */}
-      <View style={[styles.floating, { bottom: bottomPad + 96 }]} pointerEvents="box-none">
+      {/* Recitation notices belong to the Read view. In Listen they sat on top of
+          the reciter row, which is what made them feel like they never left. */}
+      <View
+        style={[styles.floating, { bottom: bottomPad + 96 }]}
+        pointerEvents="box-none"
+      >
+       {tab === 'read' ? (
+        <>
         {awayFromPlace ? (
           <Chip
             label={`Return to my place · ${liveAyah.surah}:${liveAyah.ayah}`}
@@ -376,6 +383,9 @@ export default function SurahScreen() {
             accessibilityHint="Downloads the on-device Arabic model so recitation works without a network"
           />
         ) : null}
+
+        </>
+       ) : null}
 
         <HeardPill
           text={session.lastHeard}

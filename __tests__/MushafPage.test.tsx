@@ -271,11 +271,22 @@ describe('real imported layout', () => {
     return tree;
   }
 
-  it('renders one row per real line of the page', () => {
+  it('renders one row per real ayah line of the page', () => {
     const tree = drive(2);
-    // page 2 opens Al-Baqarah: a band, a basmala, then ayah lines
-    const ayahLines = linesOfPage(2).filter((l) => l.kind === 'ayah').length;
-    expect(rowsWith(tree, 'space-between') + rowsWith(tree, 'center')).toBe(ayahLines);
+    const lines = linesOfPage(2).filter((l) => l.kind === 'ayah');
+    const justified = rowsWith(tree, 'space-between');
+    const centred = tree.root.findAll((n) => {
+      if (typeof n.type !== 'string') return false;
+      const f = flatten(n.props.style);
+      return (
+        f !== null &&
+        f.flexDirection === 'row' &&
+        f.justifyContent === 'center' &&
+        // the surah band's inner frame is also row+center; it aligns 'center'
+        f.alignItems === 'flex-end'
+      );
+    }).length;
+    expect(justified + centred).toBe(lines.length);
     tree.unmount();
   });
 
@@ -328,6 +339,75 @@ describe('real imported layout', () => {
     for (const word of before.split(/\s+/).filter((w) => w.length > 2)) {
       expect(after).toContain(word);
     }
+    tree.unmount();
+  });
+});
+
+describe('centred lines', () => {
+  const flat = (style: unknown): Record<string, unknown> | null => {
+    if (Array.isArray(style)) return Object.assign({}, ...style.filter(Boolean));
+    return style !== null && typeof style === 'object' ? (style as Record<string, unknown>) : null;
+  };
+
+  const hostsWithLayout = (tree: ReactTestRenderer) =>
+    tree.root.findAll((n) => typeof n.type === 'string' && typeof n.props.onLayout === 'function');
+
+  /** the justified/centred shapes only exist once the scale has been solved */
+  function driven(page: number): ReactTestRenderer {
+    const tree = render(page);
+    act(() => {
+      hostsWithLayout(tree)[0].props.onLayout({
+        nativeEvent: { layout: { x: 0, y: 0, width: 360, height: 600 } },
+      });
+    });
+    act(() => {
+      hostsWithLayout(tree)
+        .slice(1)
+        .forEach((h) =>
+          h.props.onLayout({ nativeEvent: { layout: { x: 0, y: 0, width: 300, height: 40 } } }),
+        );
+    });
+    return tree;
+  }
+
+  it('centres Al-Fatiha, whose every line the layout marks centred', () => {
+    // The layout sets is_centered on all of page 1. Relying on justifyContent
+    // inside a row-reverse flex left the lines hugging the right margin.
+    expect(linesOfPage(1).filter((l) => l.kind === 'ayah').every((l) => l.centered)).toBe(true);
+
+    const tree = driven(1);
+    const centred = tree.root.findAll((n) => {
+      if (typeof n.type !== 'string') return false;
+      const f = flat(n.props.style);
+      return (
+        f !== null &&
+        f.flexDirection === 'row' &&
+        f.justifyContent === 'center' &&
+        f.alignItems === 'flex-end'
+      );
+    });
+    // one wrapper per centred ayah line, and each holds a content-sized inner row
+    expect(centred.length).toBeGreaterThanOrEqual(7);
+    expect(linesOfPage(1).filter((l) => l.kind === 'ayah')).toHaveLength(7);
+    const inner = tree.root.findAll((n) => {
+      if (typeof n.type !== 'string') return false;
+      const f = flat(n.props.style);
+      return f !== null && f.flexDirection === 'row-reverse' && f.flexShrink === 1;
+    });
+    expect(inner.length).toBeGreaterThanOrEqual(7);
+    tree.unmount();
+  });
+
+  it('still justifies a page whose lines are not centred', () => {
+    const page = 3;
+    expect(linesOfPage(page).some((l) => l.kind === 'ayah' && !l.centered)).toBe(true);
+    const tree = driven(page);
+    const justified = tree.root.findAll((n) => {
+      if (typeof n.type !== 'string') return false;
+      const f = flat(n.props.style);
+      return f !== null && f.flexDirection === 'row-reverse' && f.justifyContent === 'space-between';
+    });
+    expect(justified.length).toBeGreaterThan(0);
     tree.unmount();
   });
 });

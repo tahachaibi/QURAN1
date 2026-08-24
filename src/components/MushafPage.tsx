@@ -183,16 +183,19 @@ function MushafPageImpl({
         </View>
       );
     }
+    // A centred line wraps its tokens in a content-sized row and centres THAT.
+    // Relying on justifyContent inside a row-reverse flex left short lines hugging
+    // the right margin instead of centring — which is why Al-Fatiha, where the
+    // layout marks every line centred, sat over to one side.
+    if (line.centered) {
+      return (
+        <View key={`a${i}`} style={[styles.centredLine, { minHeight: lineHeight }]}>
+          <View style={styles.centredInner}>{tokens}</View>
+        </View>
+      );
+    }
     return (
-      <View
-        key={`a${i}`}
-        style={[
-          styles.line,
-          { minHeight: lineHeight },
-          // a centred line is centred in the print too: the last line of a surah
-          { justifyContent: line.centered ? 'center' : 'space-between' },
-        ]}
-      >
+      <View key={`a${i}`} style={[styles.line, { minHeight: lineHeight }]}>
         {tokens}
       </View>
     );
@@ -306,7 +309,9 @@ const styles = StyleSheet.create({
   body: { flex: 1 },
   /** the 15 lines fill the page height, as the print's do */
   lines: { flex: 1, justifyContent: 'space-between' },
-  line: { flexDirection: 'row-reverse', alignItems: 'flex-end' },
+  line: { flexDirection: 'row-reverse', alignItems: 'flex-end', justifyContent: 'space-between' },
+  centredLine: { flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-end' },
+  centredInner: { flexDirection: 'row-reverse', alignItems: 'flex-end', flexShrink: 1 },
   measureRow: { flexDirection: 'row-reverse' },
   naturalRow: { flexDirection: 'row-reverse', alignItems: 'flex-end', alignSelf: 'flex-start' },
   bandRow: { alignItems: 'center' },

@@ -120,7 +120,15 @@ export const inkOpacity = {
   current: 1,
   recited: 1,
   missed: 1,
-  /** a ghost of the glyph's own shape, so page geometry never shifts (§6.2) */
-  hidden: 0.09,
+  /**
+   * Fully invisible, not a faint ghost.
+   *
+   * §6.2 asks for a ghost at 8-10% ink so the reciter keeps the rhythm of the
+   * line. On a device that reads as "almost legible", which defeats the point of
+   * the mode: you are testing whether you REMEMBER, and a hint you did not ask
+   * for is worse than no hint. Geometry is still preserved -- the word keeps its
+   * space in the justified line, it just does not paint.
+   */
+  hidden: 0,
   hintFirstLetter: 1,
 } as const;

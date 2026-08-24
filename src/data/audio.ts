@@ -27,13 +27,23 @@ export interface Reciter {
   style?: string;
 }
 
-export const RECITERS_ENDPOINT = 'https://api.quranicaudio.com/v2/reciters';
+/**
+ * The real endpoint, taken from QuranicAudio's own app README rather than
+ * guessed. My first attempt used api.quranicaudio.com/v2/reciters, which does not
+ * exist — so the fetch failed silently on device and the picker showed only the
+ * five bundled reciters.
+ *
+ * Documented response: a bare array of
+ *   { id, name, arabic_name, relative_path, file_formats, section_id, ... }
+ */
+export const RECITERS_ENDPOINT = 'https://quranicaudio.com/api/qaris';
 const AUDIO_BASE = 'https://download.quranicaudio.com/quran/';
 
 /**
- * Cold-start list. Every path here is one I have seen quoted verbatim in
- * QuranicAudio's own app or docs — not inferred from a naming pattern. The real
- * list is hundreds long and arrives from the API.
+ * Cold-start list. Every path here is quoted verbatim from QuranicAudio's own
+ * app README or docs — none inferred from the naming pattern, because a guessed
+ * folder is a silent 404. The full list is hundreds long and arrives from the API
+ * on first use; this is only what shows before that lands.
  */
 export const BUILTIN_RECITERS: readonly Reciter[] = [
   { id: 'yasser_ad-dussary/', name: 'Yasser Al-Dosari', arabicName: 'ياسر الدوسري', path: 'yasser_ad-dussary/' },
@@ -41,6 +51,8 @@ export const BUILTIN_RECITERS: readonly Reciter[] = [
   { id: 'abdullaah_3awwaad_al-juhaynee/', name: 'Abdullah Awad Al-Juhani', arabicName: 'عبد الله عواد الجهني', path: 'abdullaah_3awwaad_al-juhaynee/' },
   { id: 'abdullaah_alee_jaabir_studio/', name: 'Abdullah Ali Jabir', arabicName: 'عبد الله علي جابر', path: 'abdullaah_alee_jaabir_studio/', style: 'studio' },
   { id: 'alhusaynee_al3azazee_with_children/', name: "Al-Hussayni Al-'Azazy", arabicName: 'الحسيني العزازي', path: 'alhusaynee_al3azazee_with_children/', style: 'with children' },
+  { id: 'mostafa_ismaeel/', name: 'Mostafa Ismaeel', arabicName: 'مصطفى إسماعيل', path: 'mostafa_ismaeel/' },
+  { id: 'madinah_1435/', name: 'Madinah Taraweeh 1435', path: 'madinah_1435/' },
 ];
 
 /** `surah` is 1..114. */
