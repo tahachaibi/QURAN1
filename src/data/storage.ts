@@ -6,6 +6,7 @@
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import type { Reciter } from './audio';
 import type { MistakeRecord } from '../engine/confusion';
 import type { HifzDeck } from '../engine/hifz';
 import type { FontStep } from '../theme/theme';
@@ -20,6 +21,7 @@ const KEY = {
   onboarded: 'qh:onboarded:v1',
   hifz: 'qh:hifz:v1',
   mistakeLog: 'qh:mistake-log:v1',
+  reciters: 'qh:reciters:v1',
 } as const;
 
 export interface Prefs {
@@ -46,7 +48,8 @@ export const DEFAULT_PREFS: Prefs = {
   locale: 'ar-SA',
   preferOnDevice: true,
   allowSegmented: true,
-  reciter: 'ar.alafasy',
+  // a QuranicAudio folder now, not an alquran.cloud edition id
+  reciter: 'yasser_ad-dussary/',
   hiddenMode: false,
   showDebugOverlay: false,
 };
@@ -263,3 +266,26 @@ export async function appendMistakeLog(records: readonly MistakeRecord[]): Promi
   await writeJson(KEY.mistakeLog, trimmed);
   return trimmed;
 }
+
+// ---------------------------------------------------------------------------
+// the fetched reciter list (§8)
+// ---------------------------------------------------------------------------
+
+export interface CachedReciters {
+  fetchedAt: number;
+  reciters: Reciter[];
+}
+
+export async function loadCachedReciters(): Promise<CachedReciters | null> {
+  try {
+    const raw = await AsyncStorage.getItem(KEY.reciters);
+    if (raw === null) return null;
+    const parsed = JSON.parse(raw) as CachedReciters;
+    return Array.isArray(parsed.reciters) && parsed.reciters.length > 0 ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export const saveCachedReciters = (reciters: Reciter[]): Promise<void> =>
+  writeJson(KEY.reciters, { fetchedAt: Date.now(), reciters } satisfies CachedReciters);

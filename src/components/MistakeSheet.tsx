@@ -159,9 +159,9 @@ function MistakeRow({
           onPress={() => onPlayWord(mistake.word)}
           hitSlop={8}
           accessibilityRole="button"
-          accessibilityLabel="Play the correct recitation of this ayah"
+          accessibilityLabel="Show this word on the page"
         >
-          <Ionicons name="play-circle-outline" size={26} color={palette.primary} />
+          <Ionicons name="locate-outline" size={24} color={palette.primary} />
         </Pressable>
         <Pressable
           onPress={() => onDismiss(mistake.word)}

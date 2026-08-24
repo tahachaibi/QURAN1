@@ -2,19 +2,28 @@
  * Listen tab entry point: pick a surah, then the surah screen's Listen tab does
  * the playback with the shared page renderer.
  */
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { surahs, type SurahInfo } from '../../src/data/quran';
-import { reciterById, reciterLabel } from '../../src/data/audio';
+import { BUILTIN_RECITERS, reciterLabel } from '../../src/data/audio';
+import { loadCachedReciters } from '../../src/data/storage';
 import { useTheme } from '../../src/theme/ThemeProvider';
 import { radius, space } from '../../src/theme/theme';
 
 export default function ListenTab() {
   const { palette, prefs } = useTheme();
   const router = useRouter();
+  // Read from the same cache the player fills, so the two agree on the name.
+  const [known, setKnown] = useState<readonly typeof BUILTIN_RECITERS[number][]>(BUILTIN_RECITERS);
+  useEffect(() => {
+    void loadCachedReciters().then((c) => {
+      if (c !== null) setKnown(c.reciters);
+    });
+  }, []);
+  const chosen = known.find((r) => r.id === prefs.reciter) ?? known[0] ?? BUILTIN_RECITERS[0];
 
   const open = useCallback(
     (surah: number) => {
@@ -49,7 +58,7 @@ export default function ListenTab() {
       <View style={[styles.reciterBar, { borderColor: palette.border }]}>
         <Ionicons name="person-outline" size={15} color={palette.primary} />
         <Text style={[styles.reciterName, { color: palette.textMuted }]} numberOfLines={1}>
-          {reciterLabel(reciterById(prefs.reciter))}
+          {reciterLabel(chosen)}
         </Text>
       </View>
       <FlatList

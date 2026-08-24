@@ -464,10 +464,12 @@ export default function SurahScreen() {
           setMistakesOpen(false);
         }}
         onPlayWord={(word) => {
-          const ayah = ayahByGlobal(globalAyahOf(word));
-          setTab('listen');
-          setViewedPage(ayah.page);
+          // Audio is whole surahs now, so there is no single-ayah file to play.
+          // Jump to the word on the page instead of opening a player that would
+          // start the surah from the beginning.
           setMistakesOpen(false);
+          setViewedPage(pageOf(word));
+          deck.current?.goToPage(pageOf(word), !reduceMotion);
         }}
       />
 

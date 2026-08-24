@@ -1,15 +1,20 @@
 /**
  * The Listen tab (spec §8).
  *
- * Rebuilt as a purpose-built player. The first version embedded the full mushaf
- * page renderer in the top half of the screen, which was the wrong shape for it:
- * squeezed into half the height the page fit its type down to nothing and left a
- * large empty card. A player wants one ayah, large and legible, not a whole page
- * at a third of the size.
+ * Plays WHOLE SURAHS. Chaining one file per ayah put a gap and a fresh request
+ * at every verse, which is not how anyone listens to the Quran.
  *
- * Follow-along is kept, and kept honest: playing an ayah moves the SAME global
- * cursor the recitation engine uses, so the Read view is already in the right
- * place when you switch to it.
+ * The reciter list is fetched from the API on first use and cached, because the
+ * list is keyed by folder name and a wrong folder is a silent 404 — see
+ * src/data/audio.ts. Until that lands, the small bundled list is used, and the UI
+ * says which one you are looking at rather than pretending the short list is all
+ * there is.
+ *
+ * One honest loss versus ayah-by-ayah: with a single surah file there are no ayah
+ * boundaries to highlight, so there is no per-ayah follow-along here. Restoring it
+ * needs the ayah timestamps QUL publishes alongside its gapless audio; the player
+ * still moves the shared cursor to the surah's start, so Read opens in the right
+ * place.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -26,15 +31,16 @@ import {
 import { Audio, type AVPlaybackStatus } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 
-import { ayahByGlobal, ayahsOnPage, globalAyahOf, surahInfo, TOTAL_AYAHS } from '../data/quran';
+import { surahInfo, surahWordRange, surahOf, TOTAL_SURAHS } from '../data/quran';
 import {
-  ayahAudioUrl,
-  bitrateCandidates,
-  reciterById,
+  BUILTIN_RECITERS,
+  fetchReciters,
   reciterLabel,
   searchReciters,
+  surahAudioUrl,
   type Reciter,
 } from '../data/audio';
+import { loadCachedReciters, saveCachedReciters } from '../data/storage';
 import { ayahTextSizes, radius, space, type FontStep, type Palette } from '../theme/theme';
 import { OfflineBadge } from './controls';
 
@@ -64,25 +70,60 @@ export function ListenPanel({
   cursor,
   fontStep,
 }: ListenPanelProps) {
-  const [globalAyah, setGlobalAyah] = useState(() => globalAyahOf(cursor) + 1);
+  const [surah, setSurah] = useState(() => surahOf(cursor));
   const [playing, setPlaying] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [offline, setOffline] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [position, setPosition] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [reciters, setReciters] = useState<readonly Reciter[]>(BUILTIN_RECITERS);
+  const [listSource, setListSource] = useState<'builtin' | 'cached' | 'live'>('builtin');
+  const [refreshing, setRefreshing] = useState(false);
   const sound = useRef<Audio.Sound | null>(null);
-  /** bitrate proven to work for this reciter, once discovered */
-  const provenBitrate = useRef(new Map<string, number>());
 
-  const ayah = useMemo(() => ayahByGlobal(Math.max(0, globalAyah - 1)), [globalAyah]);
-  const surah = surahInfo(ayah.surah);
-  const onPage = useMemo(() => ayahsOnPage(ayah.page).length, [ayah.page]);
-  const { fontSize, lineHeight } = ayahTextSizes[fontStep];
+  const info = surahInfo(surah);
+  const { fontSize } = ayahTextSizes[fontStep];
+  const current = useMemo(
+    () => reciters.find((r) => r.id === reciter) ?? reciters[0] ?? BUILTIN_RECITERS[0],
+    [reciter, reciters],
+  );
+
+  // --- the reciter list: cache first, then refresh in the background ---
+  const refresh = useCallback(
+    async (explicit: boolean) => {
+      if (explicit) setRefreshing(true);
+      try {
+        const live = await fetchReciters();
+        setReciters(live);
+        setListSource('live');
+        void saveCachedReciters(live);
+      } catch {
+        // offline or unparseable: whatever we already have stays
+      } finally {
+        if (explicit) setRefreshing(false);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadCachedReciters().then((cached) => {
+      if (cancelled || cached === null) return;
+      setReciters(cached.reciters);
+      setListSource('cached');
+    });
+    void refresh(false);
+    return () => {
+      cancelled = true;
+    };
+  }, [refresh]);
 
   const unload = useCallback(async () => {
-    const current = sound.current;
+    const active = sound.current;
     sound.current = null;
-    if (current !== null) await current.unloadAsync().catch(() => undefined);
+    if (active !== null) await active.unloadAsync().catch(() => undefined);
   }, []);
 
   useEffect(
@@ -94,46 +135,36 @@ export function ListenPanel({
 
   const play = useCallback(
     async (target: number) => {
-      if (target < 1 || target > TOTAL_AYAHS) return;
+      if (target < 1 || target > TOTAL_SURAHS) return;
       await unload();
-      setOffline(false);
+      setFailed(false);
       setLoading(true);
-      setGlobalAyah(target);
-      setProgress(0);
-      onFollowWord(ayahByGlobal(target - 1).wordStart);
-
-      // Try the proven bitrate first, then the candidates. A wrong bitrate is a
-      // 404, not a playback failure, so this is what makes the reciter list work
-      // without a bitrate table I cannot verify from here.
-      const proven = provenBitrate.current.get(reciter);
-      const candidates = proven === undefined ? bitrateCandidates(reciter) : [proven];
-      for (const bitrate of candidates) {
-        try {
-          const { sound: created } = await Audio.Sound.createAsync(
-            { uri: ayahAudioUrl(target, reciter, bitrate) },
-            { shouldPlay: true },
-          );
-          provenBitrate.current.set(reciter, bitrate);
-          sound.current = created;
-          setPlaying(true);
-          setLoading(false);
-          created.setOnPlaybackStatusUpdate((status: AVPlaybackStatus) => {
-            if (!status.isLoaded) return;
-            if (status.durationMillis !== undefined && status.durationMillis > 0) {
-              setProgress(Math.min(1, status.positionMillis / status.durationMillis));
-            }
-            if (status.didJustFinish) void play(target + 1);
-          });
-          return;
-        } catch {
-          // wrong bitrate or unreachable; try the next
-        }
+      setSurah(target);
+      setPosition(0);
+      setDuration(0);
+      // move the shared cursor so Read opens on this surah
+      onFollowWord(surahWordRange(target)[0]);
+      try {
+        const { sound: created } = await Audio.Sound.createAsync(
+          { uri: surahAudioUrl(target, current.path) },
+          { shouldPlay: true },
+        );
+        sound.current = created;
+        setPlaying(true);
+        created.setOnPlaybackStatusUpdate((status: AVPlaybackStatus) => {
+          if (!status.isLoaded) return;
+          setPosition(status.positionMillis);
+          if (status.durationMillis !== undefined) setDuration(status.durationMillis);
+          if (status.didJustFinish) void play(target + 1);
+        });
+      } catch {
+        setFailed(true);
+        setPlaying(false);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-      setPlaying(false);
-      setOffline(true);
     },
-    [onFollowWord, reciter, unload],
+    [current.path, onFollowWord, unload],
   );
 
   const toggle = useCallback(() => {
@@ -147,8 +178,8 @@ export function ListenPanel({
       setPlaying(true);
       return;
     }
-    void play(globalAyah);
-  }, [globalAyah, play, playing]);
+    void play(surah);
+  }, [play, playing, surah]);
 
   const pickReciter = useCallback(
     (id: string) => {
@@ -156,47 +187,53 @@ export function ListenPanel({
       setPickerOpen(false);
       void unload().then(() => {
         setPlaying(false);
-        setProgress(0);
+        setPosition(0);
+        setDuration(0);
       });
     },
     [onReciterChange, unload],
   );
 
+  const progress = duration > 0 ? Math.min(1, position / duration) : 0;
+
   return (
     <View style={styles.root}>
-      {/* the ayah being played, large and legible */}
-      <ScrollView contentContainerStyle={styles.textWrap} showsVerticalScrollIndicator={false}>
-        <Text style={[styles.surahLabel, { color: palette.textMuted }]}>
-          {surah.transliteration} · {ayah.surah}:{ayah.ayah} · {onPage} on this page
+      <View style={styles.hero}>
+        <Text allowFontScaling={false} style={[styles.surahArabic, { color: palette.ink, fontSize: fontSize * 1.5 }]}>
+          {info.name}
         </Text>
-        <Text
-          allowFontScaling={false}
-          style={[styles.ayahText, { color: palette.ink, fontSize, lineHeight }]}
-        >
-          {ayah.text} {toArabicDigits(ayah.ayah)}
+        <Text style={[styles.surahLatin, { color: palette.text }]}>{info.transliteration}</Text>
+        <Text style={[styles.surahMeta, { color: palette.textMuted }]}>
+          {info.translation} · {info.totalVerses} verses ·{' '}
+          {info.type === 'meccan' ? 'Meccan' : 'Medinan'}
         </Text>
-      </ScrollView>
+      </View>
 
       <View style={[styles.controls, { borderColor: palette.border }]}>
-        {offline ? (
-          <OfflineBadge palette={palette} label="Could not reach the audio for this reciter" />
+        {failed ? (
+          <OfflineBadge palette={palette} label={`No audio for ${current.name} — try another reciter`} />
         ) : null}
 
-        {/* progress */}
-        <View style={[styles.progressTrack, { backgroundColor: palette.border }]}>
-          <View
-            style={[
-              styles.progressFill,
-              { backgroundColor: palette.accent, width: `${Math.round(progress * 100)}%` },
-            ]}
-          />
+        <View style={styles.timeRow}>
+          <Text style={[styles.time, { color: palette.textMuted }]}>{formatTime(position)}</Text>
+          <View style={[styles.progressTrack, { backgroundColor: palette.border }]}>
+            <View
+              style={[
+                styles.progressFill,
+                { backgroundColor: palette.accent, width: `${Math.round(progress * 100)}%` },
+              ]}
+            />
+          </View>
+          <Text style={[styles.time, { color: palette.textMuted }]}>
+            {duration > 0 ? formatTime(duration) : '--:--'}
+          </Text>
         </View>
 
         <View style={styles.transport}>
           <Pressable
-            onPress={() => void play(globalAyah - 1)}
+            onPress={() => void play(surah - 1)}
             accessibilityRole="button"
-            accessibilityLabel="Previous ayah"
+            accessibilityLabel="Previous surah"
             hitSlop={12}
           >
             <Ionicons name="play-skip-back" size={26} color={palette.text} />
@@ -205,7 +242,7 @@ export function ListenPanel({
           <Pressable
             onPress={toggle}
             accessibilityRole="button"
-            accessibilityLabel={playing ? 'Pause' : 'Play'}
+            accessibilityLabel={playing ? 'Pause' : `Play ${info.transliteration}`}
             style={[styles.play, { backgroundColor: palette.primary }]}
           >
             {loading ? (
@@ -216,29 +253,28 @@ export function ListenPanel({
           </Pressable>
 
           <Pressable
-            onPress={() => void play(globalAyah + 1)}
+            onPress={() => void play(surah + 1)}
             accessibilityRole="button"
-            accessibilityLabel="Next ayah"
+            accessibilityLabel="Next surah"
             hitSlop={12}
           >
             <Ionicons name="play-skip-forward" size={26} color={palette.text} />
           </Pressable>
         </View>
 
-        {/* one row, not a wall of chips: the full list lives behind it */}
         <Pressable
           onPress={() => setPickerOpen(true)}
           accessibilityRole="button"
-          accessibilityLabel={`Reciter: ${reciterLabel(reciterById(reciter))}. Tap to change`}
+          accessibilityLabel={`Reciter: ${reciterLabel(current)}. Tap to change`}
           style={[styles.reciterRow, { backgroundColor: palette.surface, borderColor: palette.border }]}
         >
           <Ionicons name="person-outline" size={16} color={palette.primary} />
           <View style={styles.reciterMain}>
             <Text style={[styles.reciterName, { color: palette.text }]} numberOfLines={1}>
-              {reciterLabel(reciterById(reciter))}
+              {reciterLabel(current)}
             </Text>
             <Text style={[styles.reciterArabic, { color: palette.textMuted }]} numberOfLines={1}>
-              {reciterById(reciter).arabicName}
+              {current.arabicName ?? `${reciters.length} reciters`}
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={palette.textMuted} />
@@ -247,7 +283,11 @@ export function ListenPanel({
 
       <ReciterPicker
         visible={pickerOpen}
-        current={reciter}
+        current={current.id}
+        reciters={reciters}
+        source={listSource}
+        refreshing={refreshing}
+        onRefresh={() => void refresh(true)}
         palette={palette}
         onClose={() => setPickerOpen(false)}
         onPick={pickReciter}
@@ -256,21 +296,36 @@ export function ListenPanel({
   );
 }
 
+function formatTime(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
 function ReciterPicker({
   visible,
   current,
+  reciters,
+  source,
+  refreshing,
+  onRefresh,
   palette,
   onClose,
   onPick,
 }: {
   visible: boolean;
   current: string;
+  reciters: readonly Reciter[];
+  source: 'builtin' | 'cached' | 'live';
+  refreshing: boolean;
+  onRefresh: () => void;
   palette: Palette;
   onClose: () => void;
   onPick: (id: string) => void;
 }) {
   const [query, setQuery] = useState('');
-  const results = useMemo(() => searchReciters(query), [query]);
+  const results = useMemo(() => searchReciters(reciters, query), [query, reciters]);
 
   const renderItem = useCallback(
     ({ item }: { item: Reciter }) => {
@@ -288,8 +343,8 @@ function ReciterPicker({
         >
           <View style={styles.pickerMain}>
             <Text style={[styles.pickerName, { color: palette.text }]}>{item.name}</Text>
-            <Text style={[styles.pickerArabic, { color: palette.textMuted }]}>
-              {item.arabicName}
+            <Text style={[styles.pickerArabic, { color: palette.textMuted }]} numberOfLines={1}>
+              {item.arabicName ?? item.path}
               {item.style === undefined ? '' : ` · ${item.style}`}
             </Text>
           </View>
@@ -312,10 +367,32 @@ function ReciterPicker({
           <View style={[styles.handle, { backgroundColor: palette.border }]} />
         </View>
         <View style={styles.sheetHeader}>
-          <Text style={[styles.sheetTitle, { color: palette.text }]}>Reciter</Text>
-          <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel="Close">
-            <Ionicons name="close" size={20} color={palette.textMuted} />
-          </Pressable>
+          <View>
+            <Text style={[styles.sheetTitle, { color: palette.text }]}>Reciter</Text>
+            <Text style={[styles.sheetSub, { color: palette.textMuted }]}>
+              {reciters.length} available
+              {source === 'builtin' ? ' · built-in list, tap refresh for all' : ''}
+              {source === 'cached' ? ' · saved list' : ''}
+            </Text>
+          </View>
+          <View style={styles.sheetActions}>
+            <Pressable
+              onPress={onRefresh}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="Refresh the reciter list"
+              disabled={refreshing}
+            >
+              {refreshing ? (
+                <ActivityIndicator color={palette.primary} />
+              ) : (
+                <Ionicons name="refresh" size={19} color={palette.primary} />
+              )}
+            </Pressable>
+            <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel="Close">
+              <Ionicons name="close" size={20} color={palette.textMuted} />
+            </Pressable>
+          </View>
         </View>
 
         <View style={[styles.search, { borderColor: palette.border }]}>
@@ -346,18 +423,18 @@ function ReciterPicker({
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  textWrap: {
-    flexGrow: 1,
+  hero: {
+    flex: 1,
+    alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: space.lg,
-    paddingVertical: space.lg,
+    gap: space.xs,
   },
-  surahLabel: { fontSize: 12, textAlign: 'center', marginBottom: space.md },
-  ayahText: {
-    fontFamily: 'KFGQPC-Hafs',
-    textAlign: 'center',
-    writingDirection: 'rtl',
-  },
+  surahArabic: { fontFamily: 'KFGQPC-Hafs', writingDirection: 'rtl', textAlign: 'center' },
+  surahLatin: { fontSize: 20, fontWeight: '700', marginTop: space.sm },
+  surahMeta: { fontSize: 12, textAlign: 'center' },
+  timeRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  time: { fontSize: 11, fontVariant: ['tabular-nums'], minWidth: 38 },
   controls: {
     borderTopWidth: StyleSheet.hairlineWidth,
     paddingTop: space.md,
@@ -365,7 +442,7 @@ const styles = StyleSheet.create({
     paddingBottom: space.sm,
     gap: space.md,
   },
-  progressTrack: { height: 3, borderRadius: 2, overflow: 'hidden' },
+  progressTrack: { flex: 1, height: 3, borderRadius: 2, overflow: 'hidden' },
   progressFill: { height: 3, borderRadius: 2 },
   transport: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.xl },
   play: { width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center' },
@@ -402,6 +479,8 @@ const styles = StyleSheet.create({
     paddingVertical: space.sm,
   },
   sheetTitle: { fontSize: 17, fontWeight: '700' },
+  sheetSub: { fontSize: 11, marginTop: 1 },
+  sheetActions: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   search: {
     flexDirection: 'row',
     alignItems: 'center',
