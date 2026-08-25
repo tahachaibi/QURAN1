@@ -13,7 +13,7 @@
  * size, so a single pass gives the exact scale at which the widest line fits the
  * page — no iteration, and a page is always exactly one screen.
  */
-import { memo, useCallback, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, type LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
 
 import { ayahDisplayWords, ayahByGlobal, globalAyahOf, surahInfo, wordInAyahOf } from '../data/quran';
@@ -73,15 +73,33 @@ function MushafPageImpl({
 
   const base = ayahTextSizes[fontStep];
   const [box, setBox] = useState({ w: 0, h: 0 });
-  const cacheKey = `${page}:${fontStep}:${Math.round(box.w)}:${Math.round(box.h)}`;
-  const [scale, setScale] = useState<number | null>(() => scaleCache.get(cacheKey) ?? null);
+  /**
+   * Two keys, because they depend on different things.
+   *
+   * The natural width of a line depends only on the page and the type size, so
+   * measurements must NOT be discarded when the box changes — doing that threw
+   * away a complete set of widths the moment the container reported its size,
+   * which left the page stuck in the measuring pass on first visit.
+   */
+  const measureKey = `${page}:${fontStep}`;
+  const scaleKey = `${measureKey}:${Math.round(box.w)}:${Math.round(box.h)}`;
+  const [scale, setScale] = useState<number | null>(() => scaleCache.get(scaleKey) ?? null);
 
   const natural = useRef(new Map<number, number>());
-  const lastKey = useRef(cacheKey);
-  if (lastKey.current !== cacheKey) {
-    lastKey.current = cacheKey;
+  /** how many lines have reported a width; state, so the fit effect re-runs */
+  const [measured, setMeasured] = useState(0);
+
+  const lastMeasureKey = useRef(measureKey);
+  if (lastMeasureKey.current !== measureKey) {
+    lastMeasureKey.current = measureKey;
     natural.current = new Map();
-    setScale(scaleCache.get(cacheKey) ?? null);
+    setMeasured(0);
+  }
+
+  const lastScaleKey = useRef(scaleKey);
+  if (lastScaleKey.current !== scaleKey) {
+    lastScaleKey.current = scaleKey;
+    setScale(scaleCache.get(scaleKey) ?? null);
   }
 
   const onBoxLayout = useCallback((event: LayoutChangeEvent) => {
@@ -95,22 +113,38 @@ function MushafPageImpl({
 
   const onLineLayout = useCallback(
     (i: number, event: LayoutChangeEvent) => {
-      if (scaleCache.has(cacheKey)) return;
+      const before = natural.current.size;
       natural.current.set(i, event.nativeEvent.layout.width);
-      if (natural.current.size < lines.length) return;
-      if (box.w <= 0 || box.h <= 0) return;
-
-      // Widths scale linearly with font size, so the fit is exact in one step.
-      let widest = 0;
-      for (const w of natural.current.values()) widest = Math.max(widest, w);
-      const byWidth = widest > 0 ? box.w / widest : MAX_SCALE;
-      const byHeight = box.h / (lines.length * base.lineHeight);
-      const next = Math.max(MIN_SCALE, Math.min(MAX_SCALE, Math.min(byWidth, byHeight) * SAFETY));
-      scaleCache.set(cacheKey, next);
-      setScale(next);
+      if (natural.current.size !== before) setMeasured(natural.current.size);
     },
-    [base.lineHeight, box.h, box.w, cacheKey, lines.length],
+    [],
   );
+
+  /**
+   * Solve the fit once the box AND every line width are known, in an effect
+   * rather than inside the layout callback.
+   *
+   * Inside the callback this was a LOST UPDATE: if all the line layouts happened
+   * to fire before the body reported its box, the final callback bailed out on a
+   * zero box and nothing ever re-triggered it, so the page stayed in the
+   * measuring pass — right-aligned and uncentred — until it was remounted and
+   * the events happened to arrive in the other order. Which is exactly the
+   * "Al-Fatiha is only centred if I visit another page and come back" symptom.
+   */
+  useEffect(() => {
+    if (scale !== null) return;
+    if (box.w <= 0 || box.h <= 0) return;
+    if (measured < lines.length) return;
+
+    // Widths scale linearly with font size, so the fit is exact in one step.
+    let widest = 0;
+    for (const w of natural.current.values()) widest = Math.max(widest, w);
+    const byWidth = widest > 0 ? box.w / widest : MAX_SCALE;
+    const byHeight = box.h / (lines.length * base.lineHeight);
+    const next = Math.max(MIN_SCALE, Math.min(MAX_SCALE, Math.min(byWidth, byHeight) * SAFETY));
+    scaleCache.set(scaleKey, next);
+    setScale(next);
+  }, [base.lineHeight, box.h, box.w, scaleKey, lines.length, measured, scale]);
 
   const fontSize = Math.max(8, Math.round(base.fontSize * (scale ?? 1)));
   const lineHeight = Math.max(12, Math.round(base.lineHeight * (scale ?? 1)));

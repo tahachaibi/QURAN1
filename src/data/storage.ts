@@ -37,6 +37,10 @@ export interface Prefs {
   reciter: string;
   hiddenMode: boolean;
   showDebugOverlay: boolean;
+  /** notify five minutes before each prayer */
+  prayerWarning: boolean;
+  /** notify, with the adhan sound, at each prayer time */
+  adhanNotification: boolean;
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -52,6 +56,8 @@ export const DEFAULT_PREFS: Prefs = {
   reciter: 'yasser_ad-dussary/',
   hiddenMode: false,
   showDebugOverlay: false,
+  prayerWarning: true,
+  adhanNotification: true,
 };
 
 async function readJson<T>(key: string, fallback: T): Promise<T> {

@@ -370,6 +370,38 @@ describe('centred lines', () => {
     return tree;
   }
 
+  it('centres Al-Fatiha on the FIRST visit, even if the box reports last', () => {
+    // The regression: line widths arriving before the container's box meant the
+    // fit was never solved, so the page stayed in the measuring pass until it was
+    // remounted. Fire the events in that order and it must still centre.
+    const tree = render(1);
+    const hosts = hostsWithLayout(tree);
+    act(() => {
+      hosts
+        .slice(1)
+        .forEach((h) =>
+          h.props.onLayout({ nativeEvent: { layout: { x: 0, y: 0, width: 300, height: 40 } } }),
+        );
+    });
+    act(() => {
+      hostsWithLayout(tree)[0].props.onLayout({
+        nativeEvent: { layout: { x: 0, y: 0, width: 360, height: 600 } },
+      });
+    });
+    const centred = tree.root.findAll((n) => {
+      if (typeof n.type !== 'string') return false;
+      const f = flat(n.props.style);
+      return (
+        f !== null &&
+        f.flexDirection === 'row' &&
+        f.justifyContent === 'center' &&
+        f.alignItems === 'flex-end'
+      );
+    });
+    expect(centred.length).toBeGreaterThanOrEqual(7);
+    tree.unmount();
+  });
+
   it('centres Al-Fatiha, whose every line the layout marks centred', () => {
     // The layout sets is_centered on all of page 1. Relying on justifyContent
     // inside a row-reverse flex left the lines hugging the right margin.

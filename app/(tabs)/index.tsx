@@ -4,7 +4,7 @@
  * badge, never an error page.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { OfflineBadge } from '../../src/components/controls';
@@ -19,9 +19,14 @@ import {
 import { loadPrayerChecks, today, togglePrayerCheck, type PrayerChecks } from '../../src/data/storage';
 import { useTheme } from '../../src/theme/ThemeProvider';
 import { radius, space } from '../../src/theme/theme';
+import { ADHAN_SOUND, hasAdhanSound } from '../../src/data/adhan';
+import { rescheduleAll, requestPermission } from '../../src/data/notifications';
+import { WARNING_MINUTES } from '../../src/data/prayerSchedule';
 
 export default function PrayerScreen() {
-  const { palette } = useTheme();
+  const { palette, prefs, setPrefs } = useTheme();
+  const [scheduled, setScheduled] = useState<number | null>(null);
+  const [notifyError, setNotifyError] = useState<string | null>(null);
   const [day, setDay] = useState<PrayerDay | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [checks, setChecks] = useState<PrayerChecks>({});
@@ -41,6 +46,39 @@ export default function PrayerScreen() {
     void load();
     void loadPrayerChecks().then(setChecks);
   }, [load]);
+
+  /**
+   * Rebuild the schedule whenever the times or the switches change. Rescheduling
+   * cancels everything first, so this is idempotent — running it again after a
+   * refresh cannot pile up duplicate alarms.
+   */
+  useEffect(() => {
+    if (day === null) return;
+    if (!prefs.prayerWarning && !prefs.adhanNotification) {
+      setScheduled(0);
+      return;
+    }
+    void (async () => {
+      const granted = await requestPermission();
+      if (!granted) {
+        setNotifyError(
+          'Notifications are turned off for Quran Habit. Enable them in Settings > Apps > Quran Habit > Notifications.',
+        );
+        setScheduled(0);
+        return;
+      }
+      setNotifyError(null);
+      const count = await rescheduleAll(
+        {
+          timings: day.timings,
+          warnBefore: prefs.prayerWarning,
+          adhan: prefs.adhanNotification,
+        },
+        hasAdhanSound ? ADHAN_SOUND : null,
+      );
+      setScheduled(count);
+    })();
+  }, [day, prefs.adhanNotification, prefs.prayerWarning]);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -92,6 +130,35 @@ export default function PrayerScreen() {
         </View>
       ) : null}
 
+      {day !== null ? (
+        <View style={[styles.notifyCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <Toggle
+            label={`Remind me ${WARNING_MINUTES} minutes before`}
+            value={prefs.prayerWarning}
+            onChange={(prayerWarning) => setPrefs({ prayerWarning })}
+            palette={palette}
+          />
+          <Toggle
+            label="Adhan at prayer time"
+            hint={
+              hasAdhanSound
+                ? undefined
+                : 'No adhan sound is bundled yet, so this uses the default notification sound.'
+            }
+            value={prefs.adhanNotification}
+            onChange={(adhanNotification) => setPrefs({ adhanNotification })}
+            palette={palette}
+          />
+          {notifyError !== null ? (
+            <Text style={[styles.notifyNote, { color: palette.error }]}>{notifyError}</Text>
+          ) : scheduled !== null && scheduled > 0 ? (
+            <Text style={[styles.notifyNote, { color: palette.textMuted }]}>
+              {scheduled} reminders scheduled for the week ahead
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
+
       {day !== null
         ? PRAYERS.map((prayer) => {
             const raw = day.timings[prayer] ?? '--:--';
@@ -131,6 +198,38 @@ export default function PrayerScreen() {
   );
 }
 
+function Toggle({
+  label,
+  hint,
+  value,
+  onChange,
+  palette,
+}: {
+  label: string;
+  hint?: string;
+  value: boolean;
+  onChange: (value: boolean) => void;
+  palette: ReturnType<typeof useTheme>['palette'];
+}) {
+  return (
+    <View style={styles.toggleRow}>
+      <View style={styles.toggleText}>
+        <Text style={[styles.toggleLabel, { color: palette.text }]}>{label}</Text>
+        {hint === undefined ? null : (
+          <Text style={[styles.notifyNote, { color: palette.textMuted }]}>{hint}</Text>
+        )}
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onChange}
+        accessibilityLabel={label}
+        trackColor={{ true: palette.primaryLight, false: palette.border }}
+        thumbColor={value ? palette.primary : palette.surface}
+      />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   content: { padding: space.md, gap: space.sm },
   hero: { borderRadius: radius.lg, padding: space.lg },
@@ -151,5 +250,15 @@ const styles = StyleSheet.create({
     paddingVertical: space.md,
   },
   rowName: { flex: 1, fontSize: 16, fontWeight: '600' },
+  notifyCard: {
+    borderRadius: radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: space.md,
+    gap: space.sm,
+  },
+  notifyNote: { fontSize: 11, lineHeight: 16 },
+  toggleRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  toggleText: { flex: 1 },
+  toggleLabel: { fontSize: 14, fontWeight: '600' },
   rowTime: { fontSize: 16, fontVariant: ['tabular-nums'] },
 });

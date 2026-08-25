@@ -28,7 +28,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { Audio, type AVPlaybackStatus } from 'expo-av';
+import { Audio, InterruptionModeAndroid, type AVPlaybackStatus } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 
 import { surahInfo, surahWordRange, surahOf, TOTAL_SURAHS } from '../data/quran';
@@ -82,6 +82,23 @@ export function ListenPanel({
   const [refreshing, setRefreshing] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
   const sound = useRef<Audio.Sound | null>(null);
+
+  /**
+   * Keep playing when the screen locks or the app is backgrounded.
+   *
+   * Set once, before anything is loaded: expo-av applies the audio mode to
+   * sounds created after it, so doing this lazily at play time leaves the first
+   * surah playing under the default mode, which stops at the lock screen.
+   */
+  useEffect(() => {
+    void Audio.setAudioModeAsync({
+      staysActiveInBackground: true,
+      shouldDuckAndroid: false,
+      playThroughEarpieceAndroid: false,
+      interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
+      allowsRecordingIOS: false,
+    }).catch(() => undefined);
+  }, []);
 
   const info = surahInfo(surah);
   const { fontSize } = ayahTextSizes[fontStep];
