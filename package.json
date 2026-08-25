@@ -21,7 +21,8 @@
     "fixtures": "tsc -p tsconfig.bench.json && node /tmp/qh-bench/scripts/make-fixtures.js",
     "gen:verify-fonts": "node scripts/verify-fonts.mjs",
     "gen:lines": "node --experimental-sqlite scripts/gen-mushaf-lines.mjs",
-    "gen:layout-check": "node --experimental-sqlite scripts/analyse-mushaf-layout.mjs"
+    "gen:layout-check": "node --experimental-sqlite scripts/analyse-mushaf-layout.mjs",
+    "gen:hadith": "node scripts/gen-hadith.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/amiri": "^0.2.3",

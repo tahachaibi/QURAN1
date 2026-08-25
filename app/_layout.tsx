@@ -107,6 +107,8 @@ function Chrome() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="surah/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false, animation: checked ? 'default' : 'none' }} />
+        <Stack.Screen name="hadith/[collection]/index" options={{ title: 'Books' }} />
+        <Stack.Screen name="hadith/[collection]/[chapter]" options={{ title: 'Hadith' }} />
         <Stack.Screen name="settings" options={{ title: 'Settings', presentation: 'modal' }} />
       </Stack>
     </>

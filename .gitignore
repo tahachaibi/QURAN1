@@ -21,3 +21,6 @@ yarn-error.*
 /android/
 /ios/
 coverage/
+
+# raw hadith dataset, fetched by docs/hadith.md; only the generated assets are committed
+/hadith-source/
