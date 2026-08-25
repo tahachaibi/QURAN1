@@ -19,6 +19,8 @@ export interface SummaryCardProps {
   onClose: () => void;
   onLog: () => void;
   onPractise: () => void;
+  /** save this session's recogniser log so matching can be improved from it (§9) */
+  onExport: () => void;
 }
 
 export const SummaryCard = memo(function SummaryCard({
@@ -27,6 +29,7 @@ export const SummaryCard = memo(function SummaryCard({
   onClose,
   onLog,
   onPractise,
+  onExport,
 }: SummaryCardProps) {
   if (summary === null) return null;
   const surah = surahInfo(summary.surah);
@@ -84,6 +87,17 @@ export const SummaryCard = memo(function SummaryCard({
               <Text style={[styles.secondaryLabel, { color: palette.text }]}>
                 {weakest(summary) === null ? 'Practise shaky words' : `Practise ${weakest(summary)}`}
               </Text>
+            </Pressable>
+            {/* The one thing that makes matching better is a real recording of a
+                real session, and it was previously only reachable through a
+                developer toggle. This is the moment it exists. */}
+            <Pressable
+              onPress={onExport}
+              accessibilityRole="button"
+              accessibilityLabel="Save this session's recitation log"
+              accessibilityHint="Writes a file you can send, used to improve follow-along accuracy"
+            >
+              <Text style={[styles.dismiss, { color: palette.primary }]}>Save recitation log</Text>
             </Pressable>
             <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Dismiss summary">
               <Text style={[styles.dismiss, { color: palette.textMuted }]}>Not now</Text>

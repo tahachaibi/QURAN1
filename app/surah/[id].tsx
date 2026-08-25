@@ -35,6 +35,7 @@ import {
 import { PageDeck, type PageDeckHandle } from '../../src/components/PageDeck';
 import { MistakeSheet } from '../../src/components/MistakeSheet';
 import { SummaryCard, weakestAyahOf } from '../../src/components/SummaryCard';
+import { exportFixture } from '../../src/engine/exportFixture';
 import { DebugOverlay } from '../../src/components/DebugOverlay';
 import {
   Chip,
@@ -486,6 +487,7 @@ export default function SurahScreen() {
       <SummaryCard
         summary={summary}
         palette={palette}
+        onExport={() => void exportFixture(captureFixture())}
         onClose={dismissSummary}
         onLog={() => {
           void logSummaryToTracker().then(dismissSummary);

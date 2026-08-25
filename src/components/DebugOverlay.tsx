@@ -8,11 +8,13 @@
  * replay fixture, which is how a real device transcript becomes a regression
  * test in __tests__/fixtures/.
  */
-import { memo, useState } from 'react';
-import { Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { memo, useCallback, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+
 
 import { ayahByGlobal, globalAyahOf } from '../data/quran';
 import type { SessionState } from '../engine/session';
+import { exportFixture } from '../engine/exportFixture';
 import type { ReplayFixture } from '../engine/replay';
 import type { RecognizerHandle } from '../recognition/useRecitationRecognizer';
 import { radius, space, type Palette } from '../theme/theme';
@@ -31,6 +33,13 @@ export const DebugOverlay = memo(function DebugOverlay({
   captureFixture,
 }: DebugOverlayProps) {
   const [open, setOpen] = useState(false);
+  const [exported, setExported] = useState<string | null>(null);
+
+  const share = useCallback(async () => {
+    const result = await exportFixture(captureFixture());
+    setExported(result.ok ? result.detail : `export failed: ${result.detail}`);
+  }, [captureFixture]);
+
   if (!__DEV__) return null;
 
   const live = ayahByGlobal(globalAyahOf(session.livePos));
@@ -77,13 +86,7 @@ export const DebugOverlay = memo(function DebugOverlay({
             ))
           )}
           <Pressable
-            onPress={() => {
-              const fixture = captureFixture();
-              void Share.share({
-                title: 'Quran Habit replay fixture',
-                message: JSON.stringify(fixture),
-              });
-            }}
+            onPress={() => void share()}
             style={[styles.export, { borderColor: palette.accent }]}
             accessibilityRole="button"
             accessibilityLabel="Export this session as a replay fixture"
@@ -92,6 +95,11 @@ export const DebugOverlay = memo(function DebugOverlay({
               Export replay fixture ({captureFixture().events.length} events)
             </Text>
           </Pressable>
+          {exported !== null ? (
+            <Text style={[styles.exportNote, { color: palette.textMuted }]} numberOfLines={3}>
+              {exported}
+            </Text>
+          ) : null}
         </ScrollView>
       ) : null}
     </View>
@@ -132,4 +140,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   exportLabel: { fontSize: 11, fontWeight: '600' },
+  exportNote: { fontSize: 10, marginTop: 4 },
 });

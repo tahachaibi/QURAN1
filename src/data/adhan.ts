@@ -12,13 +12,20 @@
  * default notification sound, and the UI says so instead of implying an adhan
  * that will not play.
  *
- * TO ADD ONE:
- *   1. put the file at src/assets/audio/adhan.wav  (WAV, not MP3 — Android
- *      notification channels are unreliable with MP3)
+ * TO ADD ONE (all four steps matter):
+ *   1. put the file at src/assets/audio/adhan.wav — WAV, not MP3: Android
+ *      notification channels are unreliable with MP3, and a channel that cannot
+ *      play its sound falls back to silence rather than to the default
  *   2. set hasAdhanSound to true below
- *   3. add an expo-notifications config-plugin "sounds" entry in app.json so the
- *      file is copied into android/app/src/main/res/raw at prebuild
- *   4. uninstall and reinstall: an existing channel keeps its old sound forever
+ *   3. add the file to the expo-notifications plugin's "sounds" array in
+ *      app.json, which is what copies it to android/app/src/main/res/raw at
+ *      prebuild — without this the build succeeds and the sound is missing
+ *   4. UNINSTALL and reinstall the app. An Android notification channel keeps
+ *      the sound it was created with forever; updating over the top leaves the
+ *      old channel, and the adhan will not play no matter what the code says
+ *
+ * Keep it under about 30 seconds. Android truncates long notification sounds,
+ * and a cut-off adhan is worse than a short one.
  */
 
 /** File name without extension, which is how Android refers to a raw resource. */
