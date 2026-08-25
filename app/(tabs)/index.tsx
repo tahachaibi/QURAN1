@@ -22,9 +22,11 @@ import { radius, space } from '../../src/theme/theme';
 import { ADHAN_SOUND, hasAdhanSound } from '../../src/data/adhan';
 import { rescheduleAll, requestPermission } from '../../src/data/notifications';
 import { WARNING_MINUTES } from '../../src/data/prayerSchedule';
+import { useAdhan } from '../../src/context/AdhanProvider';
 
 export default function PrayerScreen() {
   const { palette, prefs, setPrefs } = useTheme();
+  const { test: testAdhan } = useAdhan();
   const [scheduled, setScheduled] = useState<number | null>(null);
   const [notifyError, setNotifyError] = useState<string | null>(null);
   const [day, setDay] = useState<PrayerDay | null>(null);
@@ -134,6 +136,7 @@ export default function PrayerScreen() {
         <View style={[styles.notifyCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
           <Toggle
             label={`Remind me ${WARNING_MINUTES} minutes before`}
+            hint="A plain reminder — never the adhan, which would be five minutes early."
             value={prefs.prayerWarning}
             onChange={(prayerWarning) => setPrefs({ prayerWarning })}
             palette={palette}
@@ -142,13 +145,24 @@ export default function PrayerScreen() {
             label="Adhan at prayer time"
             hint={
               hasAdhanSound
-                ? undefined
-                : 'No adhan sound is bundled yet, so this uses the default notification sound.'
+                ? 'Played through the phone with a Stop button when the app is open, and as a notification when it is closed.'
+                : 'No adhan recording is bundled in this build yet, so prayer time shows a notice without sound.'
             }
             value={prefs.adhanNotification}
             onChange={(adhanNotification) => setPrefs({ adhanNotification })}
             palette={palette}
           />
+          {prefs.adhanNotification && hasAdhanSound ? (
+            <Pressable
+              onPress={() => testAdhan(next?.name ?? 'Fajr')}
+              accessibilityRole="button"
+              accessibilityLabel="Hear the adhan now"
+              style={[styles.testButton, { borderColor: palette.primary }]}
+            >
+              <Ionicons name="volume-high" size={16} color={palette.primary} />
+              <Text style={[styles.testText, { color: palette.primary }]}>Hear it now</Text>
+            </Pressable>
+          ) : null}
           {notifyError !== null ? (
             <Text style={[styles.notifyNote, { color: palette.error }]}>{notifyError}</Text>
           ) : scheduled !== null && scheduled > 0 ? (
@@ -257,6 +271,16 @@ const styles = StyleSheet.create({
     gap: space.sm,
   },
   notifyNote: { fontSize: 11, lineHeight: 16 },
+  testButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: space.xs,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    paddingVertical: space.sm,
+  },
+  testText: { fontSize: 13, fontWeight: '700' },
   toggleRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   toggleText: { flex: 1 },
   toggleLabel: { fontSize: 14, fontWeight: '600' },

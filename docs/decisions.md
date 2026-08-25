@@ -210,6 +210,40 @@ modules use and what `RecordTypeConverter` is exercised against; API-33 calls
 belong in `@RequiresApi` helpers so the verifier never touches an
 API-33 signature on an older device.
 
+## The adhan is playback, not a notification sound
+
+A notification sound seemed like the whole feature — the operating system fires
+it, it works when the app is dead, there is no timer to get wrong. It is also not
+what a call to prayer is: Android truncates a notification sound, mixes it with
+whatever else is playing, and offers no way to silence it short of swiping the
+notification away. So the adhan is real playback (`expo-av`, media output, full
+length) with a banner and a Stop button, and the notification is demoted to the
+fallback for a phone whose app is closed.
+
+That split forces three things that are easy to get wrong:
+
+**The five-minute warning must be structurally unable to carry the adhan.** It is
+not enough that the current code passes `'default'` — `soundFor()` decides it from
+the channel and a test asserts it, because a call to prayer five minutes early is
+not a reminder, it is wrong.
+
+**In-app playback cannot be a single long timeout.** Android does not honour one,
+and the failure mode is the adhan sounding at midnight because the phone dozed
+through Maghrib and woke later. So the timer re-arms at most a minute at a time
+and asks a different question: "has a prayer time passed within the last ninety
+seconds that I have not already sounded?" Late means silent, and silent is the
+right answer — `dueAdhan` is pure and tested precisely because being wrong here is
+worse than the feature not existing.
+
+**The two paths must not overlap.** A foreground notification handler mutes the
+adhan channel while the app is open, so you never hear the truncated notification
+sound underneath the real recording.
+
+One deliberate refusal: if the microphone is live when the prayer time arrives,
+the adhan does **not** auto-play. Playing it into an open microphone would make
+the app follow its own loudspeaker. The banner appears with a Play button and the
+reciter decides.
+
 ## Known weaknesses I did not paper over
 
 **The §5.2 thresholds are looser at the word level than the spec's own framing

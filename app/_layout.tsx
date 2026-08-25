@@ -15,6 +15,8 @@ import { useFonts } from 'expo-font';
 import { Amiri_400Regular, Amiri_700Bold } from '@expo-google-fonts/amiri';
 
 import { RecitationProvider } from '../src/context/RecitationProvider';
+import { AdhanProvider } from '../src/context/AdhanProvider';
+import { AdhanBanner } from '../src/components/AdhanBanner';
 import { ThemeProvider, useTheme } from '../src/theme/ThemeProvider';
 import { hasOnboarded } from '../src/data/storage';
 import { lightPalette } from '../src/theme/theme';
@@ -74,7 +76,12 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ThemeProvider>
         <RecitationProvider>
-          <Chrome />
+          {/* Inside RecitationProvider so the adhan can hold back while the
+              microphone is live, and above the router so it can sound on any
+              screen without a navigation. */}
+          <AdhanProvider>
+            <Chrome />
+          </AdhanProvider>
         </RecitationProvider>
       </ThemeProvider>
     </SafeAreaProvider>
@@ -111,6 +118,8 @@ function Chrome() {
         <Stack.Screen name="hadith/[collection]/[chapter]" options={{ title: 'Hadith' }} />
         <Stack.Screen name="settings" options={{ title: 'Settings', presentation: 'modal' }} />
       </Stack>
+      {/* Last sibling, so it paints over the header and every screen. */}
+      <AdhanBanner />
     </>
   );
 }

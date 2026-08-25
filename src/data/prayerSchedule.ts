@@ -27,12 +27,40 @@ export interface ScheduleOptions {
   now?: Date;
 }
 
+export type NotificationChannel = typeof CHANNEL_ADHAN | typeof CHANNEL_WARNING;
+
+/**
+ * Travels with the notification so the app knows, when it is opened by a tap on
+ * one, WHICH prayer's adhan to play. Without it the tap can only open the app.
+ */
+export interface NotificationPayload {
+  kind: 'adhan' | 'warning';
+  prayer: PrayerName;
+  /** the prayer's own time as an ISO string, so a stale tap can be ignored */
+  at: string;
+}
+
 export interface PlannedNotification {
-  channel: typeof CHANNEL_ADHAN | typeof CHANNEL_WARNING;
+  channel: NotificationChannel;
   prayer: PrayerName;
   at: Date;
   title: string;
   body: string;
+  data: NotificationPayload;
+}
+
+/**
+ * Which sound a notification carries.
+ *
+ * The five-minute warning NEVER carries the adhan — a call to prayer five
+ * minutes early is worse than no reminder, because it is wrong. Only the
+ * prayer-time notification does, and only as the fallback for a phone whose app
+ * is closed; when the app is open the adhan is played properly, in full, with a
+ * stop button, and the notification is muted so the two do not overlap.
+ */
+export function soundFor(channel: NotificationChannel, adhanSound: string | null): string {
+  if (channel !== CHANNEL_ADHAN) return 'default';
+  return adhanSound ?? 'default';
 }
 
 /**
@@ -63,6 +91,7 @@ export function planNotifications(options: ScheduleOptions): PlannedNotification
           at,
           title: `${PRAYER_ARABIC[prayer]} · ${prayer}`,
           body: 'حان الآن وقت الصلاة',
+          data: { kind: 'adhan', prayer, at: at.toISOString() },
         });
       }
       if (options.warnBefore) {
@@ -74,6 +103,7 @@ export function planNotifications(options: ScheduleOptions): PlannedNotification
             at: warnAt,
             title: `${prayer} in ${WARNING_MINUTES} minutes`,
             body: `${PRAYER_ARABIC[prayer]} — ${raw.trim().slice(0, 5)}`,
+            data: { kind: 'warning', prayer, at: at.toISOString() },
           });
         }
       }

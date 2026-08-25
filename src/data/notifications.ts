@@ -16,6 +16,8 @@ import {
   CHANNEL_ADHAN,
   CHANNEL_WARNING,
   planNotifications,
+  soundFor,
+  type NotificationPayload,
   type ScheduleOptions,
 } from './prayerSchedule';
 
@@ -66,7 +68,8 @@ export async function rescheduleAll(options: ScheduleOptions, adhanSound: string
       content: {
         title: item.title,
         body: item.body,
-        sound: item.channel === CHANNEL_ADHAN ? (adhanSound ?? 'default') : 'default',
+        sound: soundFor(item.channel, adhanSound),
+        data: item.data,
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DATE,
@@ -79,3 +82,32 @@ export async function rescheduleAll(options: ScheduleOptions, adhanSound: string
 }
 
 export const cancelAll = (): Promise<void> => Notifications.cancelAllScheduledNotificationsAsync();
+
+/**
+ * How a notification behaves when it arrives while the app is OPEN.
+ *
+ * The adhan notification is muted here, because in the foreground the app plays
+ * the recording itself — in full, with a stop button. Without this you would hear
+ * the truncated notification sound and the real adhan on top of each other.
+ */
+export function installForegroundBehaviour(): void {
+  Notifications.setNotificationHandler({
+    handleNotification: (notification) => {
+      const data = notification.request.content.data as Partial<NotificationPayload> | null;
+      const isAdhan = data?.kind === 'adhan';
+      return Promise.resolve({
+        shouldShowAlert: true,
+        shouldPlaySound: !isAdhan,
+        shouldSetBadge: false,
+      });
+    },
+  });
+}
+
+/** Read the payload off a notification, or null when it is not one of ours. */
+export function payloadOf(notification: Notifications.Notification): NotificationPayload | null {
+  const data = notification.request.content.data as Partial<NotificationPayload> | null;
+  if (data == null || (data.kind !== 'adhan' && data.kind !== 'warning')) return null;
+  if (typeof data.prayer !== 'string' || typeof data.at !== 'string') return null;
+  return { kind: data.kind, prayer: data.prayer, at: data.at };
+}
