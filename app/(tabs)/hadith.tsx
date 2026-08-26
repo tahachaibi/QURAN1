@@ -10,6 +10,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { collections, searchHadith, type Hadith, type HadithCollection } from '../../src/data/hadith';
+import { adhkarCount, defaultTime } from '../../src/data/adhkar';
 import { HadithCard } from '../../src/components/HadithCard';
 import { useTheme } from '../../src/theme/ThemeProvider';
 import { radius, space } from '../../src/theme/theme';
@@ -88,6 +89,30 @@ export default function HadithTab() {
           keyExtractor={(c) => String(c.id)}
           renderItem={renderCollection}
           contentContainerStyle={styles.list}
+          ListHeaderComponent={
+            /**
+             * Above the collections rather than inside them: the adhkar are a
+             * thing you DO at a time of day, not a book you browse, and burying
+             * them one level down would mean nobody reciting them twice a day
+             * ever finds them.
+             */
+            <Pressable
+              onPress={() => router.push('/adhkar')}
+              accessibilityRole="button"
+              accessibilityLabel="Adhkar of the morning and evening"
+              style={[styles.card, { backgroundColor: palette.primary, borderColor: palette.accent }]}
+            >
+              <Ionicons name="partly-sunny-outline" size={22} color={palette.accent} />
+              <View style={styles.cardMain}>
+                <Text style={[styles.cardTitle, { color: '#FFFFFF' }]}>Adhkar · morning & evening</Text>
+                <Text style={[styles.cardMeta, { color: palette.accentSoft }]}>
+                  {adhkarCount(defaultTime())} to say {defaultTime() === 'morning' ? 'this morning' : 'this evening'} ·
+                  every one quoted from Bukhari, Muslim or the Qur'an
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={palette.accent} />
+            </Pressable>
+          }
           ListFooterComponent={
             <Text style={[styles.note, { color: palette.textMuted }]}>
               Only the two Sahih collections are included. Their contents are accepted as authentic

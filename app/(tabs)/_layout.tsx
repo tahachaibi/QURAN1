@@ -24,13 +24,6 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="quran"
-        options={{
-          title: 'Quran',
-          tabBarIcon: ({ color, size }) => <Ionicons name="book-outline" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="hadith"
         options={{
           title: 'Hadith',
@@ -38,10 +31,10 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="tracker"
+        name="quran"
         options={{
-          title: 'Tracker',
-          tabBarIcon: ({ color, size }) => <Ionicons name="flame-outline" size={size} color={color} />,
+          title: 'Quran',
+          tabBarIcon: ({ color, size }) => <Ionicons name="book-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -49,6 +42,13 @@ export default function TabsLayout() {
         options={{
           title: 'Listen',
           tabBarIcon: ({ color, size }) => <Ionicons name="headset-outline" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="tracker"
+        options={{
+          title: 'Tracker',
+          tabBarIcon: ({ color, size }) => <Ionicons name="flame-outline" size={size} color={color} />,
         }}
       />
     </Tabs>

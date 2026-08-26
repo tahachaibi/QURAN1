@@ -60,3 +60,68 @@ collections loads no text at all.
 Hadith Arabic is set in **Amiri**, deliberately not in KFGQPC Uthmanic Script.
 That face is the mushaf's, and setting a narration in it would dress it as
 revelation. A render test enforces it.
+
+## The morning and evening adhkar
+
+The adhkar screen (`app/adhkar.tsx`, reached from the top of the Hadith tab) has
+one hard rule: **not one Arabic character on it is typed by this app.** Every
+du'a is a verbatim slice of a hadith already bundled here, and every Qur'an
+passage is read from the bundled mushaf text at display time. Sacred text written
+from memory is how a du'a app teaches a du'a nobody said, and no amount of care
+while typing prevents that — only refusing to type it does.
+
+The mechanism is in `scripts/gen-adhkar.mjs`. Both translations wrap the Prophet's
+words in double quotes, so the odd-indexed parts of `text.split('"')` are the
+quoted spans. An entry names a hadith, which of its spans to take, and optionally
+a folded anchor for where inside the span the du'a starts and ends; the isnad,
+the "he who says this shall…" clause and the surrounding narrative are dropped by
+construction rather than by judgement. A missing anchor is a hard error, because a
+silently un-trimmed du'a would fold the reward clause into the du'a itself.
+
+`npm run gen` regenerates it and CI fails if the output differs from what is
+committed, so the file can never drift from the corpus it was cut out of.
+`__tests__/adhkar.test.ts` then asserts, at runtime, that every line still appears
+character for character inside the narration it cites, that the cited hadith
+exists with that text, that no chain of narration leaked in, and that the Qur'an
+lines equal `ayahAt()` exactly.
+
+### What is in it
+
+| | Source | Times |
+|---|---|---|
+| Ayat al-Kursi, al-Ikhlas, al-Falaq, an-Nas | Qur'an 2:255, 112, 113, 114 | 1, 3, 3, 3 |
+| Sayyid al-istighfar | Bukhari 6069 | 1 |
+| لا إله إلا الله وحده… | Muslim 6677 | 100 |
+| أعوذ بكلمات الله التامات | Muslim 6711 | 3 |
+| اللهم لك أسلمت… | Muslim 6731 | 1 |
+| اللهم إني أعوذ بك من الهم والحزن | Bukhari 6126 | 1 |
+| سبحان الله وبحمده عدد خلقه (morning) | Muslim 6745 | 3 |
+| أصبحنا وأصبح الملك لله (morning) | Muslim 6740 | 1 |
+| أمسينا وأمسى الملك لله (evening) | Muslim 6740 | 1 |
+
+### What is deliberately missing, and why
+
+This app bundles only Bukhari and Muslim. Several of the best-known morning and
+evening adhkar are narrated in Abu Dawud, at-Tirmidhi, an-Nasa'i and Ibn Majah
+instead, and they are **absent rather than approximated**:
+
+- بسم الله الذي لا يضر مع اسمه شيء
+- رضيت بالله ربا وبالإسلام دينا وبمحمد نبيا
+- اللهم بك أصبحنا وبك أمسينا
+- اللهم عافني في بدني، اللهم عافني في سمعي
+- أصبحت على فطرة الإسلام
+- اللهم إني أسألك علما نافعا
+- the instruction to read al-Ikhlas and the two mu'awwidhat three times morning
+  and evening — which is why those four passages are cited by surah and ayah only,
+  with the screen saying plainly that the narration prescribing them is not one
+  the app can show you
+
+Adding them needs a licensed, graded dataset of the four Sunan with Arabic and
+English. That is a data decision, not a code one: point me at a source with a
+licence and they go in the same generator, under the same verbatim rule.
+
+### Two typefaces on one screen
+
+Qur'an passages are set in KFGQPC Uthmanic Script; du'as in Amiri. The screen puts
+revelation and narration side by side, so the distinction the rest of the app
+makes by tab has to be made here by typeface.
