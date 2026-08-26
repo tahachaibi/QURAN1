@@ -214,20 +214,15 @@ export const loadPrayerCache = (): Promise<PrayerCache | null> =>
 export const savePrayerCache = (cache: PrayerCache): Promise<void> => writeJson(KEY.prayerCache, cache);
 
 // ---------------------------------------------------------------------------
-// prayer check-offs and first run
+// first run
 // ---------------------------------------------------------------------------
 
-export type PrayerChecks = Record<string, string[]>;
-
-export const loadPrayerChecks = (): Promise<PrayerChecks> => readJson<PrayerChecks>(KEY.streak, {});
-
-export async function togglePrayerCheck(day: string, prayer: string): Promise<PrayerChecks> {
-  const all = await loadPrayerChecks();
-  const list = all[day] ?? [];
-  all[day] = list.includes(prayer) ? list.filter((p) => p !== prayer) : [...list, prayer];
-  await writeJson(KEY.streak, all);
-  return all;
-}
+/**
+ * KEY.streak held per-day prayer check-offs and is now retired: the prayer rows
+ * are read-only and the tracker counts recitation only. Old values are left on
+ * the device rather than migrated — nothing reads them, and deleting a user's
+ * data to tidy up a key name is not a trade worth making.
+ */
 
 export const hasOnboarded = (): Promise<boolean> =>
   AsyncStorage.getItem(KEY.onboarded)

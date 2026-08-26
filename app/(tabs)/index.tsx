@@ -1,7 +1,11 @@
 /**
  * Prayer tab (spec §8): today's times from device location, a countdown to the
- * next prayer, and tap-to-check-off. Offline shows the cached response with a
- * badge, never an error page.
+ * next prayer, and the corrections needed to make both match the mosque you
+ * follow. Offline shows the cached response with a badge, never an error page.
+ *
+ * The rows are read-only. They were check-offs feeding a prayer streak, and that
+ * came out: the tracker is about the Qur'an, and a checkbox on a prayer invites
+ * the app to keep score of someone's worship.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
@@ -14,9 +18,9 @@ import {
   nextPrayer,
   parseTime,
   PRAYERS,
+  PRAYER_ARABIC,
   type PrayerDay,
 } from '../../src/data/prayer';
-import { loadPrayerChecks, today, togglePrayerCheck, type PrayerChecks } from '../../src/data/storage';
 import { clampOffset, describeOffsets, hasOffsets, OFFSET_LIMIT } from '../../src/data/prayerOffsets';
 import { fetchMethods, methodName, type CalculationMethod } from '../../src/data/prayerMethods';
 import { useTheme } from '../../src/theme/ThemeProvider';
@@ -33,7 +37,6 @@ export default function PrayerScreen() {
   const [notifyError, setNotifyError] = useState<string | null>(null);
   const [day, setDay] = useState<PrayerDay | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [checks, setChecks] = useState<PrayerChecks>({});
   const [now, setNow] = useState(() => Date.now());
   const [refreshing, setRefreshing] = useState(false);
   const [tuning, setTuning] = useState(false);
@@ -53,10 +56,6 @@ export default function PrayerScreen() {
   useEffect(() => {
     void load();
   }, [load]);
-
-  useEffect(() => {
-    void loadPrayerChecks().then(setChecks);
-  }, []);
 
   /**
    * The method list comes from the API, never from a list written into the app:
@@ -108,8 +107,6 @@ export default function PrayerScreen() {
     return () => clearInterval(id);
   }, []);
 
-  const key = today();
-  const done = checks[key] ?? [];
   const next = day === null ? null : nextPrayer(day.timings, new Date(now));
 
   return (
@@ -310,33 +307,44 @@ export default function PrayerScreen() {
             const raw = day.timings[prayer] ?? '--:--';
             const at = parseTime(raw, new Date(now));
             const past = at.getTime() < now;
-            const checked = done.includes(prayer);
+            const isNext = next !== null && !next.tomorrow && next.name === prayer;
+            /**
+             * Read-only, deliberately. These rows used to be check-offs feeding a
+             * prayer streak; the tracker is about the Qur'an, and a checkbox on a
+             * prayer invites the app to keep score of someone's worship. What the
+             * row owes the reader is which prayer is next and what time it is.
+             */
             return (
-              <Pressable
+              <View
                 key={prayer}
-                onPress={() => void togglePrayerCheck(key, prayer).then(setChecks)}
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked }}
-                accessibilityLabel={`${prayer} at ${raw}`}
-                accessibilityHint="Tap to mark as prayed"
+                accessible
+                accessibilityLabel={`${prayer} at ${raw.trim().slice(0, 5)}${isNext ? ', next' : past ? ', passed' : ''}`}
                 style={[
                   styles.row,
                   {
-                    backgroundColor: checked ? palette.successSoft : palette.surface,
-                    borderColor: checked ? palette.success : palette.border,
+                    backgroundColor: isNext ? palette.successSoft : palette.surface,
+                    borderColor: isNext ? palette.success : palette.border,
                   },
                 ]}
               >
                 <Ionicons
-                  name={checked ? 'checkmark-circle' : 'ellipse-outline'}
-                  size={22}
-                  color={checked ? palette.success : palette.textMuted}
+                  name={isNext ? 'arrow-forward-circle' : past ? 'checkmark-done-outline' : 'time-outline'}
+                  size={20}
+                  color={isNext ? palette.success : palette.textMuted}
                 />
-                <Text style={[styles.rowName, { color: past && !checked ? palette.textMuted : palette.text }]}>
+                <Text
+                  style={[
+                    styles.rowName,
+                    { color: past && !isNext ? palette.textMuted : palette.text },
+                  ]}
+                >
                   {prayer}
                 </Text>
+                <Text style={[styles.rowArabic, { color: palette.textMuted }]}>
+                  {PRAYER_ARABIC[prayer]}
+                </Text>
                 <Text style={[styles.rowTime, { color: palette.text }]}>{raw.trim().slice(0, 5)}</Text>
-              </Pressable>
+              </View>
             );
           })
         : null}
@@ -396,6 +404,7 @@ const styles = StyleSheet.create({
     paddingVertical: space.md,
   },
   rowName: { flex: 1, fontSize: 16, fontWeight: '600' },
+  rowArabic: { fontSize: 15, fontFamily: 'Amiri_400Regular', writingDirection: 'rtl' },
   notifyCard: {
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,

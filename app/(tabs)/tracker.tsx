@@ -1,6 +1,12 @@
 /**
- * Tracker tab (spec §8): daily streak, a calendar heatmap, and the recitation
+ * Tracker tab (spec §8): the recitation streak, a calendar heatmap, and the
  * sessions that feed it automatically from the session summary (§6.6).
+ *
+ * QUR'AN ONLY. This used to count a day as active if you had checked off a prayer
+ * on the prayer tab, which quietly made the streak a measure of two different
+ * things — and let it advance on a day with no recitation at all. A streak is only
+ * worth having if you know exactly what breaks it. This one breaks when you do
+ * not recite.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -11,7 +17,6 @@ import { ayahByGlobal, globalAyahOf, surahs } from '../../src/data/quran';
 import {
   loadHifzDeck,
   loadMistakeLog,
-  loadPrayerChecks,
   loadSessions,
   today,
   type LoggedSession,
@@ -31,7 +36,6 @@ export default function TrackerScreen() {
   const router = useRouter();
   const { practiseRange } = useRecitation();
   const [sessions, setSessions] = useState<LoggedSession[]>([]);
-  const [prayerDays, setPrayerDays] = useState<string[]>([]);
   const [deck, setDeck] = useState<HifzDeck>({});
   const [profile, setProfile] = useState<ConfusionProfile>(() => buildProfile([]));
   const [refreshing, setRefreshing] = useState(false);
@@ -42,8 +46,6 @@ export default function TrackerScreen() {
   const load = useCallback(async () => {
     setNow(Date.now());
     setSessions(await loadSessions());
-    const checks = await loadPrayerChecks();
-    setPrayerDays(Object.keys(checks).filter((day) => (checks[day] ?? []).length > 0));
     setDeck(await loadHifzDeck());
     setProfile(buildProfile(await loadMistakeLog()));
   }, []);
@@ -52,11 +54,12 @@ export default function TrackerScreen() {
     void load();
   }, [load]);
 
+  /** A day counts when something was recited on it. Nothing else. */
   const activeDays = useMemo(() => {
-    const set = new Set<string>(prayerDays);
+    const set = new Set<string>();
     for (const s of sessions) set.add(s.day);
     return set;
-  }, [prayerDays, sessions]);
+  }, [sessions]);
 
   const streak = useMemo(() => currentStreak(activeDays), [activeDays]);
   const grid = useMemo(() => buildGrid(activeDays, sessions), [activeDays, sessions]);
@@ -89,9 +92,14 @@ export default function TrackerScreen() {
       }
     >
       <View style={[styles.hero, { backgroundColor: palette.primary }]}>
-        <Text style={[styles.heroLabel, { color: palette.accentSoft }]}>Current streak</Text>
+        <Text style={[styles.heroLabel, { color: palette.accentSoft }]}>Recitation streak</Text>
         <Text style={styles.heroValue}>
           {streak} {streak === 1 ? 'day' : 'days'}
+        </Text>
+        <Text style={[styles.heroNote, { color: palette.accentSoft }]}>
+          {streak === 0
+            ? 'Recite anything today to start it.'
+            : 'Every day you recited, in a row.'}
         </Text>
       </View>
 
@@ -127,7 +135,7 @@ export default function TrackerScreen() {
               <View
                 key={cell.day}
                 accessible
-                accessibilityLabel={`${cell.day}: ${cell.intensity === 0 ? 'nothing logged' : `${cell.words} words`}`}
+                accessibilityLabel={`${cell.day}: ${cell.intensity === 0 ? 'nothing recited' : `${cell.words} words`}`}
                 style={[
                   styles.cell,
                   {
@@ -231,6 +239,7 @@ const styles = StyleSheet.create({
   hero: { borderRadius: radius.lg, padding: space.lg },
   heroLabel: { fontSize: 11, letterSpacing: 1, textTransform: 'uppercase' },
   heroValue: { fontSize: 34, fontWeight: '700', color: '#FFFFFF', marginTop: 2 },
+  heroNote: { fontSize: 11, marginTop: 2 },
   statRow: { flexDirection: 'row', gap: space.sm },
   stat: {
     flex: 1,
