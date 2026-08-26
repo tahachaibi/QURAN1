@@ -114,6 +114,46 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
     return () => sub.remove();
   }, [refreshTimings]);
 
+  /**
+   * The one place playback is started, so the three ways in cannot drift apart.
+   *
+   * `describe` asks for the diagnostic line — used by the Hear-it-now test, where
+   * the whole point is to find out what the phone did. A real adhan at a real
+   * prayer time stays quiet about internals unless something went wrong.
+   */
+  const begin = useCallback((describe: boolean) => {
+    setNote(null);
+    void playAdhan(
+      () => {
+        setPlaying(false);
+        setPrayer(null);
+        setPreview(false);
+      },
+      // Accepted but not advancing: the case that looks exactly like a working
+      // adhan with the volume down, and the one worth naming out loud.
+      (detail) => setNote(detail),
+    ).then((result) => {
+      setPlaying(result.ok);
+      if (!result.ok) {
+        setNote(result.detail);
+        return;
+      }
+      if (!describe) return;
+      /**
+       * A successful start is not the same as a sound you can hear. The adhan
+       * plays on the MEDIA stream, which has its own volume and its own mute, so
+       * a phone with media at zero plays a perfect silent adhan.
+       */
+      const length =
+        result.durationMs === null
+          ? 'the recording'
+          : `${Math.floor(result.durationMs / 60000)}:${String(
+              Math.floor((result.durationMs % 60000) / 1000),
+            ).padStart(2, '0')} of adhan`;
+      setNote(`Playing ${length}. If you hear nothing, raise the MEDIA volume — not the ringer.`);
+    });
+  }, []);
+
   const start = useCallback(
     (which: PrayerName, key: string) => {
       sounded.current = key;
@@ -131,16 +171,9 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
         setNote('You are reciting — stop the session first, then tap Play adhan.');
         return;
       }
-      setNote(null);
-      void playAdhan(() => {
-        setPlaying(false);
-        setPrayer(null);
-      }).then((result) => {
-        setPlaying(result.ok);
-        setNote(result.ok ? null : result.detail);
-      });
+      begin(false);
     },
-    [],
+    [begin],
   );
 
   const dismiss = useCallback(() => {
@@ -151,18 +184,14 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
     setPreview(false);
   }, []);
 
-  const play = useCallback((which: PrayerName) => {
-    setNote(null);
-    setPrayer(which);
-    setPreview(false);
-    void playAdhan(() => {
-      setPlaying(false);
-      setPrayer(null);
-    }).then((result) => {
-      setPlaying(result.ok);
-      setNote(result.ok ? null : result.detail);
-    });
-  }, []);
+  const play = useCallback(
+    (which: PrayerName) => {
+      setPrayer(which);
+      setPreview(false);
+      begin(false);
+    },
+    [begin],
+  );
 
   const test = useCallback(
     (which: PrayerName) => {
@@ -173,33 +202,9 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
         setNote('No adhan recording is bundled in this build yet, so there is nothing to hear.');
         return;
       }
-      setNote(null);
-      void playAdhan(() => {
-        setPlaying(false);
-        setPrayer(null);
-        setPreview(false);
-      }).then((result) => {
-        setPlaying(result.ok);
-        if (!result.ok) {
-          setNote(result.detail);
-          return;
-        }
-        /**
-         * A successful start is not the same as a sound you can hear. The adhan
-         * plays on the MEDIA stream, which has its own volume and its own mute,
-         * so a phone with media at zero plays a perfect silent adhan. Saying what
-         * loaded turns "it isn't working" into something diagnosable.
-         */
-        const length =
-          result.durationMs === null
-            ? 'the recording'
-            : `${Math.floor(result.durationMs / 60000)}:${String(
-                Math.floor((result.durationMs % 60000) / 1000),
-              ).padStart(2, '0')} of adhan`;
-        setNote(`Playing ${length}. If you hear nothing, raise the MEDIA volume — not the ringer.`);
-      });
+      begin(true);
     },
-    [],
+    [begin],
   );
 
   /**
