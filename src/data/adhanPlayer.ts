@@ -16,10 +16,18 @@ import { Audio, InterruptionModeAndroid } from 'expo-av';
 import { ADHAN_ASSET } from './adhan';
 
 export interface AdhanPlaybackResult {
-  /** true when audio is actually coming out of the phone */
+  /** true when the recording loaded and playback started */
   ok: boolean;
-  /** why not, phrased for a human (§11); empty when it played */
+  /**
+   * What happened, phrased for a human (§11) — on failure the reason, on success
+   * what was loaded. "It isn't working" is not a diagnosable report, and the only
+   * fix for that is for the app to say what it did.
+   */
   detail: string;
+  /** the recording's length once loaded, so a silent success can be told apart
+   *  from a failed load: a real duration means the file decoded and the problem
+   *  is downstream of this code (media volume, silent mode, Bluetooth). */
+  durationMs: number | null;
 }
 
 let sound: Audio.Sound | null = null;
@@ -34,6 +42,7 @@ export async function playAdhan(onFinished: () => void): Promise<AdhanPlaybackRe
     return {
       ok: false,
       detail: 'No adhan recording is bundled in this build, so there is nothing to play.',
+      durationMs: null,
     };
   }
 
@@ -54,7 +63,7 @@ export async function playAdhan(onFinished: () => void): Promise<AdhanPlaybackRe
     if (mine !== generation) {
       // Stopped while loading.
       await created.sound.unloadAsync().catch(() => undefined);
-      return { ok: false, detail: 'Stopped before it started.' };
+      return { ok: false, detail: 'Stopped before it started.', durationMs: null };
     }
 
     sound = created.sound;
@@ -64,11 +73,18 @@ export async function playAdhan(onFinished: () => void): Promise<AdhanPlaybackRe
         onFinished();
       }
     });
-    return { ok: true, detail: '' };
+
+    const status = created.status;
+    const durationMs = status.isLoaded ? (status.durationMillis ?? null) : null;
+    if (!status.isLoaded) {
+      return { ok: false, detail: 'The recording did not load.', durationMs: null };
+    }
+    return { ok: true, detail: '', durationMs };
   } catch (e) {
     return {
       ok: false,
       detail: `The adhan could not be played: ${e instanceof Error ? e.message : String(e)}`,
+      durationMs: null,
     };
   }
 }

@@ -8,10 +8,20 @@
 import * as Location from 'expo-location';
 
 import { loadPrayerCache, savePrayerCache, today, type PrayerCache } from './storage';
+import { adjustTimings, NO_OFFSETS, type PrayerOffsets } from './prayerOffsets';
+import { FALLBACK_METHOD } from './prayerMethods';
 
 const ALADHAN = 'https://api.aladhan.com/v1/timings';
 
+export interface PrayerOptions {
+  /** Aladhan calculation method id */
+  method?: number;
+  /** per-prayer minute corrections, applied before anything else sees the times */
+  offsets?: PrayerOffsets;
+}
+
 export interface PrayerDay {
+  /** already corrected by the user's offsets — nothing downstream re-applies them */
   timings: Record<string, string>;
   day: string;
   /** true when these came from the cache because the network was unreachable */
@@ -20,7 +30,9 @@ export interface PrayerDay {
   note: string | null;
 }
 
-export async function fetchPrayerTimes(): Promise<PrayerDay> {
+export async function fetchPrayerTimes(options: PrayerOptions = {}): Promise<PrayerDay> {
+  const method = options.method ?? FALLBACK_METHOD;
+  const offsets = options.offsets ?? NO_OFFSETS;
   const cached = await loadPrayerCache();
 
   let coords: { latitude: number; longitude: number } | null = null;
@@ -40,7 +52,7 @@ export async function fetchPrayerTimes(): Promise<PrayerDay> {
 
   if (coords === null && cached !== null) {
     return {
-      timings: cached.timings,
+      timings: adjustTimings(cached.timings, offsets),
       day: cached.day,
       fromCache: true,
       note: 'Showing your last saved times — location is unavailable right now.',
@@ -54,7 +66,7 @@ export async function fetchPrayerTimes(): Promise<PrayerDay> {
 
   const day = today();
   const stamp = Math.floor(Date.now() / 1000);
-  const url = `${ALADHAN}/${stamp}?latitude=${coords.latitude}&longitude=${coords.longitude}&method=2`;
+  const url = `${ALADHAN}/${stamp}?latitude=${coords.latitude}&longitude=${coords.longitude}&method=${method}`;
 
   try {
     const response = await fetch(url);
@@ -62,13 +74,15 @@ export async function fetchPrayerTimes(): Promise<PrayerDay> {
     const json = (await response.json()) as { data?: { timings?: Record<string, string> } };
     const timings = json.data?.timings;
     if (timings === undefined) throw new Error('Aladhan response had no timings');
+    // The cache holds the API's own answer. Offsets are applied on the way OUT,
+    // so changing one corrects today's times without another request.
     const cache: PrayerCache = { day, ...coords, timings, fetchedAt: Date.now() };
     await savePrayerCache(cache);
-    return { timings, day, fromCache: false, note: null };
+    return { timings: adjustTimings(timings, offsets), day, fromCache: false, note: null };
   } catch {
     if (cached !== null) {
       return {
-        timings: cached.timings,
+        timings: adjustTimings(cached.timings, offsets),
         day: cached.day,
         fromCache: true,
         note:
@@ -86,4 +100,5 @@ export async function fetchPrayerTimes(): Promise<PrayerDay> {
 // Re-exported so existing imports of './prayer' keep working; the arithmetic
 // itself lives in prayerTimes.ts, which has no device dependencies.
 export { PRAYERS, parseTime, nextPrayer, formatCountdown, PRAYER_ARABIC } from './prayerTimes';
+export { adjustTimings, describeOffsets, hasOffsets, clampOffset, OFFSET_LIMIT } from './prayerOffsets';
 export type { PrayerName, NextPrayer } from './prayerTimes';

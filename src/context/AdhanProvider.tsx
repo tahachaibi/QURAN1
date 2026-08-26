@@ -31,6 +31,7 @@ import { playAdhan, stopAdhan } from '../data/adhanPlayer';
 import { adhanKey, dueAdhan, msUntilCheck, timingsAreUsable } from '../data/adhanTimer';
 import { installForegroundBehaviour, payloadOf } from '../data/notifications';
 import { loadPrayerCache } from '../data/storage';
+import { adjustTimings } from '../data/prayerOffsets';
 import { type PrayerName } from '../data/prayerTimes';
 import { useRecitation } from './RecitationProvider';
 import { useTheme } from '../theme/ThemeProvider';
@@ -83,15 +84,26 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
     installForegroundBehaviour();
   }, []);
 
-  /** Today's times, from the cache the prayer tab writes. */
+  /**
+   * Today's times, from the cache the prayer tab writes.
+   *
+   * The cache holds the API's raw answer, so the user's per-prayer corrections
+   * have to be applied HERE too. Miss this and the adhan sounds at the
+   * astronomical time while the tab displays the corrected one — the same bug in
+   * two places, disagreeing with each other.
+   */
   const refreshTimings = useCallback(async () => {
     const cache = await loadPrayerCache();
     if (cache === null) {
       setTimings(null);
       return;
     }
-    setTimings(timingsAreUsable(cache.day, new Date()) ? cache.timings : null);
-  }, []);
+    if (!timingsAreUsable(cache.day, new Date())) {
+      setTimings(null);
+      return;
+    }
+    setTimings(adjustTimings(cache.timings, prefs.prayerOffsets));
+  }, [prefs.prayerOffsets]);
 
   useEffect(() => {
     void refreshTimings();
@@ -168,7 +180,23 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
         setPreview(false);
       }).then((result) => {
         setPlaying(result.ok);
-        setNote(result.ok ? null : result.detail);
+        if (!result.ok) {
+          setNote(result.detail);
+          return;
+        }
+        /**
+         * A successful start is not the same as a sound you can hear. The adhan
+         * plays on the MEDIA stream, which has its own volume and its own mute,
+         * so a phone with media at zero plays a perfect silent adhan. Saying what
+         * loaded turns "it isn't working" into something diagnosable.
+         */
+        const length =
+          result.durationMs === null
+            ? 'the recording'
+            : `${Math.floor(result.durationMs / 60000)}:${String(
+                Math.floor((result.durationMs % 60000) / 1000),
+              ).padStart(2, '0')} of adhan`;
+        setNote(`Playing ${length}. If you hear nothing, raise the MEDIA volume — not the ringer.`);
       });
     },
     [],

@@ -10,6 +10,8 @@ import type { Reciter } from './audio';
 import type { MistakeRecord } from '../engine/confusion';
 import type { HifzDeck } from '../engine/hifz';
 import type { FontStep } from '../theme/theme';
+import { NO_OFFSETS, type PrayerOffsets } from './prayerOffsets';
+import { FALLBACK_METHOD } from './prayerMethods';
 
 const KEY = {
   prefs: 'qh:prefs:v1',
@@ -23,6 +25,8 @@ const KEY = {
   mistakeLog: 'qh:mistake-log:v1',
   reciters: 'qh:reciters:v1',
 } as const;
+
+export type { PrayerOffsets } from './prayerOffsets';
 
 export interface Prefs {
   theme: 'system' | 'light' | 'dark';
@@ -41,6 +45,14 @@ export interface Prefs {
   prayerWarning: boolean;
   /** notify, with the adhan sound, at each prayer time */
   adhanNotification: boolean;
+  /** Aladhan calculation method id; see prayerMethods.ts for why it is a number */
+  calcMethod: number;
+  /**
+   * Per-prayer corrections in minutes. Maghrib is the one that matters: national
+   * timetables publish it a few minutes after astronomical sunset, and no
+   * calculation method can express that.
+   */
+  prayerOffsets: PrayerOffsets;
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -58,6 +70,8 @@ export const DEFAULT_PREFS: Prefs = {
   showDebugOverlay: false,
   prayerWarning: true,
   adhanNotification: true,
+  calcMethod: FALLBACK_METHOD,
+  prayerOffsets: NO_OFFSETS,
 };
 
 async function readJson<T>(key: string, fallback: T): Promise<T> {

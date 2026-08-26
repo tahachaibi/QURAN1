@@ -17,6 +17,8 @@ import {
   type PrayerDay,
 } from '../../src/data/prayer';
 import { loadPrayerChecks, today, togglePrayerCheck, type PrayerChecks } from '../../src/data/storage';
+import { clampOffset, describeOffsets, hasOffsets, OFFSET_LIMIT } from '../../src/data/prayerOffsets';
+import { fetchMethods, methodName, type CalculationMethod } from '../../src/data/prayerMethods';
 import { useTheme } from '../../src/theme/ThemeProvider';
 import { radius, space } from '../../src/theme/theme';
 import { ADHAN_SOUND, hasAdhanSound } from '../../src/data/adhan';
@@ -34,20 +36,39 @@ export default function PrayerScreen() {
   const [checks, setChecks] = useState<PrayerChecks>({});
   const [now, setNow] = useState(() => Date.now());
   const [refreshing, setRefreshing] = useState(false);
+  const [tuning, setTuning] = useState(false);
+  const [methods, setMethods] = useState<CalculationMethod[]>([]);
+  const [methodNote, setMethodNote] = useState<string | null>(null);
+  const [pickingMethod, setPickingMethod] = useState(false);
 
   const load = useCallback(async () => {
     try {
       setError(null);
-      setDay(await fetchPrayerTimes());
+      setDay(await fetchPrayerTimes({ method: prefs.calcMethod, offsets: prefs.prayerOffsets }));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
-  }, []);
+  }, [prefs.calcMethod, prefs.prayerOffsets]);
 
   useEffect(() => {
     void load();
-    void loadPrayerChecks().then(setChecks);
   }, [load]);
+
+  useEffect(() => {
+    void loadPrayerChecks().then(setChecks);
+  }, []);
+
+  /**
+   * The method list comes from the API, never from a list written into the app:
+   * method ids are Aladhan's own numbering and only Aladhan is authoritative
+   * about which number means which convention.
+   */
+  useEffect(() => {
+    void fetchMethods().then((result) => {
+      setMethods(result.methods);
+      setMethodNote(result.note);
+    });
+  }, []);
 
   /**
    * Rebuild the schedule whenever the times or the switches change. Rescheduling
@@ -163,6 +184,117 @@ export default function PrayerScreen() {
               <Text style={[styles.testText, { color: palette.primary }]}>Hear it now</Text>
             </Pressable>
           ) : null}
+          <Pressable
+            onPress={() => setPickingMethod((open) => !open)}
+            accessibilityRole="button"
+            accessibilityLabel={`Calculation method: ${methodName(methods, prefs.calcMethod)}`}
+            accessibilityState={{ expanded: pickingMethod }}
+            style={styles.subRow}
+          >
+            <Ionicons name="calculator-outline" size={15} color={palette.textMuted} />
+            <Text style={[styles.subLabel, { color: palette.text }]}>
+              {methodName(methods, prefs.calcMethod)}
+            </Text>
+            <Ionicons name={pickingMethod ? 'chevron-up' : 'chevron-down'} size={15} color={palette.textMuted} />
+          </Pressable>
+
+          {pickingMethod ? (
+            <View style={styles.methodList}>
+              {methodNote !== null ? (
+                <Text style={[styles.notifyNote, { color: palette.textMuted }]}>{methodNote}</Text>
+              ) : null}
+              {methods.map((method) => {
+                const active = method.id === prefs.calcMethod;
+                return (
+                  <Pressable
+                    key={method.id}
+                    onPress={() => {
+                      setPrefs({ calcMethod: method.id });
+                      setPickingMethod(false);
+                    }}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: active }}
+                    accessibilityLabel={method.name}
+                    style={[
+                      styles.methodRow,
+                      {
+                        backgroundColor: active ? palette.successSoft : 'transparent',
+                        borderColor: active ? palette.success : palette.border,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.methodName, { color: palette.text }]}>{method.name}</Text>
+                    {method.detail !== null ? (
+                      <Text style={[styles.methodDetail, { color: palette.textMuted }]}>{method.detail}</Text>
+                    ) : null}
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
+
+          <Pressable
+            onPress={() => setTuning((open) => !open)}
+            accessibilityRole="button"
+            accessibilityLabel="Fine-tune each prayer time"
+            accessibilityState={{ expanded: tuning }}
+            style={styles.subRow}
+          >
+            <Ionicons name="options-outline" size={15} color={palette.textMuted} />
+            <Text style={[styles.subLabel, { color: palette.text }]}>
+              {hasOffsets(prefs.prayerOffsets)
+                ? `Adjusted: ${describeOffsets(prefs.prayerOffsets)}`
+                : 'Fine-tune each prayer time'}
+            </Text>
+            <Ionicons name={tuning ? 'chevron-up' : 'chevron-down'} size={15} color={palette.textMuted} />
+          </Pressable>
+
+          {tuning ? (
+            <View style={styles.tuneBlock}>
+              <Text style={[styles.notifyNote, { color: palette.textMuted }]}>
+                If a prayer here is a few minutes off the mosque you follow, correct it once and
+                everything follows — the countdown, the reminder and the adhan. Maghrib is the usual
+                one: many national timetables publish it a few minutes after sunset, which no
+                calculation method can express.
+              </Text>
+              {PRAYERS.map((prayer) => {
+                const value = clampOffset(prefs.prayerOffsets[prayer] ?? 0);
+                const step = (delta: number) =>
+                  setPrefs({
+                    prayerOffsets: { ...prefs.prayerOffsets, [prayer]: clampOffset(value + delta) },
+                  });
+                return (
+                  <View key={prayer} style={styles.tuneRow}>
+                    <Text style={[styles.tuneName, { color: palette.text }]}>{prayer}</Text>
+                    <Pressable
+                      onPress={() => step(-1)}
+                      disabled={value <= -OFFSET_LIMIT}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel={`One minute earlier for ${prayer}`}
+                      style={[styles.stepper, { borderColor: palette.border }]}
+                    >
+                      <Ionicons name="remove" size={16} color={palette.text} />
+                    </Pressable>
+                    <Text style={[styles.tuneValue, { color: value === 0 ? palette.textMuted : palette.primary }]}>
+                      {value === 0 ? '0' : `${value > 0 ? '+' : '−'}${Math.abs(value)}`}
+                    </Text>
+                    <Pressable
+                      onPress={() => step(1)}
+                      disabled={value >= OFFSET_LIMIT}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel={`One minute later for ${prayer}`}
+                      style={[styles.stepper, { borderColor: palette.border }]}
+                    >
+                      <Ionicons name="add" size={16} color={palette.text} />
+                    </Pressable>
+                  </View>
+                );
+              })}
+            </View>
+          ) : null}
+
           {notifyError !== null ? (
             <Text style={[styles.notifyNote, { color: palette.error }]}>{notifyError}</Text>
           ) : scheduled !== null && scheduled > 0 ? (
@@ -271,6 +403,40 @@ const styles = StyleSheet.create({
     gap: space.sm,
   },
   notifyNote: { fontSize: 11, lineHeight: 16 },
+  subRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    paddingTop: space.sm,
+  },
+  subLabel: { flex: 1, fontSize: 13, fontWeight: '600' },
+  methodList: { gap: 4 },
+  methodRow: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.sm,
+    paddingHorizontal: space.sm,
+    paddingVertical: space.sm,
+  },
+  methodName: { fontSize: 13, fontWeight: '600' },
+  methodDetail: { fontSize: 10, marginTop: 1 },
+  tuneBlock: { gap: space.xs },
+  tuneRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  tuneName: { flex: 1, fontSize: 13, fontWeight: '600' },
+  stepper: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tuneValue: {
+    minWidth: 34,
+    textAlign: 'center',
+    fontSize: 13,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
+  },
   testButton: {
     flexDirection: 'row',
     alignItems: 'center',
