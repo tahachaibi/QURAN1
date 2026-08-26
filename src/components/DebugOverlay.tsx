@@ -23,6 +23,8 @@ export interface DebugOverlayProps {
   session: SessionState;
   recognizer: RecognizerHandle;
   palette: Palette;
+  /** ms between the last two partials — the recognizer's own cadence */
+  partialGapMs: number;
   captureFixture: () => ReplayFixture;
 }
 
@@ -30,6 +32,7 @@ export const DebugOverlay = memo(function DebugOverlay({
   session,
   recognizer,
   palette,
+  partialGapMs,
   captureFixture,
 }: DebugOverlayProps) {
   const [open, setOpen] = useState(false);
@@ -63,7 +66,11 @@ export const DebugOverlay = memo(function DebugOverlay({
           <Row label="jump" value={d.jumpReason || '—'} palette={palette} />
           <Row label="anchor" value={String(d.anchor)} palette={palette} />
           <Row label="progress" value={String(d.progress)} palette={palette} />
+          {/* The two numbers that decide how fast following FEELS, side by side:
+              what the engine costs, and how often Android speaks to it. */}
           <Row label="engine latency" value={`${d.latencyMs} ms`} palette={palette} />
+          <Row label="partial gap" value={partialGapMs === 0 ? '—' : `${partialGapMs} ms`} palette={palette} />
+          <Row label="strategy" value={recognizer.strategy ?? '—'} palette={palette} />
           <Row label="relay gap" value={`${recognizer.lastRelayGapMs} ms`} palette={palette} />
           <Row label="audio focus" value={recognizer.audioFocus} palette={palette} />
           <Row label="watchdog restarts" value={String(recognizer.watchdogRestarts)} palette={palette} />

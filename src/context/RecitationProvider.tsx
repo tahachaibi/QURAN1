@@ -123,6 +123,17 @@ export interface RecitationContextValue {
   dismissSummary: () => void;
   logSummaryToTracker: () => Promise<void>;
 
+  /**
+   * Milliseconds between the last two partials the recognizer emitted.
+   *
+   * The engine costs about a millisecond per partial, so this number IS the
+   * responsiveness of following — it is how often Android is willing to tell us
+   * what it heard, and nothing in this app can make it smaller. Measured so the
+   * question "why does it feel slow" has an answer instead of a theory. Only
+   * updated while the debug overlay is on; it must not cost a render otherwise.
+   */
+  partialGapMs: number;
+
   /** why the session paused, for the one-tap resume affordance (§4) */
   interruption: string | null;
   clearInterruption: () => void;
@@ -211,14 +222,27 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  /**
+   * Recognizer cadence, tracked in a ref so measuring it is free, and copied into
+   * state only when someone is looking at the overlay.
+   */
+  const lastPartialAt = useRef(0);
+  const [partialGapMs, setPartialGapMs] = useState(0);
+  const watchingDebug = useRef(prefs.showDebugOverlay);
+  watchingDebug.current = prefs.showDebugOverlay;
+
   const recognizer = useRecitationRecognizer({
     locale: prefs.locale,
     preferOnDevice: prefs.preferOnDevice,
     allowSegmented: prefs.allowSegmented,
     onPartial: useCallback(
       (event) => {
+        const at = Date.now();
+        const previous = lastPartialAt.current;
+        lastPartialAt.current = at;
+        if (watchingDebug.current && previous !== 0) setPartialGapMs(at - previous);
         recordEvent('partial', event.alternatives);
-        dispatch({ type: 'partial', alternatives: event.alternatives, at: Date.now(), emittedAt: event.emittedAt });
+        dispatch({ type: 'partial', alternatives: event.alternatives, at, emittedAt: event.emittedAt });
       },
       [dispatch, recordEvent],
     ),
@@ -525,6 +549,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       summary,
       dismissSummary: () => setSummary(null),
       logSummaryToTracker,
+      partialGapMs,
       interruption,
       clearInterruption: () => setInterruption(null),
       silenceTimedOut,
@@ -551,6 +576,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       elapsedMs,
       summary,
       logSummaryToTracker,
+      partialGapMs,
       interruption,
       silenceTimedOut,
       practiseRange,

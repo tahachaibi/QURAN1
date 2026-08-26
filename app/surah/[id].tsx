@@ -90,6 +90,7 @@ export default function SurahScreen() {
     clearInterruption,
     silenceTimedOut,
     captureFixture,
+    partialGapMs,
     setRange,
     range,
     practiseRange,
@@ -398,7 +399,13 @@ export default function SurahScreen() {
         />
 
         {prefs.showDebugOverlay ? (
-          <DebugOverlay session={session} recognizer={recognizer} palette={palette} captureFixture={captureFixture} />
+          <DebugOverlay
+            session={session}
+            recognizer={recognizer}
+            palette={palette}
+            partialGapMs={partialGapMs}
+            captureFixture={captureFixture}
+          />
         ) : null}
       </View>
 

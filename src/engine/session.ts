@@ -73,6 +73,16 @@ export interface SessionState {
   jumpCandidate: { target: number; credited: number; count: number } | null;
   lastJumpAt: number;
   lastResultAt: number;
+  /**
+   * Signature of the last partial actually processed (§5.7).
+   *
+   * Android re-emits its whole transcript on every partial, and on a real device
+   * 57% of them are byte-identical to the one before — measured on the captured
+   * Al-Fatiha session. Each repeat used to re-align five growing alternatives and
+   * rebuild the page for a result that could not differ. Remembering the last one
+   * turns over half the work of following a reciter into a string comparison.
+   */
+  lastPartialSig: string;
   lastHeard: string;
   startedAt: number;
   /** accumulated listening time, ms, excluding pauses */
@@ -136,6 +146,7 @@ export function initialSession(cursor: number): SessionState {
     jumpCandidate: null,
     lastJumpAt: 0,
     lastResultAt: 0,
+    lastPartialSig: '',
     lastHeard: '',
     startedAt: 0,
     elapsedMs: 0,
@@ -423,6 +434,24 @@ export function sessionReducer(
     case 'partial':
     case 'final': {
       if (state.status !== 'listening') return state;
+
+      /**
+       * A repeat of the partial we just processed cannot change anything: same
+       * transcript, same starting cursor, same expected words. So it is dropped
+       * before any work happens.
+       *
+       * lastResultAt still moves. It is what the liveness watchdog reads, and a
+       * session that stopped updating it looks stalled and gets restarted — the
+       * repeat is not new information, but it IS proof the recognizer is alive.
+       *
+       * A final is never skipped: it commits the utterance even when its text is
+       * identical to the partial before it.
+       */
+      const sig = `${state.utteranceStart}\u0000${event.alternatives.join('\u0001')}`;
+      if (event.type === 'partial' && sig === state.lastPartialSig) {
+        return state.lastResultAt === event.at ? state : { ...state, lastResultAt: event.at };
+      }
+
       const lookAhead = lookAheadFor(state.lockedOn);
       const scored = scoreAlternatives(state, config, event.alternatives, lookAhead);
       if (scored.length === 0) return state;
@@ -435,7 +464,16 @@ export function sessionReducer(
         event.emittedAt,
         event.type === 'final',
       );
-      return maybeJump(applied, config, event.at);
+      const jumped = maybeJump(applied, config, event.at);
+      /**
+       * The stored signature describes the computation that would happen NOW, so
+       * it is built from the RESULTING utteranceStart — a jump can move it, and
+       * the same transcript aligned from a different cursor is a different
+       * question. Skipping on a stale signature would be the one way this
+       * optimisation could change an answer.
+       */
+      const nextSig = `${jumped.utteranceStart}\u0000${event.alternatives.join('\u0001')}`;
+      return jumped.lastPartialSig === nextSig ? jumped : { ...jumped, lastPartialSig: nextSig };
     }
 
     case 'endOfSegment': {

@@ -244,6 +244,47 @@ the adhan does **not** auto-play. Playing it into an open microphone would make
 the app follow its own loudspeaker. The banner appears with a Play button and the
 reciter decides.
 
+## Why following felt slow, measured rather than guessed
+
+Asked to make following "very fast", the temptation is to tune the matcher. The
+numbers say otherwise:
+
+| | |
+|---|---|
+| Engine, one partial, 8-word utterance | **1.06 ms** p95 |
+| Engine, one partial, 600-word utterance | **13 ms** |
+| Budget in §5 | 300 ms |
+| Gap between partials on a real device | **300–600 ms** |
+| Word reveal animation, as shipped | **120 ms** |
+
+So the engine was never the delay. Two things were, and both are now fixed:
+
+**Over half the work was on partials that could not change anything.** Android
+re-emits its whole transcript every time, and on the captured device session 43 of
+73 partials — 59% — were byte-identical to the one before. Each one re-aligned
+five growing alternatives and rebuilt the page for an answer that could not
+differ. They are now dropped on a string comparison. The failure mode of an
+optimisation like this is skipping something that WOULD have differed, so the
+conditions are narrow and pinned in `__tests__/partialSkip.test.ts`: same
+transcript AND same starting cursor (a seek or a jump invalidates it, because the
+same words aligned from a different cursor are a different question), partials
+only (a final commits the utterance even when its text repeats), and
+`lastResultAt` still moves — a repeat is not new information, but it IS proof the
+recognizer is alive, and the liveness watchdog restarts a session whose clock
+stops.
+
+**The reveal animation was two orders of magnitude slower than the work.** A word
+faded up to full ink over 120 ms while the engine had decided where the cursor was
+in about one. It is 55 ms now: still smooth on a 60 Hz panel, no longer the thing
+you are waiting for.
+
+What is left is the recognizer's own cadence, and no code in this app can shrink
+it. So it is measured instead: the debug overlay now shows **partial gap** next to
+**engine latency** and the **strategy** in use. If that gap reads ~1000 ms the
+device is going out to the network for every word (strategy RELAY) and the fix is
+the offline Arabic pack, not the matcher — a completely different action, which is
+exactly why guessing here was not good enough.
+
 ## Known weaknesses I did not paper over
 
 **The §5.2 thresholds are looser at the word level than the spec's own framing

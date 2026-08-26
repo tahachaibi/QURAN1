@@ -93,7 +93,16 @@ export const radius = {
 
 /** Motion: fast and small. No springs on text (§7). */
 export const duration = {
-  reveal: 120,
+  /**
+   * How long a word takes to come up to full ink as the voice reaches it.
+   *
+   * This is the only number in the app that controls how fast following FEELS,
+   * and it was 120ms. The engine decides where the cursor is in about a
+   * millisecond, so a 120ms fade was two orders of magnitude more of the
+   * perceived delay than the actual work. Short enough now to read as immediate,
+   * long enough not to flicker on a 60Hz panel.
+   */
+  reveal: 55,
   transition: 200,
   slow: 320,
 } as const;
