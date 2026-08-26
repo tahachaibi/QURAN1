@@ -101,41 +101,38 @@ exists because burying it behind a diagnostics toggle meant it never got used.
 
 ---
 
-## 2b. The adhan recording
+## 2b. ~~The adhan recording~~ — done
 
-Everything around the adhan is built and waiting on one file. Right now the app
-does the right thing at the right time and does it **silently**, and says so
-rather than pretending.
+Abd Elmajid Essebihi, 4:01, bundled at `src/assets/audio/adhan.mp3`.
 
-What is already in place:
+It arrived named `.wav` but was an MP3 (`ff fb` MPEG-1 Layer III frames, 128 kbps
+44.1 kHz, no RIFF header anywhere), so it is stored under its true extension.
+Android resolves a `res/raw` resource by file name and the media stack sniffs
+content, and a file whose extension lies about its contents is exactly the sort of
+thing that plays on one phone and not the next.
 
-- **Five minutes before** each prayer: a plain reminder notification with the
-  normal notification sound. **Never the adhan** — a call to prayer five minutes
-  early is not a reminder, it is wrong.
-- **At the exact prayer time, app open:** a green banner slides in over whatever
-  you are doing, naming the prayer in Arabic, with a full-width **Stop adhan**
-  button. It plays the recording in full through the phone's media output.
-- **At the exact prayer time, app closed:** the scheduled notification fires with
-  the adhan as its sound. Android truncates a notification sound and gives it no
-  stop button, so this is a nudge to open the app rather than a full adhan — that
-  is an Android limit, not a choice.
-- If you are **reciting** when the prayer time arrives, the adhan does not
-  auto-play into the live microphone — the banner appears with a **Play adhan**
-  button instead, so the app never follows its own loudspeaker.
+How it behaves now:
 
-What I need: **one `.wav` file of an adhan you actually want to hear.** Any adhan
-recording you like — from a site that offers downloads, or recorded off a
-speaker, or extracted from an app you already use. Convert it to WAV if it is an
-MP3 (any online converter, or `ffmpeg -i adhan.mp3 adhan.wav`).
+- **Five minutes before** each prayer: a plain reminder with the normal
+  notification sound. **Never the adhan** — a call to prayer five minutes early is
+  not a reminder, it is wrong, and `soundFor()` makes it structurally impossible.
+- **At the exact prayer time, app open:** the banner appears over whatever screen
+  you are on with a full-width **Stop adhan** button, and the full four minutes
+  play through the media output.
+- **At the exact prayer time, app closed:** the notification fires with the adhan
+  as its sound. Swiping it away stops the sound; **tapping** it opens the app,
+  takes the notification down first (so the two never overlap) and then plays it
+  properly, with the Stop button.
+- **While you are reciting:** it does not auto-play into a live microphone. The
+  banner offers a **Play adhan** button and you decide.
 
-Send me the file and I will do the four wiring steps. Or do them yourself —
-they are written out at the top of `src/data/adhan.ts`. The one that catches
-everybody is step 4: **uninstall and reinstall**, because an Android notification
-channel keeps the sound it was created with forever, so updating over the top
-leaves the old silent channel in place no matter what the code says.
+**One thing you must do to hear the notification version: uninstall the old app
+before installing this build.** An Android notification channel keeps the sound it
+was created with forever, so an update over the top leaves the old silent channel
+in place and the prayer-time notification stays silent no matter what the code
+says. In-app playback — the part with the Stop button — works either way.
 
-Once it is in, the prayer tab grows a **Hear it now** button so you can test the
-sound and find the Stop button before Fajr rather than during it.
+Test it without waiting for a prayer: prayer tab → **Hear it now**.
 
 ---
 

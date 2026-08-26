@@ -211,6 +211,15 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
       if (late < -30_000 || late > graceMs) return;
       const key = adhanKey(payload.prayer, at);
       if (key === sounded.current) return;
+      /**
+       * Take the notification down BEFORE playing. Its own sound is the bundled
+       * adhan, and on Android a posted notification's sound stops when the
+       * notification goes away — without this, opening the app from the
+       * notification means hearing the adhan twice, half a second apart.
+       */
+      void Notifications.dismissNotificationAsync(notification.request.identifier).catch(
+        () => undefined,
+      );
       start(payload.prayer, key);
     };
 

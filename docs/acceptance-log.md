@@ -12,6 +12,20 @@ Recognizer strategy shown in overlay: ____________  Arabic pack: ____________
 ### 1. Al-Fatiha, Follow mode, natural speed
 Every word marks within ~300 ms; **zero** false mistakes.
 
+**Half of this is now proved, on real data.** A recitation of 1:1–1:7 captured on
+a phone on 2026-08-26 is `__tests__/fixtures/device-fatiha-full.json`, and
+replayed through the real engine it reaches **cursor 29 of 29, all 29 words
+matched, zero mistakes, one clean run of 29**, with the cursor never once moving
+backwards. It survived two things I had not put in any hand-written fixture: the
+recognizer restarting its transcript from empty twice mid-surah, and segment 2
+opening on "الرحمن الرحيم" — a phrase that also sits four words behind in 1:1 and
+could have dragged the cursor back to it.
+
+What that does **not** prove is what you saw: whether the highlight actually
+moved on screen, and how far behind your voice it felt. The engine matching a
+transcript and the page keeping up with a voice are two different claims. So this
+box still needs your eyes and your ears.
+
 - [ ] pass  - [ ] fail
 - Words that lagged noticeably: ______________________________________
 - False mistakes (word, and what you actually said): _________________

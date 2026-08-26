@@ -1,0 +1,520 @@
+{
+ "name": "device-fatiha-full",
+ "startCursor": 0,
+ "synthetic": false,
+ "notes": "THE FIRST REAL CAPTURE. Al-Fatiha 1:1-1:7 recited straight through on a physical Android phone (2026-08-26), exported from the summary card. Raw android.speech.SpeechRecognizer output, unedited apart from the name and these notes. Three things in it are the reason it is worth keeping: (1) the recognizer cut the session into three segments, so the transcript restarts from empty twice mid-surah; (2) segment 2 opens with 'الرحمن الرحيم', which is also in 1:1 four words back, and must resolve to 1:3 rather than dragging the cursor backwards; (3) segment 3 opens by repeating 'الدين', a word already consumed, which must neither move the cursor back nor be flagged as a mistake.",
+ "events": [
+  {
+   "kind": "partial",
+   "alternatives": [
+    ""
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "بسم الله"
+   ],
+   "dt": 568
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "بسم الله الرحمن"
+   ],
+   "dt": 598
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "بسم الله الرحمن الرحيم"
+   ],
+   "dt": 607
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "بسم الله الرحمن الرحيم"
+   ],
+   "dt": 1153
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "بسم الله الرحمن الرحيم"
+   ],
+   "dt": 201
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "بسم الله الرحمن الرحيم الحمد"
+   ],
+   "dt": 429
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "بسم الله الرحمن الرحيم الحمد لله"
+   ],
+   "dt": 144
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "بسم الله الرحمن الرحيم الحمد لله"
+   ],
+   "dt": 330
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "بسم الله الرحمن الرحيم الحمد لله"
+   ],
+   "dt": 386
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "بسم الله الرحمن الرحيم الحمد لله رب"
+   ],
+   "dt": 246
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "بسم الله الرحمن الرحيم الحمد لله رب العالمين"
+   ],
+   "dt": 319
+  },
+  {
+   "kind": "final",
+   "alternatives": [
+    "بسم الله الرحمن الرحيم الحمد لله رب العالمين"
+   ],
+   "dt": 906
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    ""
+   ],
+   "dt": 1145
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    ""
+   ],
+   "dt": 470
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الرحمن"
+   ],
+   "dt": 105
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الرحمن الرحيم"
+   ],
+   "dt": 429
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الرحمن الرحيم"
+   ],
+   "dt": 1789
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الرحمن الرحيم"
+   ],
+   "dt": 165
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الرحمن الرحيم مالك"
+   ],
+   "dt": 411
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الرحمن الرحيم مالك"
+   ],
+   "dt": 55
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الرحمن الرحيم مالك يوم"
+   ],
+   "dt": 193
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الرحمن الرحيم مالك يوم"
+   ],
+   "dt": 82
+  },
+  {
+   "kind": "final",
+   "alternatives": [
+    " الرحمن الرحيم مالك يوم",
+    " الرحمن الرحيم مالك يوم الدين"
+   ],
+   "dt": 765
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    ""
+   ],
+   "dt": 554
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين"
+   ],
+   "dt": 416
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين"
+   ],
+   "dt": 375
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين"
+   ],
+   "dt": 142
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين"
+   ],
+   "dt": 117
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين"
+   ],
+   "dt": 233
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين"
+   ],
+   "dt": 97
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك"
+   ],
+   "dt": 144
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك"
+   ],
+   "dt": 316
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد"
+   ],
+   "dt": 137
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد"
+   ],
+   "dt": 513
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد"
+   ],
+   "dt": 102
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك"
+   ],
+   "dt": 27
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك"
+   ],
+   "dt": 200
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين"
+   ],
+   "dt": 618
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين"
+   ],
+   "dt": 1483
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين"
+   ],
+   "dt": 82
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين"
+   ],
+   "dt": 105
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين"
+   ],
+   "dt": 253
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين"
+   ],
+   "dt": 79
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين"
+   ],
+   "dt": 106
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين اهدنا"
+   ],
+   "dt": 238
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين اهدنا"
+   ],
+   "dt": 75
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين اهدنا الصراط"
+   ],
+   "dt": 245
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين اهدنا الصراط"
+   ],
+   "dt": 147
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين اهدنا الصراط"
+   ],
+   "dt": 524
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين اهدنا الصراط المستقيم"
+   ],
+   "dt": 101
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين اهدنا الصراط المستقيم"
+   ],
+   "dt": 42
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين اهدنا الصراط المستقيم"
+   ],
+   "dt": 285
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين اهدنا الصراط المستقيم صراط"
+   ],
+   "dt": 305
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين اهدنا الصراط المستقيم صراط الذين"
+   ],
+   "dt": 279
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين اهدنا الصراط المستقيم صراط الذين"
+   ],
+   "dt": 200
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين اهدنا الصراط المستقيم صراط الذين"
+   ],
+   "dt": 202
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين اهدنا الصراط المستقيم صراط الذين"
+   ],
+   "dt": 331
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين اهدنا الصراط المستقيم صراط الذين انعمت"
+   ],
+   "dt": 245
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين اهدنا الصراط المستقيم صراط الذين انعمت عليهم"
+   ],
+   "dt": 452
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين اهدنا الصراط المستقيم صراط الذين انعمت عليهم"
+   ],
+   "dt": 536
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين اهدنا الصراط المستقيم صراط الذين انعمت عليهم"
+   ],
+   "dt": 454
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين اهدنا الصراط المستقيم صراط الذين انعمت عليهم غير"
+   ],
+   "dt": 164
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين اهدنا الصراط المستقيم صراط الذين انعمت عليهم غير"
+   ],
+   "dt": 123
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين اهدنا الصراط المستقيم صراط الذين انعمت عليهم غير"
+   ],
+   "dt": 493
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين اهدنا الصراط المستقيم صراط الذين انعمت عليهم غير المغضوب"
+   ],
+   "dt": 84
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين اهدنا الصراط المستقيم صراط الذين انعمت عليهم غير المغضوب عليهم"
+   ],
+   "dt": 553
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين اهدنا الصراط المستقيم صراط الذين انعمت عليهم غير المغضوب عليهم"
+   ],
+   "dt": 102
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين اهدنا الصراط المستقيم صراط الذين انعمت عليهم غير المغضوب عليهم ولا"
+   ],
+   "dt": 521
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين اهدنا الصراط المستقيم صراط الذين انعمت عليهم غير المغضوب عليهم ولا"
+   ],
+   "dt": 526
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين اهدنا الصراط المستقيم صراط الذين انعمت عليهم غير المغضوب عليهم ولا"
+   ],
+   "dt": 468
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين اهدنا الصراط المستقيم صراط الذين انعمت عليهم غير المغضوب عليهم ولا"
+   ],
+   "dt": 120
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    " الدين اياك نعبد واياك نستعين اهدنا الصراط المستقيم صراط الذين انعمت عليهم غير المغضوب عليهم ولا الضالين"
+   ],
+   "dt": 547
+  }
+ ]
+}

@@ -92,6 +92,17 @@ jobs:
       - name: Prebuild the Android project
         run: npx expo prebuild --platform android --no-install
 
+      - name: Confirm the adhan sound reached res/raw
+        # The expo-notifications plugin copies the file listed in app.json's
+        # "sounds" into android/app/src/main/res/raw at prebuild, and that copy is
+        # the ONLY thing that makes a notification channel able to name it. When
+        # the copy silently does not happen the build succeeds and the adhan is
+        # silent, which is indistinguishable from the feature not working.
+        run: |
+          test -f android/app/src/main/res/raw/adhan.mp3 \
+            || { echo "adhan sound missing from res/raw — check app.json sounds[]"; exit 1; }
+          echo "res/raw/adhan.mp3 $(stat -c%s android/app/src/main/res/raw/adhan.mp3) bytes"
+
       - name: Confirm the native module source is actually in the repo
         # A .gitignore line of "android/" matches that directory name at ANY
         # depth, which once excluded this entire module from git while it sat

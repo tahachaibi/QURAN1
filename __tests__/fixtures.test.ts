@@ -56,6 +56,39 @@ const EXPECTATIONS: Record<string, (out: ReplayOutcome) => void> = {
     expect(out.frames[3].cursor).toBe(out.frames[1].cursor);
     expect(out.mistakes).toEqual([]);
   },
+  /**
+   * The first fixture captured from a real phone rather than written by me.
+   * Al-Fatiha straight through, and the assertions below are the three things a
+   * real recognizer did that a hand-written fixture would not have thought of.
+   */
+  'device-fatiha-full': (out) => {
+    // followed to the last word of 1:7, with nothing skipped and nothing blamed
+    expect(out.final.cursor).toBe(29);
+    expect(out.mistakes).toEqual([]);
+    expect(out.final.matched.size).toBe(29);
+    expect(out.final.longestCleanRun).toBe(29);
+
+    /**
+     * The recognizer restarted its transcript twice mid-surah. Segment 2 opens
+     * with "الرحمن الرحيم", which also sits at 1:1 four words behind the cursor,
+     * and segment 3 opens by repeating "الدين", already consumed. Neither may
+     * move the cursor backwards — the whole point of the two-position model.
+     */
+    for (let i = 1; i < out.cursorPath.length; i++) {
+      expect(out.cursorPath[i]).toBeGreaterThanOrEqual(out.cursorPath[i - 1]);
+    }
+    // and neither may be resolved by teleporting somewhere else in the Quran
+    expect(out.frames.some((f) => f.jumpReason.startsWith('JUMPED'))).toBe(false);
+
+    /**
+     * The repeated "الدين" run: six consecutive frames where the reciter's own
+     * word came back a second time. The cursor has to sit still through all of
+     * them rather than re-consuming or re-blaming.
+     */
+    const stalled = out.frames.filter((f) => f.cursor === 13);
+    expect(stalled.length).toBeGreaterThanOrEqual(6);
+    for (const frame of stalled) expect(frame.mistakes).toEqual([]);
+  },
   'one-misread-word': (out) => {
     expect(out.mistakes).toEqual([7]);
     // and never before the reciter was clear of it
@@ -67,6 +100,20 @@ const EXPECTATIONS: Record<string, (out: ReplayOutcome) => void> = {
 describe('replay fixtures', () => {
   it('finds fixtures to run', () => {
     expect(files.length).toBeGreaterThan(0);
+  });
+
+  /**
+   * A guard on the test suite itself. Fixtures I write cannot tell me the
+   * recognizer emits "مالك" without the alif, or that it restarts its transcript
+   * from empty mid-surah — I only know those because a real capture showed them.
+   * If this ever fails, the suite has quietly gone back to testing my
+   * assumptions instead of a phone's behaviour.
+   */
+  it('includes at least one capture from a real device', () => {
+    const captured = files
+      .map((f) => JSON.parse(readFileSync(join(DIR, f), 'utf8')) as ReplayFixture)
+      .filter((f) => f.synthetic !== true);
+    expect(captured.length).toBeGreaterThan(0);
   });
 
   for (const file of files) {
