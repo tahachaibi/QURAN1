@@ -133,7 +133,7 @@ describe('the published-table correction', () => {
 
   it('corrects Asr and Maghrib for Morocco, and nothing else', () => {
     const resolved = pickMethod('MA', METHODS);
-    expect(resolved?.correction).toEqual({ Fajr: 0, Dhuhr: 0, Asr: 2, Maghrib: 3, Isha: 0 });
+    expect(resolved?.correction).toEqual({ Fajr: 0, Dhuhr: 0, Asr: -1, Maghrib: 2, Isha: 0 });
   });
 
   it('leaves countries with no measurement alone', () => {
@@ -145,8 +145,8 @@ describe('the published-table correction', () => {
   });
 
   it('describes itself for the tab', () => {
-    expect(describeCorrection({ Fajr: 0, Dhuhr: 0, Asr: 2, Maghrib: 3, Isha: 0 })).toBe(
-      'Asr +2, Maghrib +3',
+    expect(describeCorrection({ Fajr: 0, Dhuhr: 0, Asr: -1, Maghrib: 2, Isha: 0 })).toBe(
+      'Asr −1, Maghrib +2',
     );
     expect(describeCorrection(NO_CORRECTION)).toBe('');
     expect(describeCorrection({ ...NO_CORRECTION, Fajr: -1 })).toBe('Fajr −1');

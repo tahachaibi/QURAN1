@@ -27,7 +27,7 @@
 import { Audio, InterruptionModeAndroid, type AVPlaybackSource } from 'expo-av';
 import { Asset } from 'expo-asset';
 
-import { ADHAN_ASSET } from './adhan';
+import { ADHAN_ASSET, TEST_TONE_ASSET } from './adhan';
 import { ArabicSpeech, isArabicSpeechLinked } from '../../modules/expo-arabic-speech';
 
 export interface AdhanPlaybackResult {
@@ -47,6 +47,8 @@ export interface AdhanPlaybackResult {
   durationMs: number | null;
   /** how the file was opened — the extracted path, or the bundled module */
   opened: string | null;
+  /** true when what played was the generated chime, not an adhan */
+  testTone: boolean;
   /**
    * What the operating system says about output: volume, mode and route.
    *
@@ -67,8 +69,7 @@ let generation = 0;
  * and needs no network — it is an extraction, and it is what makes the difference
  * between a release build that plays and one that is silently mute.
  */
-async function resolveSource(): Promise<{ source: AVPlaybackSource; opened: string }> {
-  const module = ADHAN_ASSET as number;
+async function resolveSource(module: number): Promise<{ source: AVPlaybackSource; opened: string }> {
   try {
     const asset = Asset.fromModule(module);
     if (asset.localUri === null || asset.localUri === undefined) await asset.downloadAsync();
@@ -92,16 +93,27 @@ export async function playAdhan(
   onFinished: () => void,
   onStalled?: (detail: string) => void,
 ): Promise<AdhanPlaybackResult> {
-  if (ADHAN_ASSET === null) {
-    return {
-      ok: false,
-      detail: 'No adhan recording is bundled in this build, so there is nothing to play.',
-      durationMs: null,
-      opened: null,
-      output: null,
-    };
-  }
+  return play(ADHAN_ASSET ?? TEST_TONE_ASSET, ADHAN_ASSET === null, onFinished, onStalled);
+}
 
+/**
+ * Play the generated chime on purpose.
+ *
+ * Its contents are known — arithmetic made them — so hearing it proves the app's
+ * whole audio path works on this phone, and NOT hearing it proves the fault is
+ * not in whatever recording happens to be bundled.
+ */
+export const playTestTone = (
+  onFinished: () => void,
+  onStalled?: (detail: string) => void,
+): Promise<AdhanPlaybackResult> => play(TEST_TONE_ASSET, true, onFinished, onStalled);
+
+async function play(
+  module: number,
+  testTone: boolean,
+  onFinished: () => void,
+  onStalled?: (detail: string) => void,
+): Promise<AdhanPlaybackResult> {
   await stopAdhan();
   const mine = ++generation;
 
@@ -112,10 +124,14 @@ export async function playAdhan(
       staysActiveInBackground: true,
       playsInSilentModeIOS: true,
       shouldDuckAndroid: false,
+      // Matching the Listen tab exactly, which is known to produce sound on a
+      // real phone. An unexplained difference between two playback paths in one
+      // app is a place for a bug to hide.
+      playThroughEarpieceAndroid: false,
       interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
     });
 
-    const { source, opened } = await resolveSource();
+    const { source, opened } = await resolveSource(module);
     if (mine !== generation) return stoppedEarly();
 
     let created: Awaited<ReturnType<typeof Audio.Sound.createAsync>>;
@@ -127,7 +143,7 @@ export async function playAdhan(
       // giving up: which of the two a given device accepts is not predictable
       // from here, and one of them working is what matters.
       if (typeof source === 'number') throw e;
-      created = await Audio.Sound.createAsync(ADHAN_ASSET as number, { shouldPlay: true, volume: 1 });
+      created = await Audio.Sound.createAsync(module, { shouldPlay: true, volume: 1 });
       usedSource = `bundled module (after ${opened} failed)`;
     }
     if (mine !== generation) {
@@ -153,6 +169,7 @@ export async function playAdhan(
         durationMs: null,
         opened: usedSource,
         output: await describeOutput(),
+        testTone,
       };
     }
     const durationMs = created.status.durationMillis ?? null;
@@ -180,7 +197,14 @@ export async function playAdhan(
       }, 1500);
     }
 
-    return { ok: true, detail: '', durationMs, opened: usedSource, output: await describeOutput() };
+    return {
+      ok: true,
+      detail: '',
+      durationMs,
+      opened: usedSource,
+      output: await describeOutput(),
+      testTone,
+    };
   } catch (e) {
     return {
       ok: false,
@@ -188,6 +212,7 @@ export async function playAdhan(
       durationMs: null,
       opened: null,
       output: null,
+      testTone,
     };
   }
 }
@@ -198,6 +223,7 @@ const stoppedEarly = (): AdhanPlaybackResult => ({
   durationMs: null,
   opened: null,
   output: null,
+  testTone: false,
 });
 
 /** Read the output route, or null when the native module is not linked. */

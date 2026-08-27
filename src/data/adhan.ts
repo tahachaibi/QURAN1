@@ -18,14 +18,24 @@
  * The five-minute warning carries the DEFAULT notification sound and never the
  * adhan: a call to prayer five minutes early is not a reminder, it is wrong.
  *
- * THE BUNDLED RECORDING is src/assets/audio/adhan.mp3: Abd Elmajid Essebihi,
- * 4:01, 128 kbps, 44.1 kHz, 3.7 MB. It arrived named .wav but is an MP3 (an
- * `ff fb` MPEG-1 Layer III frame header, no RIFF chunk anywhere), so it is stored
- * under its true extension — Android's res/raw resolves a resource by file name
- * and the media stack sniffs content, and a file whose extension lies about its
- * contents is the kind of thing that works on one phone and not the next.
+ * NO RECORDING IS BUNDLED, and the last one taught an expensive lesson.
  *
- * TO REPLACE IT (three steps, all of them):
+ * The file that was here was a structurally perfect MP3 — 9,200 frames, constant
+ * 128 kbps, 44.1 kHz, 4:01 long, every frame header valid — that contained
+ * nothing but digital silence. The whole 3.8 MB held four distinct byte values:
+ * 0x00 for 99.28% of it, plus the three bytes of a frame header repeated 9,200
+ * times. Every layer below did its job and said so: the bundler packaged it,
+ * Gradle copied it to res/raw, expo-asset extracted it, the player decoded it,
+ * read its true duration, and played it at full volume through the speaker. The
+ * app reported "Playing 3:59 of adhan" and was telling the truth.
+ *
+ * Three rounds of debugging went into the player, the asset pipeline, the APK and
+ * the audio focus — all of it looking for a fault in code that worked. So:
+ * scripts/verify-audio.mjs now refuses a silent file, and a generated test tone
+ * (scripts/gen-test-tone.mjs) gives the app a sound whose contents are KNOWN, so
+ * "our audio is broken" can be told apart from "the recording is empty".
+ *
+ * TO ADD A RECORDING (three steps, all of them):
  *   1. drop the new file at src/assets/audio/adhan.<its real extension>
  *   2. point ADHAN_ASSET below at it, and update "sounds" in app.json to match.
  *      Metro resolves require() when the bundle is built, not when the code runs,
@@ -48,7 +58,17 @@ export const ADHAN_SOUND = 'adhan';
  * for the type-checker rather than narrowing them to dead code, which is what
  * kept them honest while there was nothing to play.
  */
-export const ADHAN_ASSET: number | null = require('../assets/audio/adhan.mp3');
+export const ADHAN_ASSET: number | null = null;
+// Step 2: swap the line above for this one, with the real extension.
+// export const ADHAN_ASSET: number | null = require('../assets/audio/adhan.mp3');
+
+/**
+ * A generated chime, guaranteed to contain sound because arithmetic produced it.
+ *
+ * Its only job is to answer "can this phone play audio from this app at all?"
+ * without depending on a file anybody sent.
+ */
+export const TEST_TONE_ASSET: number = require('../assets/audio/test-tone.wav');
 
 /** True once a recording is bundled. Drives what the UI promises. */
 export const hasAdhanSound = ADHAN_ASSET !== null;

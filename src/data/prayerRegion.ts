@@ -51,9 +51,17 @@ export const REGION_RULES: readonly RegionRule[] = [
     country: 'Morocco',
     match: /morocco|maroc/i,
     authority: 'وزارة الأوقاف والشؤون الإسلامية',
-    // Measured against the ministry's published times for Beni Mellal: every
-    // prayer matched except these two. Reported, not deduced.
-    correction: { Asr: 2, Maghrib: 3 },
+    /**
+     * Measured against the ministry's published times for Beni Mellal.
+     *
+     * Arrived at in two steps, and the first was my mistake: the first report
+     * said "a difference of 2 minutes in Asr and 3 in Maghrib" and I assumed the
+     * app was EARLY. A difference has a sign and that sentence did not carry one.
+     * With +2/+3 applied the next report was explicit — Asr "exceeds its time by
+     * 3 minutes", Maghrib by 1 — so the app was three and one minutes LATE, and
+     * the true corrections are those minus what I had already added.
+     */
+    correction: { Asr: -1, Maghrib: 2 },
   },
   { code: 'DZ', country: 'Algeria', match: /algeri/i },
   { code: 'TN', country: 'Tunisia', match: /tunisi/i },

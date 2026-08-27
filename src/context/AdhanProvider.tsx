@@ -156,11 +156,10 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
        * inside a media player that is indistinguishable from working — so the
        * volume, the audio mode and the output route go on screen.
        */
-      setNote(
-        result.output === null
-          ? `Playing ${length}. If you hear nothing, raise the MEDIA volume — not the ringer.`
-          : `Playing ${length} · ${result.output}`,
-      );
+      const what = result.testTone
+        ? 'Test chime (no adhan recording is bundled). If you hear this, the app can play sound on this phone'
+        : `Playing ${length}`;
+      setNote(result.output === null ? `${what}.` : `${what} · ${result.output}`);
     });
   }, []);
 
@@ -207,11 +206,8 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
     (which: PrayerName) => {
       setPreview(true);
       setPrayer(which);
-      if (!hasAdhanSound) {
-        setPlaying(false);
-        setNote('No adhan recording is bundled in this build yet, so there is nothing to hear.');
-        return;
-      }
+      // With no adhan bundled this plays the generated chime instead, which is
+      // the only way to tell a broken audio path from an empty recording.
       begin(true);
     },
     [begin],

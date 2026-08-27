@@ -68,7 +68,7 @@
         {
           "color": "#1B4332",
           "defaultChannel": "prayer-warning",
-          "sounds": ["src/assets/audio/adhan.mp3"]
+          "sounds": []
         }
       ]
     ],

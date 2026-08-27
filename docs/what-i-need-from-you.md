@@ -101,40 +101,44 @@ exists because burying it behind a diagnostics toggle meant it never got used.
 
 ---
 
-## 2b. ~~The adhan recording~~ — done
+## 2b. The adhan recording — I need a different file
 
-Abd Elmajid Essebihi, 4:01, bundled at `src/assets/audio/adhan.mp3`.
+The file that was sent was **four minutes of digital silence.** Not corrupt, not
+the wrong format: a structurally perfect MP3 — 9,200 valid frames, constant
+128 kbps, 44.1 kHz, 4:01 long — whose audio payload was **100% zero bytes.** The
+whole 3.8 MB contained four distinct byte values: `0x00`, and the three bytes of a
+frame header repeated 9,200 times.
 
-It arrived named `.wav` but was an MP3 (`ff fb` MPEG-1 Layer III frames, 128 kbps
-44.1 kHz, no RIFF header anywhere), so it is stored under its true extension.
-Android resolves a `res/raw` resource by file name and the media stack sniffs
-content, and a file whose extension lies about its contents is exactly the sort of
-thing that plays on one phone and not the next.
+Everything below it worked and said so. The bundler packaged it, Gradle copied it
+into `res/raw`, expo-asset extracted it, the media player decoded it, read its
+true length and played it at full volume through the speaker. The app reported
+"Playing 3:59 of adhan" and that was true. There was simply nothing in it to hear.
 
-How it behaves now:
+I checked that file when it arrived and called it valid. I had checked the
+**container** — frame headers, bitrate, sample rate, duration — and never checked
+whether it carried a **signal**. Three rounds of debugging then went into the
+player, the asset pipeline, the APK and the audio focus, hunting a fault in code
+that was working correctly the whole time.
 
-- **Five minutes before** each prayer: a plain reminder with the normal
-  notification sound. **Never the adhan** — a call to prayer five minutes early is
-  not a reminder, it is wrong, and `soundFor()` makes it structurally impossible.
-- **At the exact prayer time, app open:** the banner appears over whatever screen
-  you are on with a full-width **Stop adhan** button, and the full four minutes
-  play through the media output.
-- **At the exact prayer time, app closed:** the notification fires with the adhan
-  as its sound. Swiping it away stops the sound; **tapping** it opens the app,
-  takes the notification down first (so the two never overlap) and then plays it
-  properly, with the Stop button.
-- **While you are reciting:** it does not auto-play into a live microphone. The
-  banner offers a **Play adhan** button and you decide.
+### So that this cannot happen again
 
-**One thing you must do to hear the notification version: uninstall the old app
-before installing this build.** An Android notification channel keeps the sound it
-was created with forever, so an update over the top leaves the old silent channel
-in place and the prayer-time notification stays silent no matter what the code
-says. In-app playback — the part with the Stop button — works either way.
+- `scripts/verify-audio.mjs` runs in `npm run gen` and in CI, and **refuses a
+  silent file**: it walks the frames, measures what fraction of the audio payload
+  is zero bytes, and fails the build above 95%.
+- A **generated test chime** (`scripts/gen-test-tone.mjs`) is bundled — 1.6 s,
+  computed from arithmetic, so its contents are known. With no adhan bundled,
+  **Hear it now** plays that instead and says so. If you hear the chime, this
+  phone and this app can play sound, and any future silence is the recording's
+  fault, not the app's. That distinction cost three rounds; now it is one tap.
 
-Test it without waiting for a prayer: prayer tab → **Hear it now**.
+### What to send
 
----
+Any adhan recording you actually want to hear, **in a format that has sound in
+it**. Before you send it, play it once on your phone or computer — if you can
+hear it there, I can bundle it.
+
+MP3 or WAV both work. If it came out of a converter or a screen recorder, check
+it plays before sending: a silent export is exactly what happened last time.
 
 ## 3. Two decisions only you can make
 
