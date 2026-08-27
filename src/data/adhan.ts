@@ -18,9 +18,14 @@
  * The five-minute warning carries the DEFAULT notification sound and never the
  * adhan: a call to prayer five minutes early is not a reminder, it is wrong.
  *
- * NO RECORDING IS BUNDLED, and the last one taught an expensive lesson.
+ * THE BUNDLED RECORDING is Abd Elmajid Essebihi, 3:33, mono 44.1 kHz 96 kbps MP3,
+ * 2.44 MB — encoded here from a 37.5 MB stereo PCM WAV, because 37.5 MB is not a
+ * thing to put in an APK and the phone only needs one voice. Verified to contain
+ * audio before being committed: peak −2.1 dBFS, RMS −18.6 dBFS, 95.7% non-zero
+ * samples, and a per-second energy profile with the shape of a muezzin — phrases
+ * separated by breaths.
  *
- * The file that was here was a structurally perfect MP3 — 9,200 frames, constant
+ * THE ONE BEFORE IT was a structurally perfect MP3 — 9,200 frames, constant
  * 128 kbps, 44.1 kHz, 4:01 long, every frame header valid — that contained
  * nothing but digital silence. The whole 3.8 MB held four distinct byte values:
  * 0x00 for 99.28% of it, plus the three bytes of a frame header repeated 9,200
@@ -35,7 +40,7 @@
  * (scripts/gen-test-tone.mjs) gives the app a sound whose contents are KNOWN, so
  * "our audio is broken" can be told apart from "the recording is empty".
  *
- * TO ADD A RECORDING (three steps, all of them):
+ * TO REPLACE IT (three steps, all of them):
  *   1. drop the new file at src/assets/audio/adhan.<its real extension>
  *   2. point ADHAN_ASSET below at it, and update "sounds" in app.json to match.
  *      Metro resolves require() when the bundle is built, not when the code runs,
@@ -58,9 +63,7 @@ export const ADHAN_SOUND = 'adhan';
  * for the type-checker rather than narrowing them to dead code, which is what
  * kept them honest while there was nothing to play.
  */
-export const ADHAN_ASSET: number | null = null;
-// Step 2: swap the line above for this one, with the real extension.
-// export const ADHAN_ASSET: number | null = require('../assets/audio/adhan.mp3');
+export const ADHAN_ASSET: number | null = require('../assets/audio/adhan.mp3');
 
 /**
  * A generated chime, guaranteed to contain sound because arithmetic produced it.
