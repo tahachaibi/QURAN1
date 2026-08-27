@@ -45,6 +45,15 @@ export interface Prefs {
   /** notify, with the adhan sound, at each prayer time */
   adhanNotification: boolean;
   /**
+   * A recording the user chose from their own phone, copied into app storage.
+   *
+   * Used for the in-app adhan only: Android freezes a notification channel's
+   * sound at creation and it must be a resource inside the APK, so a chosen file
+   * cannot be the closed-app notification sound.
+   */
+  adhanUri: string | null;
+  adhanName: string | null;
+  /**
    * Per-prayer corrections in minutes. Maghrib is the one that matters: national
    * timetables publish it a few minutes after astronomical sunset, and no
    * calculation method can express that.
@@ -67,6 +76,8 @@ export const DEFAULT_PREFS: Prefs = {
   showDebugOverlay: false,
   prayerWarning: true,
   adhanNotification: true,
+  adhanUri: null,
+  adhanName: null,
   prayerOffsets: NO_OFFSETS,
 };
 

@@ -121,9 +121,11 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
    * the whole point is to find out what the phone did. A real adhan at a real
    * prayer time stays quiet about internals unless something went wrong.
    */
-  const begin = useCallback((describe: boolean) => {
+  const begin = useCallback(
+    (describe: boolean) => {
     setNote(null);
     void playAdhan(
+      prefs.adhanUri,
       () => {
         setPlaying(false);
         setPrayer(null);
@@ -161,16 +163,18 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
         : `Playing ${length}`;
       setNote(result.output === null ? `${what}.` : `${what} · ${result.output}`);
     });
-  }, []);
+    },
+    [prefs.adhanUri],
+  );
 
   const start = useCallback(
     (which: PrayerName, key: string) => {
       sounded.current = key;
       setPrayer(which);
       setPreview(false);
-      if (!hasAdhanSound) {
+      if (!hasAdhanSound && (prefs.adhanUri === null || prefs.adhanUri.length === 0)) {
         setPlaying(false);
-        setNote('No adhan recording is bundled in this build yet, so this notice is silent.');
+        setNote('No adhan recording has been chosen yet, so this notice is silent.');
         return;
       }
       if (listening.current) {
@@ -182,7 +186,7 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
       }
       begin(false);
     },
-    [begin],
+    [begin, prefs.adhanUri],
   );
 
   const dismiss = useCallback(() => {

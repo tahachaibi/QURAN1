@@ -101,44 +101,47 @@ exists because burying it behind a diagnostics toggle meant it never got used.
 
 ---
 
-## 2b. The adhan recording — I need a different file
+## 2b. The adhan — you choose the file on your phone now
 
-The file that was sent was **four minutes of digital silence.** Not corrupt, not
-the wrong format: a structurally perfect MP3 — 9,200 valid frames, constant
-128 kbps, 44.1 kHz, 4:01 long — whose audio payload was **100% zero bytes.** The
-whole 3.8 MB contained four distinct byte values: `0x00`, and the three bytes of a
-frame header repeated 9,200 times.
+**Nothing to send me.** Prayer tab → **Choose adhan** → pick any audio file on the
+phone. The app copies it into its own storage and plays it straight away so you
+hear it there and then. No size limit but the phone's, and no rebuild.
 
-Everything below it worked and said so. The bundler packaged it, Gradle copied it
-into `res/raw`, expo-asset extracted it, the media player decoded it, read its
-true length and played it at full volume through the speaker. The app reported
-"Playing 3:59 of adhan" and that was true. There was simply nothing in it to hear.
+That replaces sending me a file, which failed twice for two different reasons:
 
-I checked that file when it arrived and called it valid. I had checked the
-**container** — frame headers, bitrate, sample rate, duration — and never checked
-whether it carried a **signal**. Three rounds of debugging then went into the
-player, the asset pipeline, the APK and the audio focus, hunting a fault in code
-that was working correctly the whole time.
+- The first was **four minutes of digital silence** — a structurally perfect MP3
+  (9,200 valid frames, 128 kbps, 44.1 kHz, 4:01) whose audio payload was 100%
+  zero bytes. Every layer below worked and said so: packaged, copied to res/raw,
+  extracted, decoded, played at full volume on the speaker. "Playing 3:59 of
+  adhan" was true. There was nothing in it to hear. I had checked that file's
+  container and never its signal, and three rounds of debugging went into a
+  player that was working.
+- The second was **too large to send at all**, which is the app's problem to
+  solve, not yours.
 
-### So that this cannot happen again
+### What is guarded now
 
-- `scripts/verify-audio.mjs` runs in `npm run gen` and in CI, and **refuses a
-  silent file**: it walks the frames, measures what fraction of the audio payload
-  is zero bytes, and fails the build above 95%.
-- A **generated test chime** (`scripts/gen-test-tone.mjs`) is bundled — 1.6 s,
-  computed from arithmetic, so its contents are known. With no adhan bundled,
-  **Hear it now** plays that instead and says so. If you hear the chime, this
-  phone and this app can play sound, and any future silence is the recording's
-  fault, not the app's. That distinction cost three rounds; now it is one tap.
+- `scripts/verify-audio.mjs` runs in `npm run gen` and in CI and **refuses a
+  silent file**: it walks the MPEG frames, measures the zero-byte fraction of the
+  audio payload, and fails above 95%.
+- A **generated chime** is bundled — 1.6 s, computed from arithmetic, so its
+  contents are known. With nothing chosen, **Hear it now** plays that and says so.
+  Hearing it proves the phone and the app can play sound, so any later silence is
+  the recording. That distinction cost three rounds; it is one tap now.
 
-### What to send
+### The one limit, stated plainly
 
-Any adhan recording you actually want to hear, **in a format that has sound in
-it**. Before you send it, play it once on your phone or computer — if you can
-hear it there, I can bundle it.
+A file you choose plays **in the app**, with the Stop button. The notification for
+when the app is **closed** keeps the default sound. Android fixes a notification
+channel's sound when the channel is created and it must be a resource inside the
+APK — a file in the app's private storage is not readable by the system process
+that plays notification sounds.
 
-MP3 or WAV both work. If it came out of a converter or a screen recorder, check
-it plays before sending: a silent export is exactly what happened last time.
+If you want the closed-app notification to be the adhan too, that needs a file
+small enough to bundle: **under about 3 MB, 30 seconds or so** (Android truncates
+long notification sounds anyway). Converting your file to mono at 96 kbps gets a
+4-minute adhan to roughly 2.8 MB, and a 30-second excerpt to about 350 KB. Send
+me either and I will bundle it — after checking it has a signal this time.
 
 ## 3. Two decisions only you can make
 

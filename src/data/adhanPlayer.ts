@@ -28,6 +28,7 @@ import { Audio, InterruptionModeAndroid, type AVPlaybackSource } from 'expo-av';
 import { Asset } from 'expo-asset';
 
 import { ADHAN_ASSET, TEST_TONE_ASSET } from './adhan';
+import { chosenStillThere } from './adhanFile';
 import { ArabicSpeech, isArabicSpeechLinked } from '../../modules/expo-arabic-speech';
 
 export interface AdhanPlaybackResult {
@@ -89,10 +90,21 @@ async function resolveSource(module: number): Promise<{ source: AVPlaybackSource
  * was accepted but is not advancing — the case that looks exactly like a working
  * adhan with the volume down.
  */
+/**
+ * Play the adhan, preferring what the user chose.
+ *
+ * Order of preference, and each fallback is a smaller claim than the one above
+ * it: the recording they picked themselves, then one bundled in the build, then
+ * the generated chime — which is not an adhan and says so.
+ */
 export async function playAdhan(
+  chosenUri: string | null,
   onFinished: () => void,
   onStalled?: (detail: string) => void,
 ): Promise<AdhanPlaybackResult> {
+  if (chosenUri !== null && chosenUri.length > 0 && (await chosenStillThere(chosenUri))) {
+    return play({ uri: chosenUri }, false, onFinished, onStalled);
+  }
   return play(ADHAN_ASSET ?? TEST_TONE_ASSET, ADHAN_ASSET === null, onFinished, onStalled);
 }
 
@@ -109,7 +121,7 @@ export const playTestTone = (
 ): Promise<AdhanPlaybackResult> => play(TEST_TONE_ASSET, true, onFinished, onStalled);
 
 async function play(
-  module: number,
+  module: number | { uri: string },
   testTone: boolean,
   onFinished: () => void,
   onStalled?: (detail: string) => void,
@@ -131,7 +143,9 @@ async function play(
       interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
     });
 
-    const { source, opened } = await resolveSource(module);
+    // A file URI needs no extraction: it is already a path the player can open.
+    const { source, opened } =
+      typeof module === 'number' ? await resolveSource(module) : { source: module, opened: module.uri };
     if (mine !== generation) return stoppedEarly();
 
     let created: Awaited<ReturnType<typeof Audio.Sound.createAsync>>;
@@ -142,7 +156,7 @@ async function play(
       // The extracted path failed. Fall back to the bundled module rather than
       // giving up: which of the two a given device accepts is not predictable
       // from here, and one of them working is what matters.
-      if (typeof source === 'number') throw e;
+      if (typeof source === 'number' || typeof module !== 'number') throw e;
       created = await Audio.Sound.createAsync(module, { shouldPlay: true, volume: 1 });
       usedSource = `bundled module (after ${opened} failed)`;
     }

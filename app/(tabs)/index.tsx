@@ -23,6 +23,7 @@ import {
 } from '../../src/data/prayer';
 import { clampOffset, describeOffsets, hasOffsets, OFFSET_LIMIT } from '../../src/data/prayerOffsets';
 import { describeCorrection } from '../../src/data/prayerRegion';
+import { forgetChosenAdhan, formatSize, pickAdhanFile } from '../../src/data/adhanFile';
 import { useTheme } from '../../src/theme/ThemeProvider';
 import { radius, space } from '../../src/theme/theme';
 import { ADHAN_SOUND, hasAdhanSound } from '../../src/data/adhan';
@@ -40,6 +41,8 @@ export default function PrayerScreen() {
   const [now, setNow] = useState(() => Date.now());
   const [refreshing, setRefreshing] = useState(false);
   const [tuning, setTuning] = useState(false);
+  const [picking, setPicking] = useState(false);
+  const [pickError, setPickError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -147,25 +150,93 @@ export default function PrayerScreen() {
           />
           <Toggle
             label="Adhan at prayer time"
-            hint={
-              hasAdhanSound
-                ? 'Played through the phone with a Stop button when the app is open, and as a notification when it is closed.'
-                : 'No adhan recording is bundled in this build yet, so prayer time shows a notice without sound.'
-            }
+            hint="Played in the app with a Stop button; a notification when the app is closed."
             value={prefs.adhanNotification}
             onChange={(adhanNotification) => setPrefs({ adhanNotification })}
             palette={palette}
           />
-          {prefs.adhanNotification && hasAdhanSound ? (
-            <Pressable
-              onPress={() => testAdhan(next?.name ?? 'Fajr')}
-              accessibilityRole="button"
-              accessibilityLabel="Hear the adhan now"
-              style={[styles.testButton, { borderColor: palette.primary }]}
-            >
-              <Ionicons name="volume-high" size={16} color={palette.primary} />
-              <Text style={[styles.testText, { color: palette.primary }]}>Hear it now</Text>
-            </Pressable>
+          {prefs.adhanNotification ? (
+            <>
+              {/**
+                * Choosing the file on the phone rather than bundling it: a
+                * recording has to reach the app somehow, and going through me
+                * has meant one file that was four minutes of silence and one too
+                * large to send. Neither was a problem with the app.
+                */}
+              <View style={styles.subRow}>
+                <Ionicons name="musical-notes-outline" size={15} color={palette.textMuted} />
+                <Text style={[styles.sourceText, { color: palette.text }]} numberOfLines={2}>
+                  {prefs.adhanName !== null
+                    ? prefs.adhanName
+                    : hasAdhanSound
+                      ? 'Using the recording bundled in the app'
+                      : 'No adhan chosen — pick one from your phone'}
+                </Text>
+              </View>
+
+              <View style={styles.buttonRow}>
+                <Pressable
+                  onPress={() => {
+                    setPicking(true);
+                    setPickError(null);
+                    void pickAdhanFile()
+                      .then((result) => {
+                        if (result.chosen !== null) {
+                          setPrefs({ adhanUri: result.chosen.uri, adhanName: `${result.chosen.name} · ${formatSize(result.chosen.sizeBytes)}` });
+                          // Play it straight away: the only real test of a
+                          // recording is hearing it.
+                          testAdhan(next?.name ?? 'Fajr');
+                        } else if (result.detail.length > 0) {
+                          setPickError(result.detail);
+                        }
+                      })
+                      .finally(() => setPicking(false));
+                  }}
+                  disabled={picking}
+                  accessibilityRole="button"
+                  accessibilityLabel="Choose an adhan file from this phone"
+                  style={[styles.testButton, { borderColor: palette.primary, flex: 1 }]}
+                >
+                  <Ionicons name="folder-open-outline" size={16} color={palette.primary} />
+                  <Text style={[styles.testText, { color: palette.primary }]}>
+                    {picking ? 'Choosing…' : prefs.adhanName !== null ? 'Change' : 'Choose adhan'}
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={() => testAdhan(next?.name ?? 'Fajr')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Hear the adhan now"
+                  style={[styles.testButton, { borderColor: palette.primary, flex: 1 }]}
+                >
+                  <Ionicons name="volume-high" size={16} color={palette.primary} />
+                  <Text style={[styles.testText, { color: palette.primary }]}>Hear it now</Text>
+                </Pressable>
+              </View>
+
+              {prefs.adhanName !== null ? (
+                <Pressable
+                  onPress={() => {
+                    void forgetChosenAdhan(prefs.adhanUri);
+                    setPrefs({ adhanUri: null, adhanName: null });
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Remove the chosen adhan"
+                >
+                  <Text style={[styles.notifyNote, { color: palette.error }]}>Remove this recording</Text>
+                </Pressable>
+              ) : null}
+
+              {pickError !== null ? (
+                <Text style={[styles.notifyNote, { color: palette.error }]}>{pickError}</Text>
+              ) : null}
+
+              <Text style={[styles.notifyNote, { color: palette.textMuted }]}>
+                A file you choose here plays in the app, with the Stop button. The notification for
+                when the app is closed keeps the default sound — Android fixes a notification&apos;s
+                sound when the channel is made and it has to come from inside the app.
+              </Text>
+            </>
           ) : null}
           {/**
             * Where the times come from, stated rather than chosen. Nobody thinks
@@ -409,6 +480,7 @@ const styles = StyleSheet.create({
     paddingVertical: space.sm,
   },
   testText: { fontSize: 13, fontWeight: '700' },
+  buttonRow: { flexDirection: 'row', gap: space.sm },
   toggleRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   toggleText: { flex: 1 },
   toggleLabel: { fontSize: 14, fontWeight: '600' },
