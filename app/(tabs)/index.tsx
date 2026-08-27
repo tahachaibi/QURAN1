@@ -22,7 +22,6 @@ import {
   type PrayerDay,
 } from '../../src/data/prayer';
 import { clampOffset, describeOffsets, hasOffsets, OFFSET_LIMIT } from '../../src/data/prayerOffsets';
-import { fetchMethods, methodName, type CalculationMethod } from '../../src/data/prayerMethods';
 import { useTheme } from '../../src/theme/ThemeProvider';
 import { radius, space } from '../../src/theme/theme';
 import { ADHAN_SOUND, hasAdhanSound } from '../../src/data/adhan';
@@ -40,34 +39,20 @@ export default function PrayerScreen() {
   const [now, setNow] = useState(() => Date.now());
   const [refreshing, setRefreshing] = useState(false);
   const [tuning, setTuning] = useState(false);
-  const [methods, setMethods] = useState<CalculationMethod[]>([]);
-  const [methodNote, setMethodNote] = useState<string | null>(null);
-  const [pickingMethod, setPickingMethod] = useState(false);
 
   const load = useCallback(async () => {
     try {
       setError(null);
-      setDay(await fetchPrayerTimes({ method: prefs.calcMethod, offsets: prefs.prayerOffsets }));
+      // No method is passed: it is decided from the country the phone is in.
+      setDay(await fetchPrayerTimes({ offsets: prefs.prayerOffsets }));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
-  }, [prefs.calcMethod, prefs.prayerOffsets]);
+  }, [prefs.prayerOffsets]);
 
   useEffect(() => {
     void load();
   }, [load]);
-
-  /**
-   * The method list comes from the API, never from a list written into the app:
-   * method ids are Aladhan's own numbering and only Aladhan is authoritative
-   * about which number means which convention.
-   */
-  useEffect(() => {
-    void fetchMethods().then((result) => {
-      setMethods(result.methods);
-      setMethodNote(result.note);
-    });
-  }, []);
 
   /**
    * Rebuild the schedule whenever the times or the switches change. Rescheduling
@@ -181,54 +166,24 @@ export default function PrayerScreen() {
               <Text style={[styles.testText, { color: palette.primary }]}>Hear it now</Text>
             </Pressable>
           ) : null}
-          <Pressable
-            onPress={() => setPickingMethod((open) => !open)}
-            accessibilityRole="button"
-            accessibilityLabel={`Calculation method: ${methodName(methods, prefs.calcMethod)}`}
-            accessibilityState={{ expanded: pickingMethod }}
-            style={styles.subRow}
-          >
-            <Ionicons name="calculator-outline" size={15} color={palette.textMuted} />
-            <Text style={[styles.subLabel, { color: palette.text }]}>
-              {methodName(methods, prefs.calcMethod)}
+          {/**
+            * Where the times come from, stated rather than chosen. Nobody thinks
+            * "I follow an 18-degree Fajr angle"; they think "I am in Morocco, so I
+            * follow وزارة الأوقاف والشؤون الإسلامية". The phone knows the first
+            * half, so the app works out the second.
+            */}
+          <View style={styles.subRow}>
+            <Ionicons
+              name={day.resolved === null ? 'help-circle-outline' : 'location-outline'}
+              size={15}
+              color={day.resolved === null ? palette.error : palette.textMuted}
+            />
+            <Text style={[styles.sourceText, { color: palette.text }]}>
+              {day.resolved === null
+                ? 'Could not tell which country you are in, so these use a general calculation.'
+                : day.source}
             </Text>
-            <Ionicons name={pickingMethod ? 'chevron-up' : 'chevron-down'} size={15} color={palette.textMuted} />
-          </Pressable>
-
-          {pickingMethod ? (
-            <View style={styles.methodList}>
-              {methodNote !== null ? (
-                <Text style={[styles.notifyNote, { color: palette.textMuted }]}>{methodNote}</Text>
-              ) : null}
-              {methods.map((method) => {
-                const active = method.id === prefs.calcMethod;
-                return (
-                  <Pressable
-                    key={method.id}
-                    onPress={() => {
-                      setPrefs({ calcMethod: method.id });
-                      setPickingMethod(false);
-                    }}
-                    accessibilityRole="radio"
-                    accessibilityState={{ selected: active }}
-                    accessibilityLabel={method.name}
-                    style={[
-                      styles.methodRow,
-                      {
-                        backgroundColor: active ? palette.successSoft : 'transparent',
-                        borderColor: active ? palette.success : palette.border,
-                      },
-                    ]}
-                  >
-                    <Text style={[styles.methodName, { color: palette.text }]}>{method.name}</Text>
-                    {method.detail !== null ? (
-                      <Text style={[styles.methodDetail, { color: palette.textMuted }]}>{method.detail}</Text>
-                    ) : null}
-                  </Pressable>
-                );
-              })}
-            </View>
-          ) : null}
+          </View>
 
           <Pressable
             onPress={() => setTuning((open) => !open)}
@@ -240,8 +195,8 @@ export default function PrayerScreen() {
             <Ionicons name="options-outline" size={15} color={palette.textMuted} />
             <Text style={[styles.subLabel, { color: palette.text }]}>
               {hasOffsets(prefs.prayerOffsets)
-                ? `Adjusted: ${describeOffsets(prefs.prayerOffsets)}`
-                : 'Fine-tune each prayer time'}
+                ? `Shifted by hand: ${describeOffsets(prefs.prayerOffsets)}`
+                : 'A time here is wrong by a few minutes'}
             </Text>
             <Ionicons name={tuning ? 'chevron-up' : 'chevron-down'} size={15} color={palette.textMuted} />
           </Pressable>
@@ -249,10 +204,9 @@ export default function PrayerScreen() {
           {tuning ? (
             <View style={styles.tuneBlock}>
               <Text style={[styles.notifyNote, { color: palette.textMuted }]}>
-                If a prayer here is a few minutes off the mosque you follow, correct it once and
-                everything follows — the countdown, the reminder and the adhan. Maghrib is the usual
-                one: many national timetables publish it a few minutes after sunset, which no
-                calculation method can express.
+                Only use this if a time above does not match the mosque you follow. Each + adds one
+                minute to that prayer and each − takes one away, permanently, and the countdown, the
+                reminder and the adhan all move with it. If everything is right, leave it at 0.
               </Text>
               {PRAYERS.map((prayer) => {
                 const value = clampOffset(prefs.prayerOffsets[prayer] ?? 0);
@@ -419,15 +373,7 @@ const styles = StyleSheet.create({
     paddingTop: space.sm,
   },
   subLabel: { flex: 1, fontSize: 13, fontWeight: '600' },
-  methodList: { gap: 4 },
-  methodRow: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: radius.sm,
-    paddingHorizontal: space.sm,
-    paddingVertical: space.sm,
-  },
-  methodName: { fontSize: 13, fontWeight: '600' },
-  methodDetail: { fontSize: 10, marginTop: 1 },
+  sourceText: { flex: 1, fontSize: 12, lineHeight: 17 },
   tuneBlock: { gap: space.xs },
   tuneRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   tuneName: { flex: 1, fontSize: 13, fontWeight: '600' },

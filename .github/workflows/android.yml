@@ -162,6 +162,24 @@ jobs:
         working-directory: android
         run: ./gradlew :app:assembleRelease --stacktrace
 
+      - name: Prove the adhan is actually inside the APK
+        # `require()` returning an asset id proves the bundler SAW the file; it
+        # does not prove the file was packaged. The app can therefore believe a
+        # recording is bundled, show the Hear-it-now button, start "playback" and
+        # be silent — which is exactly the bug being chased. So look inside the
+        # archive and say what is really there.
+        run: |
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          echo "--- every adhan entry in the APK ---"
+          unzip -l "$APK" | grep -i adhan || true
+          echo "--- every mp3 entry in the APK ---"
+          unzip -l "$APK" | grep -iE '\.mp3' || true
+          unzip -l "$APK" | grep -q "res/raw/adhan.mp3" \
+            || { echo "::error::res/raw/adhan.mp3 missing — the notification sound will be silent"; exit 1; }
+          unzip -l "$APK" | grep -qiE 'assets/.*adhan.*\.mp3' \
+            || { echo "::error::the JS asset copy of adhan.mp3 is missing — in-app playback will be silent"; exit 1; }
+          echo "both copies present"
+
       - name: Name the artifact something installable
         run: |
           mkdir -p out

@@ -11,7 +11,6 @@ import type { MistakeRecord } from '../engine/confusion';
 import type { HifzDeck } from '../engine/hifz';
 import type { FontStep } from '../theme/theme';
 import { NO_OFFSETS, type PrayerOffsets } from './prayerOffsets';
-import { FALLBACK_METHOD } from './prayerMethods';
 
 const KEY = {
   prefs: 'qh:prefs:v1',
@@ -45,8 +44,6 @@ export interface Prefs {
   prayerWarning: boolean;
   /** notify, with the adhan sound, at each prayer time */
   adhanNotification: boolean;
-  /** Aladhan calculation method id; see prayerMethods.ts for why it is a number */
-  calcMethod: number;
   /**
    * Per-prayer corrections in minutes. Maghrib is the one that matters: national
    * timetables publish it a few minutes after astronomical sunset, and no
@@ -70,7 +67,6 @@ export const DEFAULT_PREFS: Prefs = {
   showDebugOverlay: false,
   prayerWarning: true,
   adhanNotification: true,
-  calcMethod: FALLBACK_METHOD,
   prayerOffsets: NO_OFFSETS,
 };
 
@@ -204,6 +200,13 @@ export interface PrayerCache {
   longitude: number;
   timings: Record<string, string>;
   fetchedAt: number;
+  /** ISO 3166-1 alpha-2, from reverse geocoding — decides whose timetable to follow */
+  countryCode?: string | null;
+  /** the town, only so the tab can say where it thinks you are */
+  city?: string | null;
+  /** the calculation method actually used for these timings */
+  methodId?: number;
+  methodName?: string | null;
 }
 
 export const loadPrayerCache = (): Promise<PrayerCache | null> =>
