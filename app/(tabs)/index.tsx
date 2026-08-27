@@ -84,12 +84,13 @@ export default function PrayerScreen() {
           timings: day.timings,
           warnBefore: prefs.prayerWarning,
           adhan: prefs.adhanNotification,
+          bells: prefs.bells,
         },
         hasAdhanSound ? ADHAN_SOUND : null,
       );
       setScheduled(count);
     })();
-  }, [day, prefs.adhanNotification, prefs.prayerWarning]);
+  }, [day, prefs.adhanNotification, prefs.prayerWarning, prefs.bells]);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -382,7 +383,9 @@ export default function PrayerScreen() {
             return (
               <View
                 key={prayer}
-                accessible
+                // NOT `accessible`: the row now contains a button, and collapsing
+                // it into one node would make the bell unreachable by screen
+                // reader. The texts inside carry their own labels.
                 accessibilityLabel={`${prayer} at ${raw.trim().slice(0, 5)}${isNext ? ', next' : past ? ', passed' : ''}`}
                 style={[
                   styles.row,
@@ -409,6 +412,36 @@ export default function PrayerScreen() {
                   {PRAYER_ARABIC[prayer]}
                 </Text>
                 <Text style={[styles.rowTime, { color: palette.text }]}>{raw.trim().slice(0, 5)}</Text>
+
+                {/**
+                  * The bell decides whether this prayer is HEARD, not whether it
+                  * is announced: with it off the banner and the notification still
+                  * appear, silently. Placed at the end of the row so the eye reads
+                  * name, then time, then the one thing that is a control.
+                  */}
+                <Pressable
+                  onPress={() =>
+                    setPrefs({
+                      bells: { ...prefs.bells, [prayer]: prefs.bells[prayer] === false },
+                    })
+                  }
+                  hitSlop={10}
+                  accessibilityRole="switch"
+                  accessibilityState={{ checked: prefs.bells[prayer] !== false }}
+                  accessibilityLabel={`Adhan sound for ${prayer}`}
+                  accessibilityHint={
+                    prefs.bells[prayer] === false
+                      ? 'Currently silent. Tap to hear the adhan at this prayer.'
+                      : 'Currently sounds the adhan. Tap to make it silent.'
+                  }
+                  style={styles.bell}
+                >
+                  <Ionicons
+                    name={prefs.bells[prayer] === false ? 'notifications-off-outline' : 'notifications'}
+                    size={20}
+                    color={prefs.bells[prayer] === false ? palette.textMuted : palette.accent}
+                  />
+                </Pressable>
               </View>
             );
           })
@@ -470,6 +503,7 @@ const styles = StyleSheet.create({
   },
   rowName: { flex: 1, fontSize: 16, fontWeight: '600' },
   rowArabic: { fontSize: 15, fontFamily: 'Amiri_400Regular', writingDirection: 'rtl' },
+  bell: { paddingLeft: space.xs, paddingVertical: 2 },
   notifyCard: {
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,

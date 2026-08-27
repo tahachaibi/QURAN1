@@ -10,9 +10,18 @@ import { PRAYER_ARABIC, PRAYERS, parseTime, type PrayerName } from './prayerTime
 
 /** Minutes before the adhan for the warning notification. */
 export const WARNING_MINUTES = 5;
-/** Two channels, because the two notifications want different sounds. */
+/** Three channels, because the three notifications want three different sounds. */
 export const CHANNEL_ADHAN = 'adhan';
 export const CHANNEL_WARNING = 'prayer-warning';
+/**
+ * Prayer time for a prayer whose bell is off: the notice appears, silently.
+ *
+ * A separate channel rather than a silent notification, because on Android the
+ * channel owns the sound and a channel's sound cannot be changed after it is
+ * created. Muting per prayer therefore means choosing a different channel, not
+ * changing one.
+ */
+export const CHANNEL_SILENT = 'prayer-silent';
 /** Days ahead to schedule. Android caps concurrent alarms, so keep it modest. */
 const DAYS_AHEAD = 7;
 
@@ -23,11 +32,32 @@ export interface ScheduleOptions {
   warnBefore: boolean;
   /** play the adhan at prayer time */
   adhan: boolean;
+  /**
+   * Per prayer: sound the adhan, or show the notice silently.
+   *
+   * Absent means all five sound, which is what every build before this did — an
+   * update must not silence somebody's Fajr.
+   */
+  bells?: PrayerBells;
   /** current time; injected so the scheduler is testable */
   now?: Date;
 }
 
-export type NotificationChannel = typeof CHANNEL_ADHAN | typeof CHANNEL_WARNING;
+export type NotificationChannel =
+  | typeof CHANNEL_ADHAN
+  | typeof CHANNEL_WARNING
+  | typeof CHANNEL_SILENT;
+
+/** Which prayers should actually sound the adhan. */
+export type PrayerBells = Record<PrayerName, boolean>;
+
+export const ALL_BELLS_ON: PrayerBells = {
+  Fajr: true,
+  Dhuhr: true,
+  Asr: true,
+  Maghrib: true,
+  Isha: true,
+};
 
 /**
  * Travels with the notification so the app knows, when it is opened by a tap on
@@ -58,7 +88,8 @@ export interface PlannedNotification {
  * is closed; when the app is open the adhan is played properly, in full, with a
  * stop button, and the notification is muted so the two do not overlap.
  */
-export function soundFor(channel: NotificationChannel, adhanSound: string | null): string {
+export function soundFor(channel: NotificationChannel, adhanSound: string | null): string | null {
+  if (channel === CHANNEL_SILENT) return null;
   if (channel !== CHANNEL_ADHAN) return 'default';
   return adhanSound ?? 'default';
 }
@@ -85,8 +116,9 @@ export function planNotifications(options: ScheduleOptions): PlannedNotification
       if (at.getTime() <= now.getTime()) continue;
 
       if (options.adhan) {
+        const bells = options.bells ?? ALL_BELLS_ON;
         out.push({
-          channel: CHANNEL_ADHAN,
+          channel: bells[prayer] === false ? CHANNEL_SILENT : CHANNEL_ADHAN,
           prayer,
           at,
           title: `${PRAYER_ARABIC[prayer]} · ${prayer}`,

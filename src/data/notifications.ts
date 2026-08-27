@@ -14,6 +14,7 @@ import { Platform } from 'react-native';
 
 import {
   CHANNEL_ADHAN,
+  CHANNEL_SILENT,
   CHANNEL_WARNING,
   planNotifications,
   soundFor,
@@ -38,6 +39,17 @@ export async function ensureChannels(adhanSound: string | null): Promise<void> {
     sound: 'default',
     vibrationPattern: [0, 250],
     enableVibrate: true,
+  });
+  /**
+   * Prayer time with the bell off: seen, not heard. Importance DEFAULT rather
+   * than HIGH so it does not push itself in front of anything — the point of
+   * turning a bell off is to be left alone.
+   */
+  await Notifications.setNotificationChannelAsync(CHANNEL_SILENT, {
+    name: 'Prayer time (silent)',
+    importance: Notifications.AndroidImportance.DEFAULT,
+    sound: null,
+    enableVibrate: false,
   });
   await Notifications.setNotificationChannelAsync(CHANNEL_ADHAN, {
     name: 'Adhan',
@@ -68,7 +80,9 @@ export async function rescheduleAll(options: ScheduleOptions, adhanSound: string
       content: {
         title: item.title,
         body: item.body,
-        sound: soundFor(item.channel, adhanSound),
+        // null means "no sound at all": the notice for a prayer whose bell is
+        // off. `false` is how expo-notifications spells silence in content.
+        sound: soundFor(item.channel, adhanSound) ?? false,
         data: item.data,
       },
       trigger: {

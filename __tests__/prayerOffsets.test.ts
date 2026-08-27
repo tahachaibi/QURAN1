@@ -19,7 +19,14 @@ import {
 } from '../src/data/prayerOffsets';
 import { FALLBACK_METHOD, methodName, parseMethods } from '../src/data/prayerMethods';
 import { nextPrayer } from '../src/data/prayerTimes';
-import { planNotifications, CHANNEL_ADHAN } from '../src/data/prayerSchedule';
+import {
+  ALL_BELLS_ON,
+  CHANNEL_ADHAN,
+  CHANNEL_SILENT,
+  CHANNEL_WARNING,
+  planNotifications,
+  soundFor,
+} from '../src/data/prayerSchedule';
 import { dueAdhan } from '../src/data/adhanTimer';
 
 const TIMINGS = {
@@ -179,5 +186,76 @@ describe('parseMethods', () => {
     expect(methodName(methods, 3)).toBe('Muslim World League');
     expect(methodName(methods, 21)).toBe('Method 21');
     expect(methodName([], FALLBACK_METHOD)).toBe(`Method ${FALLBACK_METHOD}`);
+  });
+});
+
+/**
+ * Per-prayer bells.
+ *
+ * The rule: a bell decides whether a prayer is HEARD, not whether it is
+ * announced. With one off, the notice still fires — on a channel with no sound —
+ * because being told a prayer has arrived and being shouted at are different
+ * requests.
+ */
+describe('per-prayer bells', () => {
+  const at12 = new Date(2026, 3, 20, 12, 0);
+
+  it('sounds the adhan for every prayer by default', () => {
+    const plan = planNotifications({ timings: TIMINGS, warnBefore: false, adhan: true, now: at12 });
+    const today = plan.filter((p) => p.at.getDate() === 20);
+    expect(today.every((p) => p.channel === CHANNEL_ADHAN)).toBe(true);
+  });
+
+  it('an absent bells record means all five sound, so an update cannot silence Fajr', () => {
+    const plan = planNotifications({ timings: TIMINGS, warnBefore: false, adhan: true, now: at12 });
+    expect(plan.some((p) => p.channel === CHANNEL_SILENT)).toBe(false);
+  });
+
+  it('puts a muted prayer on the silent channel and leaves the others alone', () => {
+    const plan = planNotifications({
+      timings: TIMINGS,
+      warnBefore: false,
+      adhan: true,
+      now: at12,
+      bells: { ...ALL_BELLS_ON, Maghrib: false },
+    });
+    const today = plan.filter((p) => p.at.getDate() === 20);
+    const maghrib = today.find((p) => p.prayer === 'Maghrib');
+    const isha = today.find((p) => p.prayer === 'Isha');
+    expect(maghrib?.channel).toBe(CHANNEL_SILENT);
+    expect(isha?.channel).toBe(CHANNEL_ADHAN);
+  });
+
+  it('still schedules the muted prayer — seen, not heard', () => {
+    const plan = planNotifications({
+      timings: TIMINGS,
+      warnBefore: false,
+      adhan: true,
+      now: at12,
+      bells: { ...ALL_BELLS_ON, Maghrib: false },
+    });
+    const maghrib = plan.filter((p) => p.prayer === 'Maghrib' && p.at.getDate() === 20);
+    expect(maghrib).toHaveLength(1);
+    expect(maghrib[0].title).toContain('Maghrib');
+  });
+
+  it('gives the silent channel no sound at all, and never mutes the others', () => {
+    expect(soundFor(CHANNEL_SILENT, 'adhan')).toBeNull();
+    expect(soundFor(CHANNEL_SILENT, null)).toBeNull();
+    expect(soundFor(CHANNEL_ADHAN, 'adhan')).toBe('adhan');
+    expect(soundFor(CHANNEL_WARNING, 'adhan')).toBe('default');
+  });
+
+  it('a muted prayer keeps its five-minute reminder', () => {
+    // The bell is about the adhan, not about being reminded.
+    const plan = planNotifications({
+      timings: TIMINGS,
+      warnBefore: true,
+      adhan: true,
+      now: new Date(2026, 3, 20, 4, 0),
+      bells: { ...ALL_BELLS_ON, Dhuhr: false },
+    });
+    const dhuhr = plan.filter((p) => p.prayer === 'Dhuhr' && p.at.getDate() === 20);
+    expect(dhuhr.map((p) => p.channel).sort()).toEqual([CHANNEL_SILENT, CHANNEL_WARNING].sort());
   });
 });

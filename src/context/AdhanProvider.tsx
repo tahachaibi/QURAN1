@@ -172,6 +172,16 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
       sounded.current = key;
       setPrayer(which);
       setPreview(false);
+      /**
+       * The bell for this prayer decides whether it is HEARD, not whether it is
+       * seen. A prayer with its bell off still raises the banner — the reciter
+       * asked to be told, not to be shouted at — it just does not play.
+       */
+      if (prefs.bells[which] === false) {
+        setPlaying(false);
+        setNote('The bell is off for this prayer. Tap the bell beside it to hear the adhan.');
+        return;
+      }
       if (!hasAdhanSound && (prefs.adhanUri === null || prefs.adhanUri.length === 0)) {
         setPlaying(false);
         setNote('No adhan recording has been chosen yet, so this notice is silent.');
@@ -186,7 +196,7 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
       }
       begin(false);
     },
-    [begin, prefs.adhanUri],
+    [begin, prefs.adhanUri, prefs.bells],
   );
 
   const dismiss = useCallback(() => {

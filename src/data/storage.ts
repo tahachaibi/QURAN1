@@ -11,6 +11,7 @@ import type { MistakeRecord } from '../engine/confusion';
 import type { HifzDeck } from '../engine/hifz';
 import type { FontStep } from '../theme/theme';
 import { NO_OFFSETS, type PrayerOffsets } from './prayerOffsets';
+import { ALL_BELLS_ON, type PrayerBells } from './prayerSchedule';
 
 const KEY = {
   prefs: 'qh:prefs:v1',
@@ -26,6 +27,7 @@ const KEY = {
 } as const;
 
 export type { PrayerOffsets } from './prayerOffsets';
+export type { PrayerBells } from './prayerSchedule';
 
 export interface Prefs {
   theme: 'system' | 'light' | 'dark';
@@ -54,6 +56,12 @@ export interface Prefs {
   adhanUri: string | null;
   adhanName: string | null;
   /**
+   * Per prayer: sound the adhan, or show the notice silently.
+   *
+   * Defaults to all five on, so an update never silences somebody's Fajr.
+   */
+  bells: PrayerBells;
+  /**
    * Per-prayer corrections in minutes. Maghrib is the one that matters: national
    * timetables publish it a few minutes after astronomical sunset, and no
    * calculation method can express that.
@@ -78,6 +86,7 @@ export const DEFAULT_PREFS: Prefs = {
   adhanNotification: true,
   adhanUri: null,
   adhanName: null,
+  bells: ALL_BELLS_ON,
   prayerOffsets: NO_OFFSETS,
 };
 
