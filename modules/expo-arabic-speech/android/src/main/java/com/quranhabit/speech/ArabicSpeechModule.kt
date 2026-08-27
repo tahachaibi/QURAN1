@@ -97,6 +97,37 @@ class ArabicSpeechModule : Module() {
      * in communication mode routes media to the earpiece, which sounds exactly
      * like silence held to a table), and whether anything is playing at all.
      */
+    /**
+     * Put the phone back into normal audio mode, if it is stuck out of it.
+     *
+     * MODE_IN_COMMUNICATION routes MEDIA to the earpiece. A phone left in that
+     * mode — by a speech recogniser, a screen recorder capturing the microphone,
+     * a VoIP app that did not clean up — plays the adhan perfectly, into the
+     * earpiece, where it is inaudible unless the phone is against your head. That
+     * is exactly what was happening, and from inside a media player it is
+     * indistinguishable from working.
+     *
+     * Deliberately narrow: it only ever changes MODE_IN_COMMUNICATION. MODE_IN_CALL
+     * and MODE_RINGTONE mean a real call, and an app that reroutes audio during a
+     * call is a worse bug than a quiet adhan.
+     */
+    AsyncFunction("normaliseAudioMode") {
+      val am = appContext.reactContext?.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+        ?: return@AsyncFunction mapOf("changed" to false, "before" to "unknown", "after" to "unknown")
+      val before = am.mode
+      var changed = false
+      if (before == AudioManager.MODE_IN_COMMUNICATION) {
+        @Suppress("DEPRECATION")
+        am.mode = AudioManager.MODE_NORMAL
+        changed = am.mode != before
+      }
+      mapOf(
+        "changed" to changed,
+        "before" to modeName(before),
+        "after" to modeName(am.mode),
+      )
+    }
+
     AsyncFunction("audioState") {
       val am = appContext.reactContext?.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
         ?: return@AsyncFunction mapOf("available" to false)
@@ -107,13 +138,7 @@ class ArabicSpeechModule : Module() {
         "musicVolume" to volume,
         "musicVolumeMax" to max,
         "musicMuted" to (volume == 0),
-        "mode" to when (am.mode) {
-          AudioManager.MODE_NORMAL -> "normal"
-          AudioManager.MODE_IN_CALL -> "in-call"
-          AudioManager.MODE_IN_COMMUNICATION -> "in-communication"
-          AudioManager.MODE_RINGTONE -> "ringtone"
-          else -> "mode-${am.mode}"
-        },
+        "mode" to modeName(am.mode),
         "musicActive" to am.isMusicActive,
         "ringerMode" to when (am.ringerMode) {
           AudioManager.RINGER_MODE_SILENT -> "silent"
@@ -148,5 +173,13 @@ class ArabicSpeechModule : Module() {
       recognizer?.destroy()
       recognizer = null
     }
+  }
+
+  private fun modeName(mode: Int): String = when (mode) {
+    AudioManager.MODE_NORMAL -> "normal"
+    AudioManager.MODE_IN_CALL -> "in-call"
+    AudioManager.MODE_IN_COMMUNICATION -> "in-communication"
+    AudioManager.MODE_RINGTONE -> "ringtone"
+    else -> "mode-$mode"
   }
 }

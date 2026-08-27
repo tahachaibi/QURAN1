@@ -8,7 +8,7 @@
  * the app to keep score of someone's worship.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Linking, Pressable, RefreshControl, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { OfflineBadge } from '../../src/components/controls';
@@ -325,7 +325,40 @@ export default function PrayerScreen() {
           ) : null}
 
           {notifyError !== null ? (
-            <Text style={[styles.notifyNote, { color: palette.error }]}>{notifyError}</Text>
+            <View style={styles.notifyProblem}>
+              <Text style={[styles.notifyNote, { color: palette.error }]}>{notifyError}</Text>
+              {/**
+                * A button, not directions. Android stops showing the permission
+                * dialog once it has been refused twice, so asking again does
+                * nothing and "go to Settings > Apps > Quran Habit >
+                * Notifications" is four taps of someone else's navigation. This
+                * opens the app's own settings page directly.
+                */}
+              <View style={styles.buttonRow}>
+                <Pressable
+                  onPress={() => void Linking.openSettings()}
+                  accessibilityRole="button"
+                  accessibilityLabel="Open this app's system settings"
+                  style={[styles.testButton, { borderColor: palette.error, flex: 1 }]}
+                >
+                  <Ionicons name="settings-outline" size={16} color={palette.error} />
+                  <Text style={[styles.testText, { color: palette.error }]}>Open settings</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => void load()}
+                  accessibilityRole="button"
+                  accessibilityLabel="Check again for notification permission"
+                  style={[styles.testButton, { borderColor: palette.primary, flex: 1 }]}
+                >
+                  <Ionicons name="refresh" size={16} color={palette.primary} />
+                  <Text style={[styles.testText, { color: palette.primary }]}>Check again</Text>
+                </Pressable>
+              </View>
+              <Text style={[styles.notifyNote, { color: palette.textMuted }]}>
+                Without this, the reminder and the closed-app notification cannot fire. The adhan
+                still plays while the app is open — that part needs no permission.
+              </Text>
+            </View>
           ) : scheduled !== null && scheduled > 0 ? (
             <Text style={[styles.notifyNote, { color: palette.textMuted }]}>
               {scheduled} reminders scheduled for the week ahead
@@ -481,6 +514,7 @@ const styles = StyleSheet.create({
   },
   testText: { fontSize: 13, fontWeight: '700' },
   buttonRow: { flexDirection: 'row', gap: space.sm },
+  notifyProblem: { gap: space.sm },
   toggleRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   toggleText: { flex: 1 },
   toggleLabel: { fontSize: 14, fontWeight: '600' },

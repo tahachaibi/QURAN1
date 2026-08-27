@@ -45,6 +45,17 @@ interface ArabicSpeechModule {
   isActive(): Promise<boolean>;
   /** where audio would actually come out, and how loud; see AudioState */
   audioState(): Promise<AudioState>;
+  /**
+   * Put the phone back into normal audio mode if it is stuck in communication
+   * mode, which routes MEDIA to the earpiece. Never touches a real call.
+   */
+  normaliseAudioMode(): Promise<AudioModeRepair>;
+}
+
+export interface AudioModeRepair {
+  changed: boolean;
+  before: string;
+  after: string;
 }
 
 /**

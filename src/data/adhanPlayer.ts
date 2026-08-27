@@ -130,6 +130,15 @@ async function play(
   const mine = ++generation;
 
   try {
+    /**
+     * Before anything else: if the phone is stuck in communication mode, media
+     * goes to the EARPIECE and the adhan is inaudible from a foot away. That was
+     * the actual fault — "Playing 3:33 of adhan · mode in-communication" — and it
+     * is repaired here rather than reported, because the reciter cannot do
+     * anything about it and the app can.
+     */
+    const repair = await normaliseMode();
+
     // DoNotMix and no ducking: the adhan is not background music.
     await Audio.setAudioModeAsync({
       allowsRecordingIOS: false,
@@ -182,7 +191,7 @@ async function play(
         detail: 'The recording did not load.',
         durationMs: null,
         opened: usedSource,
-        output: await describeOutput(),
+        output: joinNotes(repair, await describeOutput()),
         testTone,
       };
     }
@@ -216,7 +225,7 @@ async function play(
       detail: '',
       durationMs,
       opened: usedSource,
-      output: await describeOutput(),
+      output: joinNotes(repair, await describeOutput()),
       testTone,
     };
   } catch (e) {
@@ -239,6 +248,20 @@ const stoppedEarly = (): AdhanPlaybackResult => ({
   output: null,
   testTone: false,
 });
+
+/**
+ * Ask the native side to leave communication mode. Returns a description when it
+ * had to change something, so the banner can say what it did.
+ */
+async function normaliseMode(): Promise<string | null> {
+  if (!isArabicSpeechLinked()) return null;
+  try {
+    const result = await ArabicSpeech().normaliseAudioMode();
+    return result.changed ? `mode ${result.before} → ${result.after}` : null;
+  } catch {
+    return null;
+  }
+}
 
 /** Read the output route, or null when the native module is not linked. */
 async function describeOutput(): Promise<string | null> {
@@ -268,3 +291,9 @@ export async function stopAdhan(): Promise<void> {
   await current.stopAsync().catch(() => undefined);
   await current.unloadAsync().catch(() => undefined);
 }
+
+/** Put the repair note in front of the route, when there was one. */
+const joinNotes = (repair: string | null, output: string | null): string | null => {
+  if (repair === null) return output;
+  return output === null ? repair : `${repair} · ${output}`;
+};
