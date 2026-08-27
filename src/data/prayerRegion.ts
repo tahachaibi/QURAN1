@@ -33,6 +33,16 @@ export interface RegionRule {
    * to avoid.
    */
   authority?: string;
+  /**
+   * Minutes to add per prayer to match the authority's PUBLISHED table.
+   *
+   * A calculation method reproduces a convention; a national timetable is a
+   * printed table, and the two differ by a minute or two because the table is
+   * rounded and carries its own margins. Only measured differences go in here —
+   * these are the ones reported against وزارة الأوقاف's times for Beni Mellal,
+   * not a theory about what the ministry does.
+   */
+  correction?: Partial<Record<'Fajr' | 'Dhuhr' | 'Asr' | 'Maghrib' | 'Isha', number>>;
 }
 
 export const REGION_RULES: readonly RegionRule[] = [
@@ -41,6 +51,9 @@ export const REGION_RULES: readonly RegionRule[] = [
     country: 'Morocco',
     match: /morocco|maroc/i,
     authority: 'وزارة الأوقاف والشؤون الإسلامية',
+    // Measured against the ministry's published times for Beni Mellal: every
+    // prayer matched except these two. Reported, not deduced.
+    correction: { Asr: 2, Maghrib: 3 },
   },
   { code: 'DZ', country: 'Algeria', match: /algeri/i },
   { code: 'TN', country: 'Tunisia', match: /tunisi/i },
@@ -68,6 +81,17 @@ export interface ResolvedMethod {
   country: string;
   /** the authority, where it is known */
   authority: string | null;
+  /** minutes per prayer that bring the calculation onto the published table */
+  correction: PrayerCorrection;
+}
+
+export type PrayerCorrection = Record<'Fajr' | 'Dhuhr' | 'Asr' | 'Maghrib' | 'Isha', number>;
+
+export const NO_CORRECTION: PrayerCorrection = { Fajr: 0, Dhuhr: 0, Asr: 0, Maghrib: 0, Isha: 0 };
+
+/** Fill in the zeros so callers never deal with a partial record. */
+function fullCorrection(partial: RegionRule['correction']): PrayerCorrection {
+  return { ...NO_CORRECTION, ...(partial ?? {}) };
 }
 
 interface NamedMethod {
@@ -100,6 +124,7 @@ export function pickMethod(
     name: method.name,
     country: rule.country,
     authority: rule.authority ?? null,
+    correction: fullCorrection(rule.correction),
   };
 }
 
@@ -108,4 +133,12 @@ export function describeRegion(city: string | null, resolved: ResolvedMethod | n
   if (resolved === null) return city ?? '';
   const where = city === null || city.length === 0 ? resolved.country : `${city}, ${resolved.country}`;
   return resolved.authority === null ? `${where} · ${resolved.name}` : `${where} · ${resolved.authority}`;
+}
+
+/** e.g. "Asr +2, Maghrib +3" — what was added to match the published table. */
+export function describeCorrection(correction: PrayerCorrection): string {
+  return (['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'] as const)
+    .filter((p) => correction[p] !== 0)
+    .map((p) => `${p} ${correction[p] > 0 ? '+' : '−'}${Math.abs(correction[p])}`)
+    .join(', ');
 }

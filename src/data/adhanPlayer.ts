@@ -28,6 +28,7 @@ import { Audio, InterruptionModeAndroid, type AVPlaybackSource } from 'expo-av';
 import { Asset } from 'expo-asset';
 
 import { ADHAN_ASSET } from './adhan';
+import { ArabicSpeech, isArabicSpeechLinked } from '../../modules/expo-arabic-speech';
 
 export interface AdhanPlaybackResult {
   /** true when the recording loaded and playback started */
@@ -46,6 +47,13 @@ export interface AdhanPlaybackResult {
   durationMs: number | null;
   /** how the file was opened — the extracted path, or the bundled module */
   opened: string | null;
+  /**
+   * What the operating system says about output: volume, mode and route.
+   *
+   * "Playing" and "audible" are different claims, and a media player can only
+   * make the first. This is the second, read from AudioManager.
+   */
+  output: string | null;
 }
 
 let sound: Audio.Sound | null = null;
@@ -90,6 +98,7 @@ export async function playAdhan(
       detail: 'No adhan recording is bundled in this build, so there is nothing to play.',
       durationMs: null,
       opened: null,
+      output: null,
     };
   }
 
@@ -138,7 +147,13 @@ export async function playAdhan(
     await created.sound.setVolumeAsync(1).catch(() => undefined);
 
     if (!created.status.isLoaded) {
-      return { ok: false, detail: 'The recording did not load.', durationMs: null, opened: usedSource };
+      return {
+        ok: false,
+        detail: 'The recording did not load.',
+        durationMs: null,
+        opened: usedSource,
+        output: await describeOutput(),
+      };
     }
     const durationMs = created.status.durationMillis ?? null;
 
@@ -165,13 +180,14 @@ export async function playAdhan(
       }, 1500);
     }
 
-    return { ok: true, detail: '', durationMs, opened: usedSource };
+    return { ok: true, detail: '', durationMs, opened: usedSource, output: await describeOutput() };
   } catch (e) {
     return {
       ok: false,
       detail: `The adhan could not be played: ${e instanceof Error ? e.message : String(e)}`,
       durationMs: null,
       opened: null,
+      output: null,
     };
   }
 }
@@ -181,7 +197,26 @@ const stoppedEarly = (): AdhanPlaybackResult => ({
   detail: 'Stopped before it started.',
   durationMs: null,
   opened: null,
+  output: null,
 });
+
+/** Read the output route, or null when the native module is not linked. */
+async function describeOutput(): Promise<string | null> {
+  if (!isArabicSpeechLinked()) return null;
+  try {
+    const state = await ArabicSpeech().audioState();
+    if (!state.available) return null;
+    const parts = [
+      `media volume ${state.musicVolume ?? '?'}/${state.musicVolumeMax ?? '?'}`,
+      `mode ${state.mode ?? '?'}`,
+      `out ${state.route === undefined || state.route.length === 0 ? '?' : state.route}`,
+      `ringer ${state.ringerMode ?? '?'}`,
+    ];
+    return parts.join(' · ');
+  } catch {
+    return null;
+  }
+}
 
 /** Silence it now. Safe to call when nothing is playing. */
 export async function stopAdhan(): Promise<void> {

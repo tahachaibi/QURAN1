@@ -43,6 +43,28 @@ interface ArabicSpeechModule {
   stop(): Promise<void>;
   cancel(): Promise<void>;
   isActive(): Promise<boolean>;
+  /** where audio would actually come out, and how loud; see AudioState */
+  audioState(): Promise<AudioState>;
+}
+
+/**
+ * A read of AudioManager, for telling "playing" apart from "audible".
+ *
+ * The adhan reported "playing 3:59" and made no sound, and from inside a media
+ * player those two states look identical. This is the outside view.
+ */
+export interface AudioState {
+  available: boolean;
+  /** the adhan plays on the MUSIC stream — the ringer volume is a different slider */
+  musicVolume?: number;
+  musicVolumeMax?: number;
+  musicMuted?: boolean;
+  /** a phone left in 'in-communication' routes media to the EARPIECE */
+  mode?: string;
+  musicActive?: boolean;
+  ringerMode?: string;
+  /** comma-separated output devices, e.g. "speaker,earpiece" or "bluetooth-a2dp" */
+  route?: string;
 }
 
 /**

@@ -6,7 +6,13 @@
  * prayer times that look deliberate and are wrong; a pattern that matches nothing
  * produces a visible "could not tell", which is a far better failure.
  */
-import { describeRegion, pickMethod, REGION_RULES } from '../src/data/prayerRegion';
+import {
+  describeCorrection,
+  describeRegion,
+  NO_CORRECTION,
+  pickMethod,
+  REGION_RULES,
+} from '../src/data/prayerRegion';
 
 /** Shaped like what /v1/methods returns, names as a real list would give them. */
 const METHODS = [
@@ -110,5 +116,39 @@ describe('describeRegion', () => {
     );
     expect(describeRegion('Beni Mellal', null)).toBe('Beni Mellal');
     expect(describeRegion(null, null)).toBe('');
+  });
+});
+
+/**
+ * The gap between a calculation and a printed timetable.
+ *
+ * Aladhan's Morocco method reproduces the ministry's convention, and it came out
+ * right for Fajr, Dhuhr and Isha but two minutes early for Asr and three for
+ * Maghrib against the ministry's published times for Beni Mellal. A convention
+ * and a printed table are not the same object — the table is rounded and carries
+ * its own margins — so the difference is carried as data, from measurement.
+ */
+describe('the published-table correction', () => {
+  const METHODS = [{ id: 21, name: 'Morocco' }, { id: 19, name: 'Algeria' }];
+
+  it('corrects Asr and Maghrib for Morocco, and nothing else', () => {
+    const resolved = pickMethod('MA', METHODS);
+    expect(resolved?.correction).toEqual({ Fajr: 0, Dhuhr: 0, Asr: 2, Maghrib: 3, Isha: 0 });
+  });
+
+  it('leaves countries with no measurement alone', () => {
+    // A correction invented for a country nobody has checked would be worse than
+    // none: it would move times that were right.
+    expect(pickMethod('DZ', METHODS)?.correction).toEqual(NO_CORRECTION);
+    const measured = REGION_RULES.filter((r) => r.correction !== undefined).map((r) => r.code);
+    expect(measured).toEqual(['MA']);
+  });
+
+  it('describes itself for the tab', () => {
+    expect(describeCorrection({ Fajr: 0, Dhuhr: 0, Asr: 2, Maghrib: 3, Isha: 0 })).toBe(
+      'Asr +2, Maghrib +3',
+    );
+    expect(describeCorrection(NO_CORRECTION)).toBe('');
+    expect(describeCorrection({ ...NO_CORRECTION, Fajr: -1 })).toBe('Fajr −1');
   });
 });

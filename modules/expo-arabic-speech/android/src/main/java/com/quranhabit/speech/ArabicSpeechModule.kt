@@ -1,5 +1,9 @@
 package com.quranhabit.speech
 
+import android.content.Context
+import android.media.AudioDeviceInfo
+import android.media.AudioManager
+import android.os.Build
 import android.os.Bundle
 import expo.modules.kotlin.Promise
 import expo.modules.kotlin.exception.CodedException
@@ -82,6 +86,58 @@ class ArabicSpeechModule : Module() {
     AsyncFunction("cancel") { engine().cancel() }
 
     AsyncFunction("isActive") { recognizer?.isActive ?: false }
+
+    /**
+     * Where audio would actually come out, and how loud.
+     *
+     * Added because the adhan reported "playing 3:59" and made no sound, and from
+     * inside a media player those two states are indistinguishable. Everything
+     * here is read-only and comes from AudioManager: the music-stream volume (the
+     * adhan plays on that stream, not the ringer), the audio mode (a phone left
+     * in communication mode routes media to the earpiece, which sounds exactly
+     * like silence held to a table), and whether anything is playing at all.
+     */
+    AsyncFunction("audioState") {
+      val am = appContext.reactContext?.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+        ?: return@AsyncFunction mapOf("available" to false)
+      val volume = am.getStreamVolume(AudioManager.STREAM_MUSIC)
+      val max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+      mapOf(
+        "available" to true,
+        "musicVolume" to volume,
+        "musicVolumeMax" to max,
+        "musicMuted" to (volume == 0),
+        "mode" to when (am.mode) {
+          AudioManager.MODE_NORMAL -> "normal"
+          AudioManager.MODE_IN_CALL -> "in-call"
+          AudioManager.MODE_IN_COMMUNICATION -> "in-communication"
+          AudioManager.MODE_RINGTONE -> "ringtone"
+          else -> "mode-${am.mode}"
+        },
+        "musicActive" to am.isMusicActive,
+        "ringerMode" to when (am.ringerMode) {
+          AudioManager.RINGER_MODE_SILENT -> "silent"
+          AudioManager.RINGER_MODE_VIBRATE -> "vibrate"
+          else -> "normal"
+        },
+        "route" to buildList {
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            for (device in am.getDevices(AudioManager.GET_DEVICES_OUTPUTS)) {
+              add(
+                when (device.type) {
+                  AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> "speaker"
+                  AudioDeviceInfo.TYPE_BUILTIN_EARPIECE -> "earpiece"
+                  AudioDeviceInfo.TYPE_WIRED_HEADPHONES, AudioDeviceInfo.TYPE_WIRED_HEADSET -> "wired"
+                  AudioDeviceInfo.TYPE_BLUETOOTH_A2DP -> "bluetooth-a2dp"
+                  AudioDeviceInfo.TYPE_BLUETOOTH_SCO -> "bluetooth-sco"
+                  else -> "type-${device.type}"
+                },
+              )
+            }
+          }
+        }.distinct().joinToString(","),
+      )
+    }
 
     OnDestroy {
       recognizer?.destroy()

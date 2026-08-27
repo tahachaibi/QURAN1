@@ -423,7 +423,14 @@ class RecitationRecognizer(
         .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
         .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
         .build()
-      val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
+      /**
+       * TRANSIENT, not TRANSIENT_EXCLUSIVE.
+       *
+       * Exclusive focus tells Android that nothing else may play while we listen
+       * — and "nothing else" includes this app's own adhan. An app that both
+       * listens and plays must never claim exclusivity over itself.
+       */
+      val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
         .setAudioAttributes(attributes)
         .setOnAudioFocusChangeListener { change ->
           when (change) {

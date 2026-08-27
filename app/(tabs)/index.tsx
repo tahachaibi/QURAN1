@@ -22,6 +22,7 @@ import {
   type PrayerDay,
 } from '../../src/data/prayer';
 import { clampOffset, describeOffsets, hasOffsets, OFFSET_LIMIT } from '../../src/data/prayerOffsets';
+import { describeCorrection } from '../../src/data/prayerRegion';
 import { useTheme } from '../../src/theme/ThemeProvider';
 import { radius, space } from '../../src/theme/theme';
 import { ADHAN_SOUND, hasAdhanSound } from '../../src/data/adhan';
@@ -184,6 +185,12 @@ export default function PrayerScreen() {
                 : day.source}
             </Text>
           </View>
+
+          {day.resolved !== null && describeCorrection(day.resolved.correction).length > 0 ? (
+            <Text style={[styles.notifyNote, { color: palette.textMuted }]}>
+              Matched to the published table: {describeCorrection(day.resolved.correction)} minutes.
+            </Text>
+          ) : null}
 
           <Pressable
             onPress={() => setTuning((open) => !open)}

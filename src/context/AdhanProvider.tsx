@@ -150,7 +150,17 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
           : `${Math.floor(result.durationMs / 60000)}:${String(
               Math.floor((result.durationMs % 60000) / 1000),
             ).padStart(2, '0')} of adhan`;
-      setNote(`Playing ${length}. If you hear nothing, raise the MEDIA volume — not the ringer.`);
+      /**
+       * Say what the OPERATING SYSTEM reports about output, not just what the
+       * player claims. "Playing 3:59" with no sound was reported once, and from
+       * inside a media player that is indistinguishable from working — so the
+       * volume, the audio mode and the output route go on screen.
+       */
+      setNote(
+        result.output === null
+          ? `Playing ${length}. If you hear nothing, raise the MEDIA volume — not the ringer.`
+          : `Playing ${length} · ${result.output}`,
+      );
     });
   }, []);
 
