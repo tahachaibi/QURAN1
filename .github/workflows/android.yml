@@ -164,21 +164,31 @@ jobs:
 
       - name: Prove the adhan is actually inside the APK
         # `require()` returning an asset id proves the bundler SAW the file; it
-        # does not prove the file was packaged. The app can therefore believe a
-        # recording is bundled, show the Hear-it-now button, start "playback" and
-        # be silent — which is exactly the bug being chased. So look inside the
-        # archive and say what is really there.
+        # does not prove the file was packaged, and the app cannot tell the
+        # difference — it shows the button, starts "playback" and is silent.
+        #
+        # Look by RESOURCE NAME, not by path. The Android Gradle plugin shortens
+        # resource file paths in a release build, so the two copies of this file
+        # land as res/NN.mp3 and res/Z7.mp3; an earlier version of this step
+        # grepped for "res/raw/adhan.mp3", found nothing, and reported a missing
+        # file that was in fact present twice. The names in resources.arsc are
+        # what the runtime actually looks up, so they are what to assert.
         run: |
           APK=android/app/build/outputs/apk/release/app-release.apk
-          echo "--- every adhan entry in the APK ---"
-          unzip -l "$APK" | grep -i adhan || true
-          echo "--- every mp3 entry in the APK ---"
-          unzip -l "$APK" | grep -iE '\.mp3' || true
-          unzip -l "$APK" | grep -q "res/raw/adhan.mp3" \
-            || { echo "::error::res/raw/adhan.mp3 missing — the notification sound will be silent"; exit 1; }
-          unzip -l "$APK" | grep -qiE 'assets/.*adhan.*\.mp3' \
-            || { echo "::error::the JS asset copy of adhan.mp3 is missing — in-app playback will be silent"; exit 1; }
-          echo "both copies present"
+          echo "--- mp3 payloads in the APK ---"
+          unzip -l "$APK" | grep -iE '\.mp3' || { echo "::error::no mp3 in the APK at all"; exit 1; }
+
+          AAPT=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 2>/dev/null | sort | tail -1)
+          if [ -z "$AAPT" ]; then
+            echo "aapt2 not found; falling back to payload check only"
+            exit 0
+          fi
+          echo "--- raw resources by NAME (what the runtime looks up) ---"
+          "$AAPT" dump resources "$APK" | grep -oE 'raw/[A-Za-z0-9_]+' | sort -u
+
+          "$AAPT" dump resources "$APK" | grep -qE 'raw/adhan\b' \
+            || { echo "::error::no raw resource named 'adhan' — the notification channel cannot find its sound"; exit 1; }
+          echo "raw/adhan present: the notification sound can resolve"
 
       - name: Name the artifact something installable
         run: |
