@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Linking, Pressable, RefreshControl, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 import { OfflineBadge } from '../../src/components/controls';
 import {
@@ -23,14 +24,7 @@ import {
 } from '../../src/data/prayer';
 import { clampOffset, describeOffsets, hasOffsets, OFFSET_LIMIT } from '../../src/data/prayerOffsets';
 import { describeCorrection } from '../../src/data/prayerRegion';
-import { forgetChosenAdhan, formatSize, pickAdhanFile } from '../../src/data/adhanFile';
-import {
-  library,
-  nameFromFile,
-  nextAdhanId,
-  selectedAdhan,
-  type AdhanEntry,
-} from '../../src/data/adhanLibrary';
+import { selectedAdhan } from '../../src/data/adhanLibrary';
 import { useTheme } from '../../src/theme/ThemeProvider';
 import { radius, space } from '../../src/theme/theme';
 import { ADHAN_SOUND, hasAdhanSound } from '../../src/data/adhan';
@@ -40,7 +34,7 @@ import { useAdhan } from '../../src/context/AdhanProvider';
 
 export default function PrayerScreen() {
   const { palette, prefs, setPrefs } = useTheme();
-  const { playEntry } = useAdhan();
+  const router = useRouter();
   const [scheduled, setScheduled] = useState<number | null>(null);
   const [notifyError, setNotifyError] = useState<string | null>(null);
   const [day, setDay] = useState<PrayerDay | null>(null);
@@ -48,9 +42,6 @@ export default function PrayerScreen() {
   const [now, setNow] = useState(() => Date.now());
   const [refreshing, setRefreshing] = useState(false);
   const [tuning, setTuning] = useState(false);
-  const [picking, setPicking] = useState(false);
-  const [pickError, setPickError] = useState<string | null>(null);
-  const [changingAdhan, setChangingAdhan] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -107,11 +98,7 @@ export default function PrayerScreen() {
   }, []);
 
   const next = day === null ? null : nextPrayer(day.timings, new Date(now));
-  const adhans = library(prefs.addedAdhans);
   const selected = selectedAdhan(prefs.addedAdhans, prefs.adhanSelectedId);
-
-  /** Play one entry now, whichever is tapped, without changing the selection. */
-  const previewAdhan = (entry: AdhanEntry) => playEntry(entry, next?.name ?? 'Fajr');
 
   return (
     <ScrollView
@@ -164,17 +151,14 @@ export default function PrayerScreen() {
             palette={palette}
           />
           {/**
-            * One list, not a toggle and two buttons. The question a person has is
-            * "which adhan, and what does it sound like?" — so: a name they
-            * recognise, the file underneath it so the choice is checkable, and a
-            * play button to hear it. Whether each prayer sounds at all is the bell
-            * on that prayer's row, which is where that decision belongs.
+            * A door, not a drawer. The list of recordings with a play button each
+            * belongs on its own screen: opening it here pushed the prayer times
+            * off the display, and the times are what this tab is for.
             */}
           <Pressable
-            onPress={() => setChangingAdhan((open) => !open)}
+            onPress={() => router.push('/adhan')}
             accessibilityRole="button"
-            accessibilityLabel="Change adhan"
-            accessibilityState={{ expanded: changingAdhan }}
+            accessibilityLabel={`Change adhan, currently ${selected?.name ?? 'none'}`}
             style={styles.subRow}
           >
             <Ionicons name="musical-notes-outline" size={15} color={palette.textMuted} />
@@ -184,124 +168,8 @@ export default function PrayerScreen() {
                 {selected?.name ?? 'none available'}
               </Text>
             </View>
-            <Ionicons name={changingAdhan ? 'chevron-up' : 'chevron-down'} size={15} color={palette.textMuted} />
+            <Ionicons name="chevron-forward" size={16} color={palette.textMuted} />
           </Pressable>
-
-          {changingAdhan ? (
-            <View style={styles.adhanList}>
-              {adhans.map((entry) => {
-                const active = entry.id === selected?.id;
-                return (
-                  <View
-                    key={entry.id}
-                    style={[
-                      styles.adhanRow,
-                      {
-                        backgroundColor: active ? palette.successSoft : palette.background,
-                        borderColor: active ? palette.success : palette.border,
-                      },
-                    ]}
-                  >
-                    <Pressable
-                      onPress={() => setPrefs({ adhanSelectedId: entry.id })}
-                      accessibilityRole="radio"
-                      accessibilityState={{ selected: active }}
-                      accessibilityLabel={`Use ${entry.name}`}
-                      style={styles.adhanMain}
-                    >
-                      <Ionicons
-                        name={active ? 'radio-button-on' : 'radio-button-off'}
-                        size={16}
-                        color={active ? palette.success : palette.textMuted}
-                      />
-                      <View style={styles.toggleText}>
-                        <Text style={[styles.adhanName, { color: palette.text }]}>{entry.name}</Text>
-                        <Text style={[styles.notifyNote, { color: palette.textMuted }]} numberOfLines={1}>
-                          {entry.fileName} · {entry.detail}
-                        </Text>
-                      </View>
-                    </Pressable>
-
-                    {entry.builtIn ? null : (
-                      <Pressable
-                        onPress={() => {
-                          void forgetChosenAdhan(entry.uri);
-                          setPrefs({
-                            addedAdhans: prefs.addedAdhans.filter((a) => a.id !== entry.id),
-                            adhanSelectedId: active ? null : prefs.adhanSelectedId,
-                          });
-                        }}
-                        hitSlop={8}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Remove ${entry.name}`}
-                        style={styles.adhanAction}
-                      >
-                        <Ionicons name="trash-outline" size={18} color={palette.error} />
-                      </Pressable>
-                    )}
-
-                    <Pressable
-                      onPress={() => previewAdhan(entry)}
-                      hitSlop={8}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Play ${entry.name}`}
-                      style={[styles.adhanAction, { borderColor: palette.primary, borderWidth: 1 }]}
-                    >
-                      <Ionicons name="play" size={16} color={palette.primary} />
-                    </Pressable>
-                  </View>
-                );
-              })}
-
-              <Pressable
-                onPress={() => {
-                  setPicking(true);
-                  setPickError(null);
-                  void pickAdhanFile()
-                    .then((result) => {
-                      if (result.chosen !== null) {
-                        const id = nextAdhanId(prefs.addedAdhans);
-                        setPrefs({
-                          addedAdhans: [
-                            ...prefs.addedAdhans,
-                            {
-                              id,
-                              name: nameFromFile(result.chosen.name),
-                              fileName: result.chosen.name,
-                              detail: formatSize(result.chosen.sizeBytes),
-                              uri: result.chosen.uri,
-                            },
-                          ],
-                          adhanSelectedId: id,
-                        });
-                      } else if (result.detail.length > 0) {
-                        setPickError(result.detail);
-                      }
-                    })
-                    .finally(() => setPicking(false));
-                }}
-                disabled={picking}
-                accessibilityRole="button"
-                accessibilityLabel="Add an adhan from this phone"
-                style={[styles.testButton, { borderColor: palette.primary }]}
-              >
-                <Ionicons name="add" size={16} color={palette.primary} />
-                <Text style={[styles.testText, { color: palette.primary }]}>
-                  {picking ? 'Choosing…' : 'Add adhan'}
-                </Text>
-              </Pressable>
-
-              {pickError !== null ? (
-                <Text style={[styles.notifyNote, { color: palette.error }]}>{pickError}</Text>
-              ) : null}
-
-              <Text style={[styles.notifyNote, { color: palette.textMuted }]}>
-                An adhan you add plays in the app, with the Stop button. The notification for when the
-                app is closed uses the included recording — Android fixes a notification&apos;s sound
-                when the channel is made and it has to come from inside the app.
-              </Text>
-            </View>
-          ) : null}
 
           {/**
             * Where the times come from, stated rather than chosen. Nobody thinks
@@ -612,24 +480,6 @@ const styles = StyleSheet.create({
   },
   testText: { fontSize: 13, fontWeight: '700' },
   buttonRow: { flexDirection: 'row', gap: space.sm },
-  adhanList: { gap: space.sm },
-  adhanRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.sm,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: radius.md,
-    padding: space.sm,
-  },
-  adhanMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  adhanName: { fontSize: 14, fontWeight: '700' },
-  adhanAction: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   notifyProblem: { gap: space.sm },
   toggleRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   toggleText: { flex: 1 },
