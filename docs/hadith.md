@@ -45,48 +45,15 @@ a module.
 
 | File | Size | When |
 |---|---|---|
-| `hadith-index.json` | 26 KB | imported eagerly — collections, book names, counts |
+| `hadith-index.json` | 11 KB | imported eagerly — collections, book names, counts |
 | `hadith-1.json` | 11.5 MB | `require`d when Bukhari is opened |
 | `hadith-2.json` | 10.3 MB | `require`d when Muslim is opened |
-| `hadith-3.json` | 7.1 MB | an-Nasa'i |
-| `hadith-4.json` | 7.1 MB | Abu Dawud |
-| `hadith-5.json` | 7.0 MB | at-Tirmidhi |
-| `hadith-6.json` | 5.1 MB | Ibn Majah |
-
-**Search is the one thing that can touch all six**, so anything it opens and finds
-nothing in is released again. A common word stops at the limit inside the first
-collection; a rare one walks all 48 MB, and without that release all six would
-stay resident for the rest of the session because one search asked a question of
-them.
 
 Metro runs a module's factory on first `require`, so the two text files cost
 nothing until someone opens that collection. `release()` drops one again, because
 holding both at once is 22 MB of strings. The lazy-loading claim is asserted in
 `__tests__/hadith.test.ts` rather than assumed: it checks that describing the
 collections loads no text at all.
-
-## All six books, and what that changed
-
-The app carried only Bukhari and Muslim for a reason, and adding the four Sunan on
-request changed it, so the change is written down rather than buried.
-
-Bukhari and Muslim are accepted by the scholarly tradition as authentic
-essentially in their entirety. An app carrying only those two can promise
-authenticity without any code grading a narration — which is a scholar's work, not
-a program's.
-
-**The four Sunan do not work that way.** They hold sahih, hasan and da'if side by
-side, deliberately, and the dataset they come from carries no grading field at
-all: `grades` is null on all 19,441 of their rows. This app therefore cannot label
-strength, and must not imply it.
-
-What it does instead: a `sahih` flag per COLLECTION, shown on each card — "Sahih
-throughout" for the two, "Mixed strength — check the number against a graded
-reference" for the four. That is a claim the data supports. Every hadith still
-shows its collection and its number, which is what makes checking possible at all.
-
-`__tests__/hadith.test.ts` pins it: exactly two collections may be marked sahih,
-and it names them.
 
 ## Typography
 

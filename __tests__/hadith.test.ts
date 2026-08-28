@@ -21,35 +21,9 @@ import {
 } from '../src/data/hadith';
 
 describe('selection', () => {
-  it('contains all six books, the two Sahihs first', () => {
-    expect(collections.map((c) => c.englishTitle)).toEqual([
-      'Sahih al-Bukhari',
-      'Sahih Muslim',
-      'Sunan Abi Dawud',
-      "Jami' al-Tirmidhi",
-      "Sunan al-Nasa'i",
-      'Sunan Ibn Majah',
-    ]);
-    expect(collections.map((c) => c.arabicTitle)).toEqual([
-      'صحيح البخاري',
-      'صحيح مسلم',
-      'سنن أبي داود',
-      'جامع الترمذي',
-      'سنن النسائي',
-      'سنن ابن ماجه',
-    ]);
-  });
-
-  /**
-   * The only claim this app makes about strength, and it makes it per BOOK.
-   *
-   * Bukhari and Muslim are accepted as authentic throughout. The four Sunan hold
-   * sahih, hasan and da'if side by side and arrive with no grading field at all,
-   * so marking one of them sahih would be a claim the data cannot support.
-   */
-  it('marks the two Sahihs and only the two Sahihs as sahih throughout', () => {
-    const sahih = collections.filter((c) => c.sahih).map((c) => c.englishTitle);
-    expect(sahih).toEqual(['Sahih al-Bukhari', 'Sahih Muslim']);
+  it('contains exactly Sahih al-Bukhari and Sahih Muslim', () => {
+    expect(collections.map((c) => c.englishTitle)).toEqual(['Sahih al-Bukhari', 'Sahih Muslim']);
+    expect(collections.map((c) => c.arabicTitle)).toEqual(['صحيح البخاري', 'صحيح مسلم']);
   });
 
   it('names the compiler of each, in both languages', () => {
@@ -61,10 +35,9 @@ describe('selection', () => {
 
   it('has the expected scale', () => {
     const total = collections.reduce((n, c) => n + c.total, 0);
-    expect(total).toBeGreaterThan(33000);
+    expect(total).toBeGreaterThan(14000);
     expect(collections[0].total).toBeGreaterThan(7000);
     expect(collections[1].total).toBeGreaterThan(7000);
-    for (const c of collections.slice(2)) expect(c.total).toBeGreaterThan(3900);
   });
 
   it('has no empty chapters, which would be dead ends in the list', () => {
@@ -87,22 +60,10 @@ describe('selection', () => {
 describe('the index is small and eager, the text large and lazy', () => {
   it('does not load any text just to describe the collections', () => {
     release();
-    expect(collections.length).toBe(6);
+    expect(collections.length).toBe(2);
     expect(collections[0].chapters.length).toBeGreaterThan(0);
-    // 48 MB of text across six files, none of it touched to render a list
-    for (const c of collections) expect(isLoaded(c.id)).toBe(false);
-  });
-
-  it('loads each of the six on demand, and only that one', () => {
-    for (const c of collections) {
-      release();
-      hadithsOfChapter(c.id, c.chapters[0].id);
-      expect(isLoaded(c.id)).toBe(true);
-      for (const other of collections) {
-        if (other.id !== c.id) expect(isLoaded(other.id)).toBe(false);
-      }
-    }
-    release();
+    expect(isLoaded(1)).toBe(false);
+    expect(isLoaded(2)).toBe(false);
   });
 
   it('loads a collection only when its text is asked for, and can release it', () => {
@@ -172,7 +133,7 @@ describe('search', () => {
     expect(searchHadith('Umar', { collectionId: 1, limit: 5 }).length).toBeGreaterThan(0);
   });
 
-  it('searches every collection when none is named', () => {
+  it('searches both collections when none is named', () => {
     const hits = searchHadith('prayer', { limit: 80 });
     expect(new Set(hits.map((h) => h.collectionId)).size).toBeGreaterThan(0);
   });
@@ -205,40 +166,34 @@ describe('foldArabic', () => {
 });
 
 /**
- * Six books is 48 MB of text, and search is the one thing that can touch all of
- * it at once. What it must not do is leave all of it resident afterwards.
+ * Search is the one thing that can open both collections at once, and what it
+ * must not do is leave 22 MB resident because somebody typed a word that is not
+ * in there.
  */
-describe('search across six books', () => {
+describe('what a search leaves loaded', () => {
   it('releases a collection it opened and found nothing in', () => {
     release();
-    // a string that cannot appear in any of them
     const results = searchHadith('zzqqxx', { limit: 5 });
     expect(results).toEqual([]);
     for (const c of collections) expect(isLoaded(c.id)).toBe(false);
   });
 
-  it('keeps only the collections that actually matched', () => {
+  it('keeps a collection that actually matched', () => {
     release();
-    // scoped to one book, so only that one may end up loaded
-    const results = searchHadith('prayer', { collectionId: 6, limit: 3 });
+    const results = searchHadith('prayer', { collectionId: 2, limit: 3 });
     expect(results.length).toBeGreaterThan(0);
-    expect(isLoaded(6)).toBe(true);
-    for (const c of collections) if (c.id !== 6) expect(isLoaded(c.id)).toBe(false);
+    expect(isLoaded(2)).toBe(true);
+    expect(isLoaded(1)).toBe(false);
     release();
   });
 
-  it('finds hadith in the Sunan, each citing its own number', () => {
+  it('leaves a collection alone if it was already open', () => {
     release();
-    for (const id of [3, 4, 5, 6]) {
-      const results = searchHadith('Allah', { collectionId: id, limit: 2 });
-      expect(results.length).toBeGreaterThan(0);
-      for (const h of results) {
-        expect(h.collectionId).toBe(id);
-        expect(h.number).toBeGreaterThan(0);
-        expect(h.arabic.length).toBeGreaterThan(0);
-        expect(h.english.length).toBeGreaterThan(0);
-      }
-      release();
-    }
+    hadithsOfChapter(1, 1);
+    expect(isLoaded(1)).toBe(true);
+    // a miss must not evict something the user had already opened
+    searchHadith('zzqqxx', { limit: 5 });
+    expect(isLoaded(1)).toBe(true);
+    release();
   });
 });
