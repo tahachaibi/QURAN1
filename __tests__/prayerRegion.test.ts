@@ -6,13 +6,7 @@
  * prayer times that look deliberate and are wrong; a pattern that matches nothing
  * produces a visible "could not tell", which is a far better failure.
  */
-import {
-  describeCorrection,
-  describeRegion,
-  NO_CORRECTION,
-  pickMethod,
-  REGION_RULES,
-} from '../src/data/prayerRegion';
+import { describeRegion, pickMethod, REGION_RULES } from '../src/data/prayerRegion';
 
 /** Shaped like what /v1/methods returns, names as a real list would give them. */
 const METHODS = [
@@ -120,35 +114,26 @@ describe('describeRegion', () => {
 });
 
 /**
- * The gap between a calculation and a printed timetable.
+ * Nothing is adjusted.
  *
- * Aladhan's Morocco method reproduces the ministry's convention, and it came out
- * right for Fajr, Dhuhr and Isha but two minutes early for Asr and three for
- * Maghrib against the ministry's published times for Beni Mellal. A convention
- * and a printed table are not the same object — the table is rounded and carries
- * its own margins — so the difference is carried as data, from measurement.
+ * There was a correction here — measured against the ministry's printed table for
+ * Beni Mellal — and it came out on request. A number nudged in one city is a guess
+ * in every other, so the tab shows what the authority's own method returns and
+ * nothing else. This test exists to keep it that way: a resolved method carries a
+ * name, a country and an authority, and no minutes.
  */
-describe('the published-table correction', () => {
+describe('no adjustment', () => {
   const METHODS = [{ id: 21, name: 'Morocco' }, { id: 19, name: 'Algeria' }];
 
-  it('corrects Asr and Maghrib for Morocco, and nothing else', () => {
+  it('resolves a method without carrying any correction', () => {
     const resolved = pickMethod('MA', METHODS);
-    expect(resolved?.correction).toEqual({ Fajr: 0, Dhuhr: 0, Asr: -1, Maghrib: 2, Isha: 0 });
+    expect(resolved).not.toBeNull();
+    expect(Object.keys(resolved as object).sort()).toEqual(['authority', 'country', 'id', 'name']);
   });
 
-  it('leaves countries with no measurement alone', () => {
-    // A correction invented for a country nobody has checked would be worse than
-    // none: it would move times that were right.
-    expect(pickMethod('DZ', METHODS)?.correction).toEqual(NO_CORRECTION);
-    const measured = REGION_RULES.filter((r) => r.correction !== undefined).map((r) => r.code);
-    expect(measured).toEqual(['MA']);
-  });
-
-  it('describes itself for the tab', () => {
-    expect(describeCorrection({ Fajr: 0, Dhuhr: 0, Asr: -1, Maghrib: 2, Isha: 0 })).toBe(
-      'Asr −1, Maghrib +2',
-    );
-    expect(describeCorrection(NO_CORRECTION)).toBe('');
-    expect(describeCorrection({ ...NO_CORRECTION, Fajr: -1 })).toBe('Fajr −1');
+  it('leaves no rule in the table able to shift a prayer time', () => {
+    for (const rule of REGION_RULES) {
+      expect(Object.keys(rule)).not.toContain('correction');
+    }
   });
 });

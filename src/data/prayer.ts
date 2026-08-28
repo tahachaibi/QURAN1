@@ -4,20 +4,19 @@
  * Aladhan, from the device's own coordinates, with the last successful response
  * cached so the tab is useful offline. This and audio playback are the only two
  * things in the app that leave the device.
+ *
+ * THE TIMES ARE NOT ADJUSTED. Whatever the authority's own method returns is what
+ * the tab shows. There used to be a per-country correction, measured against the
+ * ministry's printed table for one city, and it is gone on request — a number
+ * nudged in Beni Mellal is a guess in Casablanca. The only minutes that move a
+ * time now are the ones the reader sets themselves.
  */
 import * as Location from 'expo-location';
 
 import { loadPrayerCache, savePrayerCache, today, type PrayerCache } from './storage';
 import { adjustTimings, NO_OFFSETS, type PrayerOffsets } from './prayerOffsets';
 import { FALLBACK_METHOD, fetchMethods } from './prayerMethods';
-import {
-  describeRegion,
-  NO_CORRECTION,
-  pickMethod,
-  REGION_RULES,
-  type PrayerCorrection,
-  type ResolvedMethod,
-} from './prayerRegion';
+import { describeRegion, pickMethod, REGION_RULES, type ResolvedMethod } from './prayerRegion';
 
 const ALADHAN = 'https://api.aladhan.com/v1/timings';
 
@@ -88,24 +87,6 @@ async function resolveMethod(countryCode: string | null): Promise<ResolvedMethod
   return pickMethod(countryCode, methods);
 }
 
-/**
- * The authority's correction and the user's own, added together.
- *
- * Two separate things, deliberately kept separate up to this point: one is what
- * the country's published table does, the other is what this person decided. If
- * they were merged earlier, correcting the country's table would look like the
- * user had fiddled with it.
- */
-function combine(correction: PrayerCorrection, offsets: PrayerOffsets): PrayerOffsets {
-  return {
-    Fajr: correction.Fajr + offsets.Fajr,
-    Dhuhr: correction.Dhuhr + offsets.Dhuhr,
-    Asr: correction.Asr + offsets.Asr,
-    Maghrib: correction.Maghrib + offsets.Maghrib,
-    Isha: correction.Isha + offsets.Isha,
-  };
-}
-
 export async function fetchPrayerTimes(options: PrayerOptions = {}): Promise<PrayerDay> {
   const offsets = options.offsets ?? NO_OFFSETS;
   const cached = await loadPrayerCache();
@@ -134,7 +115,7 @@ export async function fetchPrayerTimes(options: PrayerOptions = {}): Promise<Pra
 
   if (coords === null && cached !== null) {
     return {
-      timings: adjustTimings(cached.timings, combine(cachedResolved(cached)?.correction ?? NO_CORRECTION, offsets)),
+      timings: adjustTimings(cached.timings, offsets),
       day: cached.day,
       fromCache: true,
       source: describeRegion(cached.city ?? null, cachedResolved(cached)),
@@ -176,7 +157,7 @@ export async function fetchPrayerTimes(options: PrayerOptions = {}): Promise<Pra
     };
     await savePrayerCache(cache);
     return {
-      timings: adjustTimings(timings, combine(resolved?.correction ?? NO_CORRECTION, offsets)),
+      timings: adjustTimings(timings, offsets),
       day,
       fromCache: false,
       source: describeRegion(place.city, resolved),
@@ -186,7 +167,7 @@ export async function fetchPrayerTimes(options: PrayerOptions = {}): Promise<Pra
   } catch {
     if (cached !== null) {
       return {
-        timings: adjustTimings(cached.timings, combine(cachedResolved(cached)?.correction ?? NO_CORRECTION, offsets)),
+        timings: adjustTimings(cached.timings, offsets),
         day: cached.day,
         fromCache: true,
         source: describeRegion(cached.city ?? null, cachedResolved(cached)),
@@ -213,7 +194,6 @@ function cachedResolved(cache: PrayerCache): ResolvedMethod | null {
     name: cache.methodName ?? `Method ${cache.methodId}`,
     country: rule.country,
     authority: rule.authority ?? null,
-    correction: { ...NO_CORRECTION, ...(rule.correction ?? {}) },
   };
 }
 
@@ -221,6 +201,6 @@ function cachedResolved(cache: PrayerCache): ResolvedMethod | null {
 // itself lives in prayerTimes.ts, which has no device dependencies.
 export { PRAYERS, parseTime, nextPrayer, formatCountdown, PRAYER_ARABIC } from './prayerTimes';
 export { adjustTimings, describeOffsets, hasOffsets, clampOffset, OFFSET_LIMIT } from './prayerOffsets';
-export { describeRegion, describeCorrection, pickMethod, REGION_RULES, NO_CORRECTION } from './prayerRegion';
+export { describeRegion, pickMethod, REGION_RULES } from './prayerRegion';
 export type { ResolvedMethod } from './prayerRegion';
 export type { PrayerName, NextPrayer } from './prayerTimes';
