@@ -8,7 +8,17 @@
  * the app to keep score of someone's worship.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { Linking, Pressable, RefreshControl, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Linking,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
@@ -23,7 +33,6 @@ import {
   type PrayerDay,
 } from '../../src/data/prayer';
 import { clampOffset, describeOffsets, hasOffsets, OFFSET_LIMIT } from '../../src/data/prayerOffsets';
-import { describeCorrection } from '../../src/data/prayerRegion';
 import { selectedAdhan } from '../../src/data/adhanLibrary';
 import { useTheme } from '../../src/theme/ThemeProvider';
 import { radius, space } from '../../src/theme/theme';
@@ -34,23 +43,26 @@ import { WARNING_MINUTES } from '../../src/data/prayerSchedule';
 export default function PrayerScreen() {
   const { palette, prefs, setPrefs } = useTheme();
   const router = useRouter();
-  const [scheduled, setScheduled] = useState<number | null>(null);
   const [notifyError, setNotifyError] = useState<string | null>(null);
   const [day, setDay] = useState<PrayerDay | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [refreshing, setRefreshing] = useState(false);
   const [tuning, setTuning] = useState(false);
+  const [locating, setLocating] = useState(false);
 
-  const load = useCallback(async () => {
-    try {
-      setError(null);
-      // No method is passed: it is decided from the country the phone is in.
-      setDay(await fetchPrayerTimes({ offsets: prefs.prayerOffsets }));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    }
-  }, [prefs.prayerOffsets]);
+  const load = useCallback(
+    async (freshLocation = false) => {
+      try {
+        setError(null);
+        // No method is passed: it is decided from the country the phone is in.
+        setDay(await fetchPrayerTimes({ offsets: prefs.prayerOffsets, freshLocation }));
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
+      }
+    },
+    [prefs.prayerOffsets],
+  );
 
   useEffect(() => {
     void load();
@@ -63,21 +75,18 @@ export default function PrayerScreen() {
    */
   useEffect(() => {
     if (day === null) return;
-    if (!prefs.prayerWarning && !PRAYERS.some((p) => prefs.bells[p] !== false)) {
-      setScheduled(0);
-      return;
-    }
+    // Nothing to schedule: no reminder wanted and every bell off.
+    if (!prefs.prayerWarning && !PRAYERS.some((p) => prefs.bells[p] !== false)) return;
     void (async () => {
       const granted = await requestPermission();
       if (!granted) {
         setNotifyError(
           'Notifications are turned off for Quran Habit. Enable them in Settings > Apps > Quran Habit > Notifications.',
         );
-        setScheduled(0);
         return;
       }
       setNotifyError(null);
-      const count = await rescheduleAll(
+      await rescheduleAll(
         {
           timings: day.timings,
           warnBefore: prefs.prayerWarning,
@@ -87,7 +96,6 @@ export default function PrayerScreen() {
         },
         hasAdhanSound ? ADHAN_SOUND : null,
       );
-      setScheduled(count);
     })();
   }, [day, prefs.prayerWarning, prefs.bells]);
 
@@ -269,13 +277,36 @@ export default function PrayerScreen() {
                 ? 'Could not tell which country you are in, so these use a general calculation.'
                 : day.source}
             </Text>
+            {/**
+              * Refresh takes a NEW position reading rather than the last known
+              * one. The last known fix is normally right and costs nothing, but it
+              * can be a city old — and a button that answered with the same stale
+              * place would look broken to the one person who needs it: somebody
+              * who has just travelled.
+              */}
+            <Pressable
+              onPress={() => {
+                setLocating(true);
+                void load(true).finally(() => setLocating(false));
+              }}
+              disabled={locating}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Refresh my location"
+              accessibilityState={{ busy: locating }}
+              style={styles.refresh}
+            >
+              {locating ? (
+                <ActivityIndicator size="small" color={palette.primary} />
+              ) : (
+                <Ionicons name="refresh" size={18} color={palette.primary} />
+              )}
+            </Pressable>
           </View>
 
-          {day.resolved !== null && describeCorrection(day.resolved.correction).length > 0 ? (
-            <Text style={[styles.notifyNote, { color: palette.textMuted }]}>
-              Matched to the published table: {describeCorrection(day.resolved.correction)} minutes.
-            </Text>
-          ) : null}
+          {/* The correction still applies — it is what makes these times match the
+              ministry's published table — but it no longer announces itself. The
+              screen shows the time; how it got there is not the reader's problem. */}
 
           <Pressable
             onPress={() => setTuning((open) => !open)}
@@ -373,10 +404,6 @@ export default function PrayerScreen() {
                 still plays while the app is open — that part needs no permission.
               </Text>
             </View>
-          ) : scheduled !== null && scheduled > 0 ? (
-            <Text style={[styles.notifyNote, { color: palette.textMuted }]}>
-              {scheduled} reminders scheduled for the week ahead
-            </Text>
           ) : null}
         </View>
       ) : null}
@@ -453,6 +480,7 @@ const styles = StyleSheet.create({
   },
   subLabel: { flex: 1, fontSize: 13, fontWeight: '600' },
   sourceText: { flex: 1, fontSize: 12, lineHeight: 17 },
+  refresh: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   tuneBlock: { gap: space.xs },
   tuneRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   tuneName: { flex: 1, fontSize: 13, fontWeight: '600' },

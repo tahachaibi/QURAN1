@@ -30,6 +30,15 @@ export interface PrayerOptions {
   method?: number;
   /** per-prayer minute corrections, applied before anything else sees the times */
   offsets?: PrayerOffsets;
+  /**
+   * Take a new position reading instead of accepting the last known one.
+   *
+   * Normally the last known fix is exactly right: it is instant, it costs no
+   * battery, and prayer times do not change across a room. But it can be hours or
+   * a city old, so a button that says "refresh my location" has to be able to
+   * insist — otherwise it would return the same stale answer and look broken.
+   */
+  freshLocation?: boolean;
 }
 
 export interface PrayerDay {
@@ -108,8 +117,15 @@ export async function fetchPrayerTimes(options: PrayerOptions = {}): Promise<Pra
       ? permission
       : await Location.requestForegroundPermissionsAsync();
     if (granted.granted) {
-      const position = await Location.getLastKnownPositionAsync();
-      const fix = position ?? (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low }));
+      const position = options.freshLocation ? null : await Location.getLastKnownPositionAsync();
+      const fix =
+        position ??
+        (await Location.getCurrentPositionAsync({
+          // Balanced rather than Low when asked explicitly: someone pressing
+          // refresh has just travelled, and a coarse fix is what they are trying
+          // to correct.
+          accuracy: options.freshLocation ? Location.Accuracy.Balanced : Location.Accuracy.Low,
+        }));
       coords = { latitude: fix.coords.latitude, longitude: fix.coords.longitude };
     }
   } catch {

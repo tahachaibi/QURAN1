@@ -72,12 +72,6 @@ export default function AdhanScreen() {
         data={entries}
         keyExtractor={(entry) => entry.id}
         contentContainerStyle={styles.list}
-        ListHeaderComponent={
-          <Text style={[styles.intro, { color: palette.textMuted }]}>
-            Tap a recording to use it at prayer time. Tap play to hear it — that changes nothing, and
-            tapping it again stops.
-          </Text>
-        }
         renderItem={({ item }) => {
           const active = item.id === selected?.id;
           const sounding = item.id === previewingId;
@@ -103,12 +97,7 @@ export default function AdhanScreen() {
                   size={20}
                   color={active ? palette.success : palette.textMuted}
                 />
-                <View style={styles.text}>
-                  <Text style={[styles.name, { color: palette.text }]}>{item.name}</Text>
-                  <Text style={[styles.meta, { color: palette.textMuted }]} numberOfLines={1}>
-                    {item.fileName} · {item.detail}
-                  </Text>
-                </View>
+                <Text style={[styles.name, { color: palette.text }]}>{item.name}</Text>
               </Pressable>
 
               {item.builtIn ? null : (
@@ -158,12 +147,6 @@ export default function AdhanScreen() {
             {error !== null ? (
               <Text style={[styles.meta, { color: palette.error }]}>{error}</Text>
             ) : null}
-
-            <Text style={[styles.meta, { color: palette.textMuted }]}>
-              An adhan you add plays in the app, with the Stop button. The notification for when the
-              app is closed uses the included recording — Android fixes a notification&apos;s sound
-              when the channel is made, and it has to come from inside the app.
-            </Text>
           </View>
         }
       />
@@ -174,7 +157,6 @@ export default function AdhanScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   list: { padding: space.md, gap: space.sm },
-  intro: { fontSize: 12, lineHeight: 18, marginBottom: space.xs },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -184,8 +166,7 @@ const styles = StyleSheet.create({
     padding: space.md,
   },
   main: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  text: { flex: 1 },
-  name: { fontSize: 15, fontWeight: '700' },
+  name: { flex: 1, fontSize: 15, fontWeight: '700' },
   meta: { fontSize: 11, lineHeight: 16, marginTop: 1 },
   action: { width: 40, height: 40, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
   play: { borderWidth: 1 },
