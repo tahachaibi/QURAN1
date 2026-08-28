@@ -99,6 +99,47 @@ lines equal `ayahAt()` exactly.
 | أصبحنا وأصبح الملك لله (morning) | Muslim 6740 | 1 |
 | أمسينا وأمسى الملك لله (evening) | Muslim 6740 | 1 |
 
+### The supplied list
+
+The screen now serves the adhkar the user supplied from islambook.com — 15 in the
+morning, 13 in the evening — because www.islambook.com cannot be reached from this
+build machine (the egress proxy answers 403 to CONNECT for that host, an
+organisation policy denial), so the text was handed over as a paste rather than
+fetched.
+
+`data/adhkar-supplied.txt` holds that paste verbatim and is committed. Keeping the
+input and not only the output is the point: what is on screen can be diffed
+against what was actually given, and `__tests__/adhkar.test.ts` asserts exactly
+that — every line on screen appears character for character in that file.
+
+`scripts/gen-adhkar-text.mjs` splits, classifies and copies. It makes three
+classifications, each mechanical, each logged so it can be checked:
+
+**The count** comes off the title line ("— 3 مرات"), and a bare restatement of it
+further down ("4 مرات.") is dropped as redundant. The first version of that check
+used `\b`, which is an ASCII word boundary and never matches after an Arabic
+letter, so every restatement leaked into the notes.
+
+**Dhikr versus commentary** is decided by *diacritic density*. The supplied du'a
+text is fully vowelled — اللَّهُمَّ أَنْتَ رَبِّي — and the explanatory sentences
+around it are not — ويمكنك الإكثار منها. Counting harakat per letter separates
+them at a threshold of 0.15 without anybody deciding which Arabic sentence is
+scripture, which is not a judgement a script should be making.
+
+**Qur'an passages are dropped** by title and read from the bundled mushaf instead.
+The supplied Ayat al-Kursi is truncated with an ellipsis, and an app that ships a
+partial ayah where a whole one belongs is worse than one that reads it from the
+text it already has.
+
+Where a supplied du'a's wording matches a narration already bundled here, the
+citation is carried across, so a card can say "Sahih Muslim 6740" rather than only
+naming a website. The agreement is measured **both ways** — shared words over all
+words. A one-directional measure got this wrong on the first run: "أصبحنا وأصبح
+الملك لله" contains the whole of Muslim 6677 as a fragment, scored 100%, and was
+about to be labelled with the wrong hadith. Every short du'a is a perfect match
+for a long one that quotes it. Three citations survive the symmetric test at 0.7;
+the rest name the page and claim nothing more.
+
 ### What is deliberately missing, and why
 
 This app bundles only Bukhari and Muslim. Several of the best-known morning and

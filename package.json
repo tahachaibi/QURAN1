@@ -10,7 +10,7 @@
     "gen:data": "node scripts/gen-quran-data.mjs",
     "gen:words": "node scripts/gen-quran-words.mjs",
     "gen:search": "node scripts/gen-quran-search.mjs",
-    "gen": "npm run gen:data && npm run gen:words && npm run gen:lines && npm run gen:search && npm run gen:adhkar && npm run gen:tone && npm run gen:verify-audio && npm run gen:verify && npm run gen:verify-fonts",
+    "gen": "npm run gen:data && npm run gen:words && npm run gen:lines && npm run gen:search && npm run gen:adhkar && npm run gen:adhkar-text && npm run gen:tone && npm run gen:verify-audio && npm run gen:verify && npm run gen:verify-fonts",
     "gen:verify": "node scripts/verify-pages.mjs",
     "test": "jest",
     "typecheck": "tsc --noEmit",
@@ -24,6 +24,7 @@
     "gen:layout-check": "node --experimental-sqlite scripts/analyse-mushaf-layout.mjs",
     "gen:hadith": "node scripts/gen-hadith.mjs",
     "gen:adhkar": "node scripts/gen-adhkar.mjs",
+    "gen:adhkar-text": "node scripts/gen-adhkar-text.mjs",
     "gen:tone": "node scripts/gen-test-tone.mjs",
     "gen:verify-audio": "node scripts/verify-audio.mjs"
   },

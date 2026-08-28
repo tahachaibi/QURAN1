@@ -108,11 +108,11 @@ export default function AdhkarScreen() {
         initialNumToRender={5}
         ListFooterComponent={
           <Text style={[styles.footer, { color: palette.textMuted }]}>
-            Every du'a here is quoted from Sahih al-Bukhari or Sahih Muslim, with its number, so you can
-            check it. The Qur'an passages are cited by surah and ayah: the narrations that prescribe them
-            for morning and evening are in Abu Dawud, at-Tirmidhi and an-Nasa'i, which this app does not
-            include, so it does not claim a source it cannot show you. Familiar adhkar from those
-            collections are missing for the same reason.
+            The du'as are the list from islambook.com, stored exactly as supplied — nothing here is
+            reworded, and no tashkeel is added. Where the wording matches a narration bundled in this
+            app closely enough to be certain, the card shows that hadith and its number instead of the
+            website; where it does not, it says islambook.com and claims nothing more. The Qur'an
+            passages are read from the app's own mushaf text and cited by surah and ayah.
           </Text>
         }
       />
@@ -140,7 +140,9 @@ function DhikrCard({
   const sourceLabel =
     dhikr.source.kind === 'quran'
       ? dhikr.source.reference
-      : `${collectionById(dhikr.source.collection)?.englishTitle ?? 'Hadith'} ${dhikr.source.number}`;
+      : dhikr.source.kind === 'page'
+        ? 'islambook.com'
+        : `${collectionById(dhikr.source.collection)?.englishTitle ?? 'Hadith'} ${dhikr.source.number}`;
 
   return (
     /**
@@ -159,8 +161,8 @@ function DhikrCard({
       accessibilityRole="button"
       accessibilityLabel={
         dhikr.repeat === 1
-          ? `${dhikr.titleEn}. Tap to mark as said.`
-          : `${dhikr.titleEn}. ${done} of ${dhikr.repeat} said. Tap to count one more.`
+          ? `${dhikr.titleAr ?? dhikr.titleEn ?? ''}. Tap to mark as said.`
+          : `${dhikr.titleAr ?? dhikr.titleEn ?? ''}. ${done} of ${dhikr.repeat} said. Tap to count one more.`
       }
       style={[
         styles.card,
@@ -171,7 +173,13 @@ function DhikrCard({
       ]}
     >
       <View style={styles.head}>
-        <Text style={[styles.title, { color: palette.text }]}>{dhikr.titleEn}</Text>
+        {dhikr.titleAr !== null ? (
+          <Text style={[styles.titleAr, { color: palette.text }]} numberOfLines={2}>
+            {dhikr.titleAr}
+          </Text>
+        ) : (
+          <Text style={[styles.title, { color: palette.text }]}>{dhikr.titleEn}</Text>
+        )}
         <Pressable
           onPress={onCount}
           accessibilityRole="button"
@@ -291,6 +299,13 @@ const styles = StyleSheet.create({
   },
   head: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   title: { flex: 1, fontSize: 14, fontWeight: '700' },
+  titleAr: {
+    flex: 1,
+    fontSize: 16,
+    fontFamily: 'Amiri_700Bold',
+    textAlign: 'right',
+    writingDirection: 'rtl',
+  },
   tally: {
     flexDirection: 'row',
     alignItems: 'center',

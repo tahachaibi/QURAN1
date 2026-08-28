@@ -17,6 +17,7 @@
  * approximation of a du'a is not.
  */
 import raw from '../assets/adhkar.json';
+import pages from '../assets/adhkar-pages.json';
 
 import { ayahAt, surahInfo } from './quran';
 
@@ -33,6 +34,15 @@ export interface HadithSource {
   english: string;
 }
 
+/**
+ * A du'a from the supplied adhkar pages, with no hadith number attached because
+ * the app could not prove one. It names where the text came from and nothing more.
+ */
+export interface PageSource {
+  kind: 'page';
+  url: string;
+}
+
 export interface QuranSource {
   kind: 'quran';
   surah: number;
@@ -46,12 +56,25 @@ export interface Dhikr {
   id: string;
   /** how many times it is said */
   repeat: number;
-  titleEn: string;
+  /** the name as supplied, in Arabic — null for entries that never had one */
+  titleAr: string | null;
+  titleEn: string | null;
   note: string | null;
   /** verbatim Arabic, one entry per line to display */
   lines: string[];
-  source: HadithSource | QuranSource;
+  source: HadithSource | QuranSource | PageSource;
 }
+
+interface PageItem {
+  id: string;
+  titleAr: string;
+  repeat: number;
+  lines: string[];
+  note: string | null;
+  hadith: { collection: number; number: number; arabic: string; narrator: string; english: string } | null;
+}
+
+const PAGES = pages as unknown as Record<'morning' | 'evening', { source: string; items: PageItem[] }>;
 
 interface RawDhikr {
   id: string;
@@ -87,6 +110,7 @@ function quranDhikr(entry: (typeof QURAN_ADHKAR)[number]): Dhikr {
   return {
     id: entry.id,
     repeat: entry.repeat,
+    titleAr: null,
     titleEn: entry.titleEn,
     note: null,
     lines,
@@ -104,6 +128,7 @@ function hadithDhikr(entry: RawDhikr): Dhikr {
   return {
     id: entry.id,
     repeat: entry.repeat,
+    titleAr: null,
     titleEn: entry.titleEn,
     note: entry.note,
     lines: entry.lines,
@@ -112,10 +137,43 @@ function hadithDhikr(entry: RawDhikr): Dhikr {
 }
 
 /**
+ * One item from the supplied pages.
+ *
+ * Its source is a hadith when the generator could match the wording to a
+ * narration bundled in this app with enough confidence to be sure, and the page
+ * it came from otherwise. It never invents the middle ground.
+ */
+function pageDhikr(item: PageItem, url: string): Dhikr {
+  return {
+    id: item.id,
+    repeat: item.repeat,
+    titleAr: item.titleAr,
+    titleEn: null,
+    note: item.note,
+    lines: item.lines,
+    source:
+      item.hadith === null
+        ? { kind: 'page', url }
+        : { kind: 'hadith', ...item.hadith, chapter: 0 },
+  };
+}
+
+/**
  * The Qur'an first, then the du'as, which is the order the adhkar are normally
  * read in.
  */
 export function adhkarFor(time: AdhkarTime): Dhikr[] {
+  const page = PAGES[time];
+  /**
+   * The supplied list wins when there is one: it is the order and the selection
+   * the user asked for. The Qur'an passages stay in front of it either way,
+   * because they are read from the bundled mushaf text rather than from a paste —
+   * the supplied Ayat al-Kursi was truncated with an ellipsis, and a partial ayah
+   * is not something to ship.
+   */
+  if (page !== undefined && page.items.length > 0) {
+    return [...QURAN_ADHKAR.map(quranDhikr), ...page.items.map((item) => pageDhikr(item, page.source))];
+  }
   return [
     ...QURAN_ADHKAR.map(quranDhikr),
     ...GENERATED.filter((d) => d.time === time || d.time === 'both').map(hadithDhikr),
