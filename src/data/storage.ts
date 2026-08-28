@@ -12,6 +12,7 @@ import type { HifzDeck } from '../engine/hifz';
 import type { FontStep } from '../theme/theme';
 import { NO_OFFSETS, type PrayerOffsets } from './prayerOffsets';
 import { ALL_BELLS_ON, type PrayerBells } from './prayerSchedule';
+import type { StoredAdhan } from './adhanLibrary';
 
 const KEY = {
   prefs: 'qh:prefs:v1',
@@ -28,6 +29,7 @@ const KEY = {
 
 export type { PrayerOffsets } from './prayerOffsets';
 export type { PrayerBells } from './prayerSchedule';
+export type { StoredAdhan } from './adhanLibrary';
 
 export interface Prefs {
   theme: 'system' | 'light' | 'dark';
@@ -44,8 +46,13 @@ export interface Prefs {
   showDebugOverlay: boolean;
   /** notify five minutes before each prayer */
   prayerWarning: boolean;
-  /** notify, with the adhan sound, at each prayer time */
-  adhanNotification: boolean;
+  /**
+   * Recordings the user added themselves. Built-ins are not stored: their asset
+   * ids are build-time numbers and mean nothing in saved settings.
+   */
+  addedAdhans: StoredAdhan[];
+  /** which entry in the library sounds the adhan */
+  adhanSelectedId: string | null;
   /**
    * A recording the user chose from their own phone, copied into app storage.
    *
@@ -53,8 +60,6 @@ export interface Prefs {
    * sound at creation and it must be a resource inside the APK, so a chosen file
    * cannot be the closed-app notification sound.
    */
-  adhanUri: string | null;
-  adhanName: string | null;
   /**
    * Per prayer: sound the adhan, or show the notice silently.
    *
@@ -83,9 +88,8 @@ export const DEFAULT_PREFS: Prefs = {
   hiddenMode: false,
   showDebugOverlay: false,
   prayerWarning: true,
-  adhanNotification: true,
-  adhanUri: null,
-  adhanName: null,
+  addedAdhans: [],
+  adhanSelectedId: null,
   bells: ALL_BELLS_ON,
   prayerOffsets: NO_OFFSETS,
 };

@@ -12,6 +12,12 @@ module.exports = {
       preset: 'ts-jest',
       testEnvironment: 'node',
       testMatch: ['<rootDir>/__tests__/**/*.test.ts'],
+      // Binary assets are numbers under Metro and nothing at all under Node, so
+      // they are stubbed: pure logic must not become untestable because a module
+      // it imports mentions an audio file.
+      moduleNameMapper: {
+        '\\.(mp3|wav|otf|ttf|png|jpg|jpeg|gif|svg)$': '<rootDir>/__tests__/assetStub.js',
+      },
       transform: {
         '^.+\\.tsx?$': ['ts-jest', { tsconfig: { module: 'commonjs', esModuleInterop: true, resolveJsonModule: true, strict: true, target: 'es2020', jsx: 'react-jsx' } }],
       },

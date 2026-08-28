@@ -27,6 +27,7 @@ import { AppState } from 'react-native';
 import * as Notifications from 'expo-notifications';
 
 import { hasAdhanSound } from '../data/adhan';
+import { selectedAdhan, type AdhanEntry } from '../data/adhanLibrary';
 import { playAdhan, stopAdhan } from '../data/adhanPlayer';
 import { adhanKey, dueAdhan, msUntilCheck, timingsAreUsable } from '../data/adhanTimer';
 import { installForegroundBehaviour, payloadOf } from '../data/notifications';
@@ -57,6 +58,12 @@ export interface AdhanContextValue {
    * the Stop button before Fajr rather than during it.
    */
   test: (prayer: PrayerName) => void;
+  /**
+   * Play one specific entry from the library — the play button beside each
+   * recording. Does not change which one is selected: hearing a thing and
+   * choosing it are separate acts.
+   */
+  playEntry: (entry: AdhanEntry, prayer: PrayerName) => void;
 }
 
 const AdhanContext = createContext<AdhanContextValue | null>(null);
@@ -122,10 +129,10 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
    * prayer time stays quiet about internals unless something went wrong.
    */
   const begin = useCallback(
-    (describe: boolean) => {
+    (describe: boolean, entry?: AdhanEntry) => {
     setNote(null);
     void playAdhan(
-      prefs.adhanUri,
+      entry ?? selectedAdhan(prefs.addedAdhans, prefs.adhanSelectedId),
       () => {
         setPlaying(false);
         setPrayer(null);
@@ -164,7 +171,7 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
       setNote(result.output === null ? `${what}.` : `${what} · ${result.output}`);
     });
     },
-    [prefs.adhanUri],
+    [prefs.addedAdhans, prefs.adhanSelectedId],
   );
 
   const start = useCallback(
@@ -182,9 +189,9 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
         setNote('The bell is off for this prayer. Tap the bell beside it to hear the adhan.');
         return;
       }
-      if (!hasAdhanSound && (prefs.adhanUri === null || prefs.adhanUri.length === 0)) {
+      if (!hasAdhanSound && prefs.addedAdhans.length === 0) {
         setPlaying(false);
-        setNote('No adhan recording has been chosen yet, so this notice is silent.');
+        setNote('No adhan recording is available yet, so this notice is silent.');
         return;
       }
       if (listening.current) {
@@ -196,7 +203,7 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
       }
       begin(false);
     },
-    [begin, prefs.adhanUri, prefs.bells],
+    [begin, prefs.addedAdhans, prefs.bells],
   );
 
   const dismiss = useCallback(() => {
@@ -212,6 +219,15 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
       setPrayer(which);
       setPreview(false);
       begin(false);
+    },
+    [begin],
+  );
+
+  const playEntry = useCallback(
+    (entry: AdhanEntry, which: PrayerName) => {
+      setPreview(true);
+      setPrayer(which);
+      begin(true, entry);
     },
     [begin],
   );
@@ -232,7 +248,9 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
    * single long timeout is exactly what Android's doze mode does not honour.
    */
   useEffect(() => {
-    if (!prefs.adhanNotification || timings === null) return;
+    // No global on/off any more: a bell per prayer replaced it, and a prayer
+    // with its bell off still raises a silent notice, so the timer always runs.
+    if (timings === null) return;
     let cancelled = false;
     let handle: ReturnType<typeof setTimeout> | undefined;
 
@@ -249,12 +267,10 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       if (handle !== undefined) clearTimeout(handle);
     };
-  }, [prefs.adhanNotification, timings, start]);
+  }, [timings, start]);
 
   /** A notification arriving, or being tapped, is the other way in. */
   useEffect(() => {
-    if (!prefs.adhanNotification) return;
-
     const consider = (notification: Notifications.Notification, graceMs: number) => {
       const payload = payloadOf(notification);
       if (payload === null || payload.kind !== 'adhan') return;
@@ -289,13 +305,13 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
       received.remove();
       responded.remove();
     };
-  }, [prefs.adhanNotification, start]);
+  }, [start]);
 
   /** Never leave audio running behind a closed app. */
   useEffect(() => () => void stopAdhan(), []);
 
   return (
-    <AdhanContext.Provider value={{ prayer, playing, note, preview, dismiss, play, test }}>
+    <AdhanContext.Provider value={{ prayer, playing, note, preview, dismiss, play, test, playEntry }}>
       {children}
     </AdhanContext.Provider>
   );

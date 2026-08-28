@@ -29,6 +29,7 @@ import { Asset } from 'expo-asset';
 
 import { ADHAN_ASSET, TEST_TONE_ASSET } from './adhan';
 import { chosenStillThere } from './adhanFile';
+import { TEST_CHIME, type AdhanEntry } from './adhanLibrary';
 import { ArabicSpeech, isArabicSpeechLinked } from '../../modules/expo-arabic-speech';
 
 export interface AdhanPlaybackResult {
@@ -91,19 +92,22 @@ async function resolveSource(module: number): Promise<{ source: AVPlaybackSource
  * adhan with the volume down.
  */
 /**
- * Play the adhan, preferring what the user chose.
+ * Play one entry from the adhan library.
  *
- * Order of preference, and each fallback is a smaller claim than the one above
- * it: the recording they picked themselves, then one bundled in the build, then
- * the generated chime — which is not an adhan and says so.
+ * A missing file falls back rather than failing silently: a recording the user
+ * deleted from their phone must not be the reason a prayer goes unannounced.
  */
 export async function playAdhan(
-  chosenUri: string | null,
+  entry: AdhanEntry | null,
   onFinished: () => void,
   onStalled?: (detail: string) => void,
 ): Promise<AdhanPlaybackResult> {
-  if (chosenUri !== null && chosenUri.length > 0 && (await chosenStillThere(chosenUri))) {
-    return play({ uri: chosenUri }, false, onFinished, onStalled);
+  const isChime = entry !== null && entry.id === TEST_CHIME.id;
+  if (entry !== null && entry.uri !== null && (await chosenStillThere(entry.uri))) {
+    return play({ uri: entry.uri }, false, onFinished, onStalled);
+  }
+  if (entry !== null && entry.asset !== null) {
+    return play(entry.asset, isChime, onFinished, onStalled);
   }
   return play(ADHAN_ASSET ?? TEST_TONE_ASSET, ADHAN_ASSET === null, onFinished, onStalled);
 }
