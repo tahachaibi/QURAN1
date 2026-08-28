@@ -6,7 +6,7 @@
  * prayer times that look deliberate and are wrong; a pattern that matches nothing
  * produces a visible "could not tell", which is a far better failure.
  */
-import { describeRegion, pickMethod, REGION_RULES } from '../src/data/prayerRegion';
+import { describeRegion, mentionsCountry, pickMethod, REGION_RULES } from '../src/data/prayerRegion';
 
 /** Shaped like what /v1/methods returns, names as a real list would give them. */
 const METHODS = [
@@ -135,5 +135,64 @@ describe('no adjustment', () => {
     for (const rule of REGION_RULES) {
       expect(Object.keys(rule)).not.toContain('correction');
     }
+  });
+});
+
+/**
+ * Resolving by the country's own name.
+ *
+ * This is what makes the app work in a country nobody wrote a rule for. Most
+ * national authorities are simply named after their country, so a phone reporting
+ * "Tunisia" finds Tunisia's timetable without anything in the table saying so —
+ * and so will a phone in a country the API adds next year.
+ */
+describe('resolving by country name', () => {
+  const METHODS = [
+    { id: 2, name: 'Islamic Society of North America (ISNA)' },
+    { id: 3, name: 'Muslim World League' },
+    { id: 4, name: 'Umm Al-Qura University, Makkah' },
+    { id: 13, name: 'Diyanet İşleri Başkanlığı, Turkey' },
+    { id: 17, name: 'JAKIM (Malaysia)' },
+    { id: 18, name: 'Tunisia' },
+    { id: 19, name: 'Algeria' },
+    { id: 21, name: 'Morocco' },
+    { id: 23, name: 'Jordan' },
+  ];
+
+  it('finds an authority named after the country, with no rule for it', () => {
+    // no JO/TN entry is needed for these to work
+    expect(pickMethod(null, METHODS, 'Jordan')?.id).toBe(23);
+    expect(pickMethod('ZZ', METHODS, 'Tunisia')?.id).toBe(18);
+    expect(pickMethod(null, METHODS, 'Algeria')?.country).toBe('Algeria');
+  });
+
+  it('prefers the alias when there is one, because it is more specific', () => {
+    // "Saudi Arabia" appears in no method name; the alias knows to look for Umm al-Qura
+    expect(pickMethod('SA', METHODS, 'Saudi Arabia')?.id).toBe(4);
+    // and Malaysia's is named after an institution, not the country
+    expect(pickMethod('MY', METHODS, 'Malaysia')?.id).toBe(17);
+  });
+
+  it('says nothing rather than guessing when no authority matches', () => {
+    // China has no national body publishing a timetable, and no method is named
+    // for it — so the app falls back and says so, instead of picking one.
+    expect(pickMethod('CN', METHODS, 'China')).toBeNull();
+    expect(pickMethod(null, METHODS, null)).toBeNull();
+    expect(pickMethod(null, METHODS, 'Ne')).toBeNull();
+  });
+
+  it('matches a country as a WORD, never as a fragment', () => {
+    // "Mali" is inside "Malaysia", and a phone in Bamako must not end up on
+    // JAKIM's timetable because of four shared letters.
+    expect(pickMethod(null, METHODS, 'Mali')).toBeNull();
+    expect(mentionsCountry('JAKIM (Malaysia)', 'Mali')).toBe(false);
+    expect(mentionsCountry('JAKIM (Malaysia)', 'Malaysia')).toBe(true);
+    expect(mentionsCountry('Tunisia', 'Tunisia')).toBe(true);
+    expect(mentionsCountry('Muslim World League', 'Oman')).toBe(false);
+  });
+
+  it('is not confused by punctuation or case in either name', () => {
+    expect(mentionsCountry('Diyanet İşleri Başkanlığı, Turkey', 'turkey')).toBe(true);
+    expect(mentionsCountry('Morocco', 'MOROCCO')).toBe(true);
   });
 });

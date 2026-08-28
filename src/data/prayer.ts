@@ -63,17 +63,20 @@ export interface PrayerDay {
  */
 async function whereAmI(
   coords: { latitude: number; longitude: number },
-): Promise<{ countryCode: string | null; city: string | null }> {
+): Promise<{ countryCode: string | null; country: string | null; city: string | null }> {
   try {
     const places = await Location.reverseGeocodeAsync(coords);
     const place = places[0];
-    if (place === undefined) return { countryCode: null, city: null };
+    if (place === undefined) return { countryCode: null, country: null, city: null };
     return {
       countryCode: place.isoCountryCode ?? null,
+      // The country's NAME as well as its code: it is what lets a country with no
+      // rule of its own still find the authority named after it.
+      country: place.country ?? null,
       city: place.city ?? place.subregion ?? place.region ?? null,
     };
   } catch {
-    return { countryCode: null, city: null };
+    return { countryCode: null, country: null, city: null };
   }
 }
 
@@ -81,10 +84,13 @@ async function whereAmI(
  * Work out whose timetable to follow, from the country, against the method list
  * the API itself publishes. Never from a number written into this app.
  */
-async function resolveMethod(countryCode: string | null): Promise<ResolvedMethod | null> {
-  if (countryCode === null) return null;
+async function resolveMethod(
+  countryCode: string | null,
+  countryName: string | null,
+): Promise<ResolvedMethod | null> {
+  if (countryCode === null && countryName === null) return null;
   const { methods } = await fetchMethods();
-  return pickMethod(countryCode, methods);
+  return pickMethod(countryCode, methods, countryName);
 }
 
 export async function fetchPrayerTimes(options: PrayerOptions = {}): Promise<PrayerDay> {
@@ -130,7 +136,7 @@ export async function fetchPrayerTimes(options: PrayerOptions = {}): Promise<Pra
   }
 
   const place = await whereAmI(coords);
-  const resolved = await resolveMethod(place.countryCode);
+  const resolved = await resolveMethod(place.countryCode, place.country);
   const method = options.method ?? resolved?.id ?? FALLBACK_METHOD;
 
   const day = today();
@@ -151,6 +157,7 @@ export async function fetchPrayerTimes(options: PrayerOptions = {}): Promise<Pra
       timings,
       fetchedAt: Date.now(),
       countryCode: place.countryCode,
+      country: place.country,
       city: place.city,
       methodId: method,
       methodName: resolved?.name ?? null,
@@ -186,14 +193,15 @@ export async function fetchPrayerTimes(options: PrayerOptions = {}): Promise<Pra
 
 /** Rebuild just enough of the resolution to describe a cached response. */
 function cachedResolved(cache: PrayerCache): ResolvedMethod | null {
-  if (cache.methodId === undefined || cache.countryCode == null) return null;
+  if (cache.methodId === undefined) return null;
   const rule = REGION_RULES.find((r) => r.code === cache.countryCode?.toUpperCase());
-  if (rule === undefined) return null;
+  const country = rule?.country ?? cache.country ?? null;
+  if (country === null) return null;
   return {
     id: cache.methodId,
     name: cache.methodName ?? `Method ${cache.methodId}`,
-    country: rule.country,
-    authority: rule.authority ?? null,
+    country,
+    authority: rule?.authority ?? null,
   };
 }
 

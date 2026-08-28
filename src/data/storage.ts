@@ -227,6 +227,8 @@ export interface PrayerCache {
   fetchedAt: number;
   /** ISO 3166-1 alpha-2, from reverse geocoding — decides whose timetable to follow */
   countryCode?: string | null;
+  /** the country's name, which resolves authorities named after their country */
+  country?: string | null;
   /** the town, only so the tab can say where it thinks you are */
   city?: string | null;
   /** the calculation method actually used for these timings */

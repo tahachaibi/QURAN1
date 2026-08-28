@@ -7,6 +7,24 @@
  * وزارة الأوقاف والشؤون الإسلامية". The phone already knows the first half, so
  * the app should work out the second.
  *
+ * TWO WAYS IN, and the second is why this works outside the countries anyone
+ * thought to list:
+ *
+ *   1. AN ALIAS, for the authorities whose timetable is not named after their
+ *      country. Nobody would guess that Saudi Arabia's is "Umm al-Qura", or
+ *      Malaysia's "JAKIM", or Pakistan's "Karachi", from the country name alone.
+ *   2. THE COUNTRY'S OWN NAME, matched against the names the API publishes. Most
+ *      national authorities are simply named after their country — Tunisia,
+ *      Algeria, Qatar, Kuwait, Jordan, Turkey, Egypt, Indonesia — so a phone in
+ *      any of them resolves without a rule existing for it, and so does a phone
+ *      in a country added to that list next year.
+ *
+ * What is NOT here, and cannot be: a feed from each country's own ministry.
+ * There is no such thing to point at. A handful of authorities publish an API,
+ * most publish a printed table per city, and many countries have no national body
+ * doing this at all. What every one of them does have is a convention, and a
+ * convention is what a method is.
+ *
  * NOTHING IS ADJUSTED HERE. The times are the authority's own calculation, as
  * published by the API, with no minutes added or taken off. There was a
  * correction — measured against the ministry's printed table for one city — and
@@ -93,21 +111,47 @@ interface NamedMethod {
 export function pickMethod(
   countryCode: string | null,
   methods: readonly NamedMethod[],
+  countryName: string | null = null,
 ): ResolvedMethod | null {
-  if (countryCode === null) return null;
-  const code = countryCode.trim().toUpperCase();
-  const rule = REGION_RULES.find((r) => r.code === code);
-  if (rule === undefined) return null;
+  const code = countryCode === null ? null : countryCode.trim().toUpperCase();
+  const rule = code === null ? undefined : REGION_RULES.find((r) => r.code === code);
 
-  const method = methods.find((m) => rule.match.test(m.name));
-  if (method === undefined) return null;
+  // 1. the alias, for authorities not named after their country
+  if (rule !== undefined) {
+    const method = methods.find((m) => rule.match.test(m.name));
+    if (method !== undefined) {
+      return {
+        id: method.id,
+        name: method.name,
+        country: rule.country,
+        authority: rule.authority ?? null,
+      };
+    }
+  }
 
-  return {
-    id: method.id,
-    name: method.name,
-    country: rule.country,
-    authority: rule.authority ?? null,
-  };
+  // 2. the country's own name, as the phone reports it
+  const name = countryName?.trim() ?? '';
+  if (name.length >= 3) {
+    const method = methods.find((m) => mentionsCountry(m.name, name));
+    if (method !== undefined) {
+      return { id: method.id, name: method.name, country: name, authority: null };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Does this method's name mention this country, as a WORD?
+ *
+ * The word boundary is the whole point. "Mali" sits inside "Malaysia", and a
+ * phone in Bamako following JAKIM's timetable because of four shared letters is
+ * exactly the sort of silent wrongness this file exists to prevent. \b is no use
+ * here either — it is ASCII-only and these names are not.
+ */
+export function mentionsCountry(methodName: string, countryName: string): boolean {
+  const needle = countryName.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(?:^|[^a-z])${needle}(?:[^a-z]|$)`, 'i').test(methodName.toLowerCase());
 }
 
 /** "Beni Mellal, Morocco · وزارة الأوقاف والشؤون الإسلامية" */
