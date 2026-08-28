@@ -25,6 +25,7 @@ const KEY = {
   hifz: 'qh:hifz:v1',
   mistakeLog: 'qh:mistake-log:v1',
   reciters: 'qh:reciters:v1',
+  adhkar: 'qh:adhkar:v1',
 } as const;
 
 export type { PrayerOffsets } from './prayerOffsets';
@@ -239,6 +240,41 @@ export const loadPrayerCache = (): Promise<PrayerCache | null> =>
     .catch(() => null);
 
 export const savePrayerCache = (cache: PrayerCache): Promise<void> => writeJson(KEY.prayerCache, cache);
+
+// ---------------------------------------------------------------------------
+// adhkar tallies
+// ---------------------------------------------------------------------------
+
+/**
+ * How many times each dhikr has been said, today.
+ *
+ * Persisted because the alternative is cruel: counting a dhikr a hundred times
+ * and losing the tally to a phone call, a screen lock or a stray back-swipe.
+ * Only today is kept — yesterday's count is not a thing anybody wants to see.
+ */
+export type AdhkarCounts = Record<string, number>;
+
+interface AdhkarStore {
+  day: string;
+  morning: AdhkarCounts;
+  evening: AdhkarCounts;
+}
+
+const EMPTY_ADHKAR: AdhkarStore = { day: '', morning: {}, evening: {} };
+
+export async function loadAdhkarCounts(time: 'morning' | 'evening'): Promise<AdhkarCounts> {
+  const store = await readJson<AdhkarStore>(KEY.adhkar, EMPTY_ADHKAR);
+  return store.day === today() ? (store[time] ?? {}) : {};
+}
+
+export async function saveAdhkarCounts(
+  time: 'morning' | 'evening',
+  counts: AdhkarCounts,
+): Promise<void> {
+  const store = await readJson<AdhkarStore>(KEY.adhkar, EMPTY_ADHKAR);
+  const fresh = store.day === today() ? store : { ...EMPTY_ADHKAR, day: today() };
+  await writeJson(KEY.adhkar, { ...fresh, day: today(), [time]: counts });
+}
 
 // ---------------------------------------------------------------------------
 // first run

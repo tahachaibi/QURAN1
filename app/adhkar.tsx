@@ -10,34 +10,60 @@
  * Amiri. Setting a narration in the Qur'an's typeface would dress it as
  * revelation, and this screen puts the two side by side.
  */
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 import { adhkarFor, defaultTime, type AdhkarTime, type Dhikr } from '../src/data/adhkar';
 import { collectionById } from '../src/data/hadith';
+import { loadAdhkarCounts, saveAdhkarCounts } from '../src/data/storage';
 import { useTheme } from '../src/theme/ThemeProvider';
 import { radius, space } from '../src/theme/theme';
 
 export default function AdhkarScreen() {
-  const { palette, fontStep } = useTheme();
+  const { palette, fontStep, prefs } = useTheme();
   const [time, setTime] = useState<AdhkarTime>(() => defaultTime());
   /** Repetitions done, per dhikr. Saying something a hundred times needs a tally. */
   const [counts, setCounts] = useState<Record<string, number>>({});
 
   const items = useMemo(() => adhkarFor(time), [time]);
 
-  const switchTo = useCallback((next: AdhkarTime) => {
-    setTime(next);
-    setCounts({});
-  }, []);
-
-  const bump = useCallback((id: string, repeat: number) => {
-    setCounts((prev) => {
-      const done = prev[id] ?? 0;
-      return { ...prev, [id]: done >= repeat ? 0 : done + 1 };
+  // Today's tallies, restored on arrival and after every switch.
+  useEffect(() => {
+    let live = true;
+    void loadAdhkarCounts(time).then((saved) => {
+      if (live) setCounts(saved);
     });
-  }, []);
+    return () => {
+      live = false;
+    };
+  }, [time]);
+
+  const switchTo = useCallback((next: AdhkarTime) => setTime(next), []);
+
+  const bump = useCallback(
+    (id: string, repeat: number) => {
+      setCounts((prev) => {
+        const done = prev[id] ?? 0;
+        const next = done >= repeat ? 0 : done + 1;
+        /**
+         * A tap you can feel, because counting to a hundred should not need
+         * looking. Heavier at the last one, so finishing is unmistakable without
+         * reading the number.
+         */
+        if (prefs.haptics) {
+          void Haptics.impactAsync(
+            next === repeat ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Light,
+          ).catch(() => undefined);
+        }
+        const updated = { ...prev, [id]: next };
+        void saveAdhkarCounts(time, updated);
+        return updated;
+      });
+    },
+    [prefs.haptics, time],
+  );
 
   return (
     <View style={[styles.root, { backgroundColor: palette.background }]}>
@@ -117,7 +143,33 @@ function DhikrCard({
       : `${collectionById(dhikr.source.collection)?.englishTitle ?? 'Hadith'} ${dhikr.source.number}`;
 
   return (
-    <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+    /**
+     * The WHOLE card counts, not just the badge.
+     *
+     * Counting a dhikr a hundred times means a hundred taps, and asking for each
+     * of them to land on a 54-pixel pill while your eyes are on the Arabic is a
+     * design that fights the act it is meant to support. The badge still works —
+     * it is the obvious thing to aim at — but so does anywhere else on the block.
+     *
+     * The source disclosure inside stays its own button: a nested Pressable takes
+     * its own taps, so opening the narration does not add a repetition.
+     */
+    <Pressable
+      onPress={onCount}
+      accessibilityRole="button"
+      accessibilityLabel={
+        dhikr.repeat === 1
+          ? `${dhikr.titleEn}. Tap to mark as said.`
+          : `${dhikr.titleEn}. ${done} of ${dhikr.repeat} said. Tap to count one more.`
+      }
+      style={[
+        styles.card,
+        {
+          backgroundColor: palette.surface,
+          borderColor: complete ? palette.success : palette.border,
+        },
+      ]}
+    >
       <View style={styles.head}>
         <Text style={[styles.title, { color: palette.text }]}>{dhikr.titleEn}</Text>
         <Pressable
@@ -160,6 +212,24 @@ function DhikrCard({
         </Text>
       ))}
 
+      {dhikr.repeat > 1 ? (
+        /**
+         * A bar, because at "63 of 100" a number is something you read and a bar
+         * is something you glance at.
+         */
+        <View style={[styles.track, { backgroundColor: palette.border }]}>
+          <View
+            style={[
+              styles.fill,
+              {
+                backgroundColor: complete ? palette.success : palette.primary,
+                width: `${Math.min(100, (done / dhikr.repeat) * 100)}%`,
+              },
+            ]}
+          />
+        </View>
+      ) : null}
+
       {dhikr.note !== null ? (
         <Text style={[styles.note, { color: palette.textMuted }]}>{dhikr.note}</Text>
       ) : null}
@@ -187,7 +257,7 @@ function DhikrCard({
           <Text style={[styles.fullEnglish, { color: palette.text }]}>{dhikr.source.english}</Text>
         </View>
       ) : null}
-    </View>
+    </Pressable>
   );
 }
 
@@ -236,6 +306,8 @@ const styles = StyleSheet.create({
   quranLine: { fontFamily: 'KFGQPC-Hafs', textAlign: 'right', writingDirection: 'rtl' },
   duaLine: { fontFamily: 'Amiri_400Regular', textAlign: 'right', writingDirection: 'rtl' },
   note: { fontSize: 11, lineHeight: 17 },
+  track: { height: 3, borderRadius: 2, overflow: 'hidden' },
+  fill: { height: 3, borderRadius: 2 },
   sourceRow: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
   source: { fontSize: 12, fontWeight: '700' },
   full: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: space.sm, gap: space.sm },
