@@ -30,7 +30,6 @@ import { radius, space } from '../../src/theme/theme';
 import { ADHAN_SOUND, hasAdhanSound } from '../../src/data/adhan';
 import { rescheduleAll, requestPermission } from '../../src/data/notifications';
 import { WARNING_MINUTES } from '../../src/data/prayerSchedule';
-import { useAdhan } from '../../src/context/AdhanProvider';
 
 export default function PrayerScreen() {
   const { palette, prefs, setPrefs } = useTheme();

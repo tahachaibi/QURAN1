@@ -43,27 +43,20 @@ const TAP_GRACE_MS = 10 * 60_000;
 export interface AdhanContextValue {
   /** the prayer being announced, or null when nothing is being announced */
   prayer: PrayerName | null;
-  /** true when audio is actually playing */
-  playing: boolean;
-  /** why it is not playing, when it is not; null when all is well */
-  note: string | null;
-  /** true when this is the user testing the sound, not an actual prayer time */
-  preview: boolean;
-  /** silence it and take the banner away */
+  /** silence the adhan and take the banner away */
   dismiss: () => void;
-  /** play (again) — used by the banner when auto-play was held back */
-  play: (prayer: PrayerName) => void;
   /**
-   * Sound it now, on demand, so the user can hear what the adhan will do and find
-   * the Stop button before Fajr rather than during it.
+   * Play one entry from the library WITHOUT raising the banner.
+   *
+   * On the adhan screen the row's own play button is already the control and
+   * already shows the state, so a banner over the top would be a second copy of
+   * something the user is looking at. The banner is for a prayer time, which
+   * arrives unasked; this is a button pressed on purpose.
    */
-  test: (prayer: PrayerName) => void;
-  /**
-   * Play one specific entry from the library — the play button beside each
-   * recording. Does not change which one is selected: hearing a thing and
-   * choosing it are separate acts.
-   */
-  playEntry: (entry: AdhanEntry, prayer: PrayerName) => void;
+  previewEntry: (entry: AdhanEntry) => void;
+  /** the entry currently sounding as a preview, so its row can show Stop */
+  previewingId: string | null;
+  stopPreview: () => void;
 }
 
 const AdhanContext = createContext<AdhanContextValue | null>(null);
@@ -73,9 +66,7 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
   const { session } = useRecitation();
   const [timings, setTimings] = useState<Record<string, string> | null>(null);
   const [prayer, setPrayer] = useState<PrayerName | null>(null);
-  const [playing, setPlaying] = useState(false);
-  const [note, setNote] = useState<string | null>(null);
-  const [preview, setPreview] = useState(false);
+  const [previewingId, setPreviewingId] = useState<string | null>(null);
 
   /** The adhan already sounded, so none is sounded twice. */
   const sounded = useRef<string | null>(null);
@@ -128,48 +119,21 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
    * the whole point is to find out what the phone did. A real adhan at a real
    * prayer time stays quiet about internals unless something went wrong.
    */
+  /**
+   * The one place a prayer-time adhan is started, so the ways in cannot drift.
+   *
+   * It no longer reports what it did. The diagnostics that used to come back here
+   * — duration, media volume, audio mode, output route — existed to find one bug:
+   * a phone stuck in communication mode routing media to the earpiece. That is
+   * found, and fixed in the player. Instrumentation earns its place while
+   * something is broken and becomes clutter the moment it is not.
+   */
   const begin = useCallback(
-    (describe: boolean, entry?: AdhanEntry) => {
-    setNote(null);
-    void playAdhan(
-      entry ?? selectedAdhan(prefs.addedAdhans, prefs.adhanSelectedId),
-      () => {
-        setPlaying(false);
-        setPrayer(null);
-        setPreview(false);
-      },
-      // Accepted but not advancing: the case that looks exactly like a working
-      // adhan with the volume down, and the one worth naming out loud.
-      (detail) => setNote(detail),
-    ).then((result) => {
-      setPlaying(result.ok);
-      if (!result.ok) {
-        setNote(result.detail);
-        return;
-      }
-      if (!describe) return;
-      /**
-       * A successful start is not the same as a sound you can hear. The adhan
-       * plays on the MEDIA stream, which has its own volume and its own mute, so
-       * a phone with media at zero plays a perfect silent adhan.
-       */
-      const length =
-        result.durationMs === null
-          ? 'the recording'
-          : `${Math.floor(result.durationMs / 60000)}:${String(
-              Math.floor((result.durationMs % 60000) / 1000),
-            ).padStart(2, '0')} of adhan`;
-      /**
-       * Say what the OPERATING SYSTEM reports about output, not just what the
-       * player claims. "Playing 3:59" with no sound was reported once, and from
-       * inside a media player that is indistinguishable from working — so the
-       * volume, the audio mode and the output route go on screen.
-       */
-      const what = result.testTone
-        ? 'Test chime (no adhan recording is bundled). If you hear this, the app can play sound on this phone'
-        : `Playing ${length}`;
-      setNote(result.output === null ? `${what}.` : `${what} · ${result.output}`);
-    });
+    (entry?: AdhanEntry) => {
+      void playAdhan(
+        entry ?? selectedAdhan(prefs.addedAdhans, prefs.adhanSelectedId),
+        () => setPrayer(null),
+      );
     },
     [prefs.addedAdhans, prefs.adhanSelectedId],
   );
@@ -178,70 +142,40 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
     (which: PrayerName, key: string) => {
       sounded.current = key;
       setPrayer(which);
-      setPreview(false);
       /**
        * The bell for this prayer decides whether it is HEARD, not whether it is
-       * seen. A prayer with its bell off still raises the banner — the reciter
+       * SEEN. A prayer with its bell off still raises the banner — the reciter
        * asked to be told, not to be shouted at — it just does not play.
        */
-      if (prefs.bells[which] === false) {
-        setPlaying(false);
-        setNote('The bell is off for this prayer. Tap the bell beside it to hear the adhan.');
-        return;
-      }
-      if (!hasAdhanSound && prefs.addedAdhans.length === 0) {
-        setPlaying(false);
-        setNote('No adhan recording is available yet, so this notice is silent.');
-        return;
-      }
+      if (prefs.bells[which] === false) return;
+      if (!hasAdhanSound && prefs.addedAdhans.length === 0) return;
       if (listening.current) {
         // Playing the adhan into a live microphone would make the app follow its
-        // own loudspeaker. The banner offers the button instead.
-        setPlaying(false);
-        setNote('You are reciting — stop the session first, then tap Play adhan.');
+        // own loudspeaker.
         return;
       }
-      begin(false);
+      begin();
     },
     [begin, prefs.addedAdhans, prefs.bells],
   );
 
   const dismiss = useCallback(() => {
     void stopAdhan();
-    setPlaying(false);
     setPrayer(null);
-    setNote(null);
-    setPreview(false);
+    setPreviewingId(null);
   }, []);
 
-  const play = useCallback(
-    (which: PrayerName) => {
-      setPrayer(which);
-      setPreview(false);
-      begin(false);
-    },
-    [begin],
-  );
+  const previewEntry = useCallback((entry: AdhanEntry) => {
+    setPreviewingId(entry.id);
+    void playAdhan(entry, () => setPreviewingId(null)).then((result) => {
+      if (!result.ok) setPreviewingId(null);
+    });
+  }, []);
 
-  const playEntry = useCallback(
-    (entry: AdhanEntry, which: PrayerName) => {
-      setPreview(true);
-      setPrayer(which);
-      begin(true, entry);
-    },
-    [begin],
-  );
-
-  const test = useCallback(
-    (which: PrayerName) => {
-      setPreview(true);
-      setPrayer(which);
-      // With no adhan bundled this plays the generated chime instead, which is
-      // the only way to tell a broken audio path from an empty recording.
-      begin(true);
-    },
-    [begin],
-  );
+  const stopPreview = useCallback(() => {
+    setPreviewingId(null);
+    void stopAdhan();
+  }, []);
 
   /**
    * The timer. Re-armed after every check rather than set once per prayer: a
@@ -311,7 +245,7 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
   useEffect(() => () => void stopAdhan(), []);
 
   return (
-    <AdhanContext.Provider value={{ prayer, playing, note, preview, dismiss, play, test, playEntry }}>
+    <AdhanContext.Provider value={{ prayer, dismiss, previewEntry, previewingId, stopPreview }}>
       {children}
     </AdhanContext.Provider>
   );

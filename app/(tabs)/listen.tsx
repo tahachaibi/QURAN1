@@ -8,22 +8,12 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { surahs, type SurahInfo } from '../../src/data/quran';
-import { BUILTIN_RECITERS, reciterLabel } from '../../src/data/audio';
-import { loadCachedReciters } from '../../src/data/storage';
 import { useTheme } from '../../src/theme/ThemeProvider';
 import { radius, space } from '../../src/theme/theme';
 
 export default function ListenTab() {
-  const { palette, prefs } = useTheme();
+  const { palette } = useTheme();
   const router = useRouter();
-  // Read from the same cache the player fills, so the two agree on the name.
-  const [known, setKnown] = useState<readonly typeof BUILTIN_RECITERS[number][]>(BUILTIN_RECITERS);
-  useEffect(() => {
-    void loadCachedReciters().then((c) => {
-      if (c !== null) setKnown(c.reciters);
-    });
-  }, []);
-  const chosen = known.find((r) => r.id === prefs.reciter) ?? known[0] ?? BUILTIN_RECITERS[0];
 
   const open = useCallback(
     (surah: number) => {
@@ -53,14 +43,9 @@ export default function ListenTab() {
 
   return (
     <View style={styles.root}>
-      {/* Which reciter is set, at a glance. The full searchable list lives in the
-          player, so it is not duplicated as a wall of chips here. */}
-      <View style={[styles.reciterBar, { borderColor: palette.border }]}>
-        <Ionicons name="person-outline" size={15} color={palette.primary} />
-        <Text style={[styles.reciterName, { color: palette.textMuted }]} numberOfLines={1}>
-          {reciterLabel(chosen)}
-        </Text>
-      </View>
+      {/* No reciter bar here. It named the current reciter without letting anyone
+          change it, so it was a label pretending to be a control — the searchable
+          list lives in the player, where choosing actually happens. */}
       <FlatList
         data={surahs}
         keyExtractor={(s) => String(s.number)}
@@ -74,17 +59,6 @@ export default function ListenTab() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  reciterBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.sm,
-    marginHorizontal: space.md,
-    marginTop: space.sm,
-    marginBottom: space.xs,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    paddingBottom: space.sm,
-  },
-  reciterName: { flex: 1, fontSize: 12, fontWeight: '600' },
   list: { paddingHorizontal: space.md, paddingBottom: space.xl, gap: space.sm },
   row: {
     flexDirection: 'row',

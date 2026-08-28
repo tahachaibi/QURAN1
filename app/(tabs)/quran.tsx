@@ -104,8 +104,8 @@ export default function QuranScreen() {
         renderItem={renderItem}
         contentContainerStyle={styles.list}
         ListHeaderComponent={
-          <JuzStrip
-            onJump={(juz) => {
+          <GoToRow
+            onJumpJuz={(juz) => {
               const start = juzStart(juz);
               seekTo(start.word);
               setViewedPage(start.page);
@@ -126,28 +126,205 @@ function describe(cursor: number): string {
   return `${surahs[ayah.surah - 1].transliteration} ${ayah.surah}:${ayah.ayah}`;
 }
 
-function JuzStrip({ onJump, palette }: { onJump: (juz: number) => void; palette: Palette }) {
+/**
+ * Two doors, "Go to juz" and "Go to hizb", each opening a small panel with a
+ * number field.
+ *
+ * They replace a grid of thirty numbered squares, which filled the top third of
+ * the screen to serve a tap most people make rarely, and could not have grown to
+ * sixty for hizb without swallowing the surah list entirely.
+ */
+function GoToRow({
+  onJumpJuz,
+  palette,
+}: {
+  onJumpJuz: (juz: number) => void;
+  palette: Palette;
+}) {
+  const [open, setOpen] = useState<'juz' | 'hizb' | null>(null);
+
   return (
-    <View style={styles.juzStrip}>
-      <Text style={[styles.juzLabel, { color: palette.textMuted }]}>Jump to juz</Text>
-      <View style={styles.juzRow}>
-        {Array.from({ length: TOTAL_JUZ }, (_, i) => i + 1).map((juz) => (
-          <Pressable
-            key={juz}
-            onPress={() => onJump(juz)}
-            accessibilityRole="button"
-            accessibilityLabel={`Juz ${juz}`}
-            style={[styles.juz, { borderColor: palette.border, backgroundColor: palette.surface }]}
-          >
-            <Text style={[styles.juzText, { color: palette.text }]}>{juz}</Text>
-          </Pressable>
-        ))}
+    <View style={styles.goWrap}>
+      <View style={styles.goRow}>
+        <GoButton
+          label="Go to juz"
+          icon="bookmark-outline"
+          active={open === 'juz'}
+          onPress={() => setOpen((was) => (was === 'juz' ? null : 'juz'))}
+          palette={palette}
+        />
+        <GoButton
+          label="Go to hizb"
+          icon="bookmarks-outline"
+          active={open === 'hizb'}
+          onPress={() => setOpen((was) => (was === 'hizb' ? null : 'hizb'))}
+          palette={palette}
+        />
       </View>
+
+      {open === 'juz' ? (
+        <NumberPanel
+          placeholder={`Juz number, 1 to ${TOTAL_JUZ}`}
+          max={TOTAL_JUZ}
+          onGo={(n) => {
+            setOpen(null);
+            onJumpJuz(n);
+          }}
+          palette={palette}
+        />
+      ) : null}
+
+      {open === 'hizb' ? (
+        /**
+         * Honest empty state. The sixty hizb boundaries are a fixed list of
+         * ayah references and they are not in this app's data: the bundled text
+         * carries juz on every ayah but no hizb, the QUL layout database has
+         * only pages and lines, and the ۞ markers in the text are incomplete —
+         * 199 where 239 would be needed, thinning to one in the last juz. A
+         * boundary guessed from half a juz would send someone to the wrong ayah
+         * with total confidence, which is worse than a button that says what it
+         * is missing.
+         */
+        <View style={[styles.panel, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <Text style={[styles.panelNote, { color: palette.textMuted }]}>
+            The hizb boundaries are not in the app&apos;s data yet — the bundled text marks juz on
+            every ayah but not hizb. Send the list of the 60 hizb (each one&apos;s surah and ayah) and
+            this will work exactly like the juz field.
+          </Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function GoButton({
+  label,
+  icon,
+  active,
+  onPress,
+  palette,
+}: {
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  active: boolean;
+  onPress: () => void;
+  palette: Palette;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ expanded: active }}
+      accessibilityLabel={label}
+      style={[
+        styles.goButton,
+        {
+          backgroundColor: active ? palette.primary : palette.surface,
+          borderColor: active ? palette.primary : palette.border,
+        },
+      ]}
+    >
+      <Ionicons name={icon} size={16} color={active ? '#FFFFFF' : palette.primary} />
+      <Text style={[styles.goText, { color: active ? '#FFFFFF' : palette.text }]}>{label}</Text>
+      <Ionicons
+        name={active ? 'chevron-up' : 'chevron-down'}
+        size={14}
+        color={active ? '#FFFFFF' : palette.textMuted}
+      />
+    </Pressable>
+  );
+}
+
+/** A number field that only accepts a number in range, and says so when it does not. */
+function NumberPanel({
+  placeholder,
+  max,
+  onGo,
+  palette,
+}: {
+  placeholder: string;
+  max: number;
+  onGo: (n: number) => void;
+  palette: Palette;
+}) {
+  const [value, setValue] = useState('');
+  const n = Number(value);
+  const valid = Number.isInteger(n) && n >= 1 && n <= max;
+
+  return (
+    <View style={[styles.panel, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+      <View style={styles.panelRow}>
+        <TextInput
+          value={value}
+          onChangeText={(next) => setValue(next.replace(/[^0-9]/g, '').slice(0, 3))}
+          placeholder={placeholder}
+          placeholderTextColor={palette.textMuted}
+          keyboardType="number-pad"
+          returnKeyType="go"
+          onSubmitEditing={() => valid && onGo(n)}
+          accessibilityLabel={placeholder}
+          style={[styles.panelInput, { color: palette.text, borderColor: palette.border }]}
+        />
+        <Pressable
+          onPress={() => valid && onGo(n)}
+          disabled={!valid}
+          accessibilityRole="button"
+          accessibilityLabel="Go"
+          style={[
+            styles.panelGo,
+            { backgroundColor: valid ? palette.primary : palette.border },
+          ]}
+        >
+          <Ionicons name="arrow-forward" size={18} color={valid ? '#FFFFFF' : palette.textMuted} />
+        </Pressable>
+      </View>
+      {value.length > 0 && !valid ? (
+        <Text style={[styles.panelNote, { color: palette.error }]}>
+          Enter a number from 1 to {max}.
+        </Text>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  goWrap: { gap: space.sm, marginBottom: space.sm },
+  goRow: { flexDirection: 'row', gap: space.sm },
+  goButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: space.xs,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.md,
+    paddingVertical: space.md,
+    paddingHorizontal: space.sm,
+  },
+  goText: { fontSize: 13, fontWeight: '700' },
+  panel: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.md,
+    padding: space.sm,
+    gap: space.xs,
+  },
+  panelRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  panelInput: {
+    flex: 1,
+    fontSize: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.sm,
+    paddingHorizontal: space.sm,
+    paddingVertical: 10,
+  },
+  panelGo: {
+    width: 42,
+    height: 42,
+    borderRadius: radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  panelNote: { fontSize: 11, lineHeight: 16 },
   root: { flex: 1 },
   search: {
     flexDirection: 'row',
@@ -194,16 +371,4 @@ const styles = StyleSheet.create({
   translit: { fontSize: 15, fontWeight: '600' },
   translation: { fontSize: 11, marginTop: 1 },
   arabic: { fontFamily: 'Amiri_700Bold', fontSize: 20 },
-  juzStrip: { marginBottom: space.sm },
-  juzLabel: { fontSize: 11, marginBottom: space.xs, textTransform: 'uppercase', letterSpacing: 1 },
-  juzRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
-  juz: {
-    width: 34,
-    height: 30,
-    borderRadius: radius.sm,
-    borderWidth: StyleSheet.hairlineWidth,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  juzText: { fontSize: 12, fontWeight: '600' },
 });

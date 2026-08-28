@@ -13,13 +13,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useAdhan } from '../context/AdhanProvider';
-import { hasAdhanSound } from '../data/adhan';
 import { PRAYER_ARABIC } from '../data/prayerTimes';
 import { useTheme } from '../theme/ThemeProvider';
 import { radius, space } from '../theme/theme';
 
 export function AdhanBanner() {
-  const { prayer, playing, note, preview, dismiss, play } = useAdhan();
+  const { prayer, dismiss } = useAdhan();
   const { palette } = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -28,42 +27,29 @@ export function AdhanBanner() {
   return (
     <View style={[styles.wrap, { top: insets.top + space.xs }]} pointerEvents="box-none">
       <View style={[styles.card, { backgroundColor: palette.primary, borderColor: palette.accent }]}>
+        {/**
+          * Three things and no more: which prayer, that this is the adhan, and the
+          * way to stop it. Everything else that used to be here — the length, the
+          * media volume, the audio mode, the output route — was instrumentation
+          * for a bug that is fixed. Diagnostics earn their place while something
+          * is broken and become clutter the moment it is not.
+          */}
         <View style={styles.head}>
-          <Ionicons name={playing ? 'volume-high' : 'notifications'} size={22} color={palette.accent} />
+          <Ionicons name="volume-high" size={22} color={palette.accent} />
           <View style={styles.headText}>
             <Text style={[styles.arabic, { color: '#FFFFFF' }]}>{PRAYER_ARABIC[prayer]}</Text>
-            <Text style={[styles.sub, { color: palette.accentSoft }]}>
-              {preview
-                ? 'Adhan · test'
-                : playing
-                  ? `Adhan · ${prayer}`
-                  : `It is time for ${prayer}`}
-            </Text>
+            <Text style={[styles.sub, { color: palette.accentSoft }]}>Adhan</Text>
           </View>
         </View>
-
-        {note !== null ? <Text style={[styles.note, { color: palette.accentSoft }]}>{note}</Text> : null}
-
-        {!playing && hasAdhanSound ? (
-          <Pressable
-            onPress={() => play(prayer)}
-            accessibilityRole="button"
-            accessibilityLabel="Play adhan"
-            style={[styles.secondary, { borderColor: palette.accent }]}
-          >
-            <Ionicons name="play" size={16} color={palette.accent} />
-            <Text style={[styles.secondaryText, { color: palette.accent }]}>Play adhan</Text>
-          </Pressable>
-        ) : null}
 
         <Pressable
           onPress={dismiss}
           accessibilityRole="button"
-          accessibilityLabel={playing ? 'Stop the adhan' : 'Dismiss'}
+          accessibilityLabel="Stop the adhan"
           style={[styles.stop, { backgroundColor: palette.accent }]}
         >
-          <Ionicons name={playing ? 'stop' : 'close'} size={18} color="#1B4332" />
-          <Text style={styles.stopText}>{playing ? 'Stop adhan' : 'Dismiss'}</Text>
+          <Ionicons name="stop" size={18} color="#1B4332" />
+          <Text style={styles.stopText}>Stop adhan</Text>
         </Pressable>
       </View>
     </View>

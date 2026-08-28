@@ -24,7 +24,7 @@ import { radius, space } from '../src/theme/theme';
 
 export default function AdhanScreen() {
   const { palette, prefs, setPrefs } = useTheme();
-  const { playEntry, playing, dismiss } = useAdhan();
+  const { previewEntry, previewingId, stopPreview } = useAdhan();
   const [picking, setPicking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -74,11 +74,13 @@ export default function AdhanScreen() {
         contentContainerStyle={styles.list}
         ListHeaderComponent={
           <Text style={[styles.intro, { color: palette.textMuted }]}>
-            Tap a recording to use it at prayer time. Tap play to hear it — that changes nothing.
+            Tap a recording to use it at prayer time. Tap play to hear it — that changes nothing, and
+            tapping it again stops.
           </Text>
         }
         renderItem={({ item }) => {
           const active = item.id === selected?.id;
+          const sounding = item.id === previewingId;
           return (
             <View
               style={[
@@ -121,14 +123,19 @@ export default function AdhanScreen() {
                 </Pressable>
               )}
 
+              {/**
+                * The button is the whole interface: it plays, it shows that it is
+                * playing, and pressing it again stops. No banner over the top —
+                * the user is looking straight at the control they just pressed.
+                */}
               <Pressable
-                onPress={() => (playing ? dismiss() : playEntry(item, 'Fajr'))}
+                onPress={() => (sounding ? stopPreview() : previewEntry(item))}
                 hitSlop={8}
                 accessibilityRole="button"
-                accessibilityLabel={playing ? 'Stop' : `Play ${item.name}`}
+                accessibilityLabel={sounding ? `Stop ${item.name}` : `Play ${item.name}`}
                 style={[styles.action, styles.play, { borderColor: palette.primary }]}
               >
-                <Ionicons name={playing ? 'stop' : 'play'} size={18} color={palette.primary} />
+                <Ionicons name={sounding ? 'stop' : 'play'} size={18} color={palette.primary} />
               </Pressable>
             </View>
           );

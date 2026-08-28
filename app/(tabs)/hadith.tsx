@@ -113,13 +113,6 @@ export default function HadithTab() {
               <Ionicons name="chevron-forward" size={20} color={palette.accent} />
             </Pressable>
           }
-          ListFooterComponent={
-            <Text style={[styles.note, { color: palette.textMuted }]}>
-              Only the two Sahih collections are included. Their contents are accepted as authentic
-              essentially in full, so nothing here depends on this app grading a narration. Each hadith
-              shows its collection and number so you can check it against a printed copy.
-            </Text>
-          }
         />
       )}
     </View>
@@ -153,6 +146,5 @@ const styles = StyleSheet.create({
   cardArabic: { fontFamily: 'Amiri_700Bold', fontSize: 22, writingDirection: 'rtl' },
   cardTitle: { fontSize: 15, fontWeight: '700' },
   cardMeta: { fontSize: 11 },
-  note: { fontSize: 11, lineHeight: 17, marginTop: space.md },
   empty: { textAlign: 'center', fontSize: 13, padding: space.lg },
 });
