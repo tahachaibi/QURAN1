@@ -15,6 +15,8 @@ import {
   ayahStartWord,
   ayahWordRange,
   globalAyahOf,
+  hizbOf,
+  hizbStart,
   juzStart,
   pageOf,
   pageStartWord,
@@ -24,6 +26,7 @@ import {
   surahStartWord,
   surahWordRange,
   TOTAL_AYAHS,
+  TOTAL_HIZB,
   TOTAL_PAGES,
   TOTAL_SURAHS,
   TOTAL_WORDS,
@@ -214,4 +217,71 @@ describe('juz jump targets', () => {
 const pick = (s: { surah: number; ayah: number }): { surah: number; ayah: number } => ({
   surah: s.surah,
   ayah: s.ayah,
+});
+
+/**
+ * The sixty hizb.
+ *
+ * The references were supplied by hand and could not be derived from anything the
+ * app had, so the tests are the reason to believe them. The strongest one is not
+ * a spot check: every odd hizb must land exactly on a juz start, and juz starts
+ * come from the juz number stored on every ayah — a completely separate path
+ * through the data. Thirty agreements is not something a mistyped list produces.
+ */
+describe('hizb', () => {
+  it('has all sixty, strictly increasing from the first word of the Quran', () => {
+    expect(TOTAL_HIZB).toBe(60);
+    expect(hizbStart(1).word).toBe(0);
+    for (let h = 2; h <= TOTAL_HIZB; h++) {
+      expect(hizbStart(h).word).toBeGreaterThan(hizbStart(h - 1).word);
+    }
+  });
+
+  it('starts every odd hizb exactly where the corresponding juz starts', () => {
+    for (let juz = 1; juz <= 30; juz++) {
+      const hizb = hizbStart(juz * 2 - 1);
+      const start = juzStart(juz);
+      expect({ surah: hizb.surah, ayah: hizb.ayah, word: hizb.word }).toEqual({
+        surah: start.surah,
+        ayah: start.ayah,
+        word: start.word,
+      });
+    }
+  });
+
+  it('puts every even hizb strictly inside its juz', () => {
+    for (let juz = 1; juz <= 30; juz++) {
+      const half = hizbStart(juz * 2);
+      expect(half.word).toBeGreaterThan(juzStart(juz).word);
+      if (juz < 30) expect(half.word).toBeLessThan(juzStart(juz + 1).word);
+    }
+  });
+
+  it('points at an ayah that exists, on the page that ayah is on', () => {
+    for (let h = 1; h <= TOTAL_HIZB; h++) {
+      const start = hizbStart(h);
+      const ayah = ayahAt(start.surah, start.ayah);
+      expect(ayah.text.length).toBeGreaterThan(0);
+      expect(start.page).toBe(ayah.page);
+      expect(wordIndexOf(start.surah, start.ayah)).toBe(start.word);
+    }
+  });
+
+  it('spreads about ten mushaf pages to a hizb, as the print does', () => {
+    // Not a boundary check — a shape check. Sixty hizb over 604 pages is ten
+    // each, and a list with a transposed reference would not keep that shape.
+    for (let h = 1; h <= TOTAL_HIZB; h++) {
+      const expected = 1 + (h - 1) * 10;
+      expect(Math.abs(hizbStart(h).page - expected)).toBeLessThanOrEqual(12);
+    }
+  });
+
+  it('answers which hizb a word is in', () => {
+    expect(hizbOf(0)).toBe(1);
+    for (let h = 1; h <= TOTAL_HIZB; h++) {
+      expect(hizbOf(hizbStart(h).word)).toBe(h);
+      expect(hizbOf(hizbStart(h).word + 1)).toBe(h);
+      if (h > 1) expect(hizbOf(hizbStart(h).word - 1)).toBe(h - 1);
+    }
+  });
 });

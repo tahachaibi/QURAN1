@@ -8,6 +8,7 @@
 import { tokenizeAyah } from '../engine/normalize';
 import rawData from '../assets/quran-data.json';
 import rawWords from '../assets/quran-words.json';
+import hizbRaw from '../assets/hizb.json';
 
 export type SurahType = 'meccan' | 'medinan';
 
@@ -30,6 +31,7 @@ export const TOTAL_AYAHS = 6236;
 export const TOTAL_SURAHS = 114;
 export const TOTAL_PAGES = 604;
 export const TOTAL_JUZ = 30;
+export const TOTAL_HIZB = 60;
 
 /** Every normalized word in the Quran, in order. The cursor indexes this. */
 export const words: string[] = WORDS_RAW.words.split(' ');
@@ -280,3 +282,48 @@ export const juzStart = (jz: number): { surah: number; ayah: number; page: numbe
   JUZ_START[clampJuz(jz) - 1];
 
 export const juzStartPage = (jz: number): number => juzStart(jz).page;
+
+// ---------------------------------------------------------------------------
+// hizb (§ navigation)
+// ---------------------------------------------------------------------------
+
+/**
+ * The sixty hizb starts.
+ *
+ * Supplied by hand and then verified by scripts/gen-hizb.mjs against this very
+ * table: every odd hizb has to land exactly on a juz start derived from the juz
+ * number stored on each ayah, every even one strictly inside its juz, and every
+ * supplied opening has to match the mushaf text at that ayah. The build fails
+ * otherwise, which is the only reason this file can be trusted at all — the
+ * boundaries are in no data the app had.
+ */
+const HIZB = (
+  hizbRaw as unknown as {
+    hizb: { hizb: number; surah: number; ayah: number; word: number; page: number; juz: number }[];
+  }
+).hizb;
+
+export interface HizbStart {
+  hizb: number;
+  surah: number;
+  ayah: number;
+  word: number;
+  page: number;
+  juz: number;
+}
+
+export function hizbStart(hizb: number): HizbStart {
+  const found = HIZB[Math.max(1, Math.min(TOTAL_HIZB, Math.round(hizb))) - 1];
+  if (found === undefined) throw new Error(`no hizb ${hizb}`);
+  return found;
+}
+
+/** Which hizb a word belongs to, for showing where the reader is. */
+export function hizbOf(word: number): number {
+  let answer = 1;
+  for (const entry of HIZB) {
+    if (entry.word <= word) answer = entry.hizb;
+    else break;
+  }
+  return answer;
+}

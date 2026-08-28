@@ -1,0 +1,484 @@
+{
+ "hizb": [
+  {
+   "hizb": 1,
+   "surah": 1,
+   "ayah": 1,
+   "word": 0,
+   "page": 1,
+   "juz": 1
+  },
+  {
+   "hizb": 2,
+   "surah": 2,
+   "ayah": 75,
+   "word": 1196,
+   "page": 11,
+   "juz": 1
+  },
+  {
+   "hizb": 3,
+   "surah": 2,
+   "ayah": 142,
+   "word": 2522,
+   "page": 22,
+   "juz": 2
+  },
+  {
+   "hizb": 4,
+   "surah": 2,
+   "ayah": 203,
+   "word": 3813,
+   "page": 32,
+   "juz": 2
+  },
+  {
+   "hizb": 5,
+   "surah": 2,
+   "ayah": 253,
+   "word": 5101,
+   "page": 42,
+   "juz": 3
+  },
+  {
+   "hizb": 6,
+   "surah": 3,
+   "ayah": 15,
+   "word": 6373,
+   "page": 51,
+   "juz": 3
+  },
+  {
+   "hizb": 7,
+   "surah": 3,
+   "ayah": 93,
+   "word": 7723,
+   "page": 62,
+   "juz": 4
+  },
+  {
+   "hizb": 8,
+   "surah": 3,
+   "ayah": 171,
+   "word": 9078,
+   "page": 72,
+   "juz": 4
+  },
+  {
+   "hizb": 9,
+   "surah": 4,
+   "ayah": 24,
+   "word": 10229,
+   "page": 82,
+   "juz": 5
+  },
+  {
+   "hizb": 10,
+   "surah": 4,
+   "ayah": 88,
+   "word": 11539,
+   "page": 92,
+   "juz": 5
+  },
+  {
+   "hizb": 11,
+   "surah": 4,
+   "ayah": 148,
+   "word": 12808,
+   "page": 102,
+   "juz": 6
+  },
+  {
+   "hizb": 12,
+   "surah": 5,
+   "ayah": 27,
+   "word": 14090,
+   "page": 112,
+   "juz": 6
+  },
+  {
+   "hizb": 13,
+   "surah": 5,
+   "ayah": 82,
+   "word": 15311,
+   "page": 121,
+   "juz": 7
+  },
+  {
+   "hizb": 14,
+   "surah": 6,
+   "ayah": 36,
+   "word": 16737,
+   "page": 132,
+   "juz": 7
+  },
+  {
+   "hizb": 15,
+   "surah": 6,
+   "ayah": 111,
+   "word": 18085,
+   "page": 142,
+   "juz": 8
+  },
+  {
+   "hizb": 16,
+   "surah": 7,
+   "ayah": 1,
+   "word": 19228,
+   "page": 151,
+   "juz": 8
+  },
+  {
+   "hizb": 17,
+   "surah": 7,
+   "ayah": 88,
+   "word": 20651,
+   "page": 162,
+   "juz": 9
+  },
+  {
+   "hizb": 18,
+   "surah": 7,
+   "ayah": 171,
+   "word": 22017,
+   "page": 173,
+   "juz": 9
+  },
+  {
+   "hizb": 19,
+   "surah": 8,
+   "ayah": 41,
+   "word": 23138,
+   "page": 182,
+   "juz": 10
+  },
+  {
+   "hizb": 20,
+   "surah": 9,
+   "ayah": 34,
+   "word": 24397,
+   "page": 192,
+   "juz": 10
+  },
+  {
+   "hizb": 21,
+   "surah": 9,
+   "ayah": 93,
+   "word": 25527,
+   "page": 201,
+   "juz": 11
+  },
+  {
+   "hizb": 22,
+   "surah": 10,
+   "ayah": 26,
+   "word": 26802,
+   "page": 212,
+   "juz": 11
+  },
+  {
+   "hizb": 23,
+   "surah": 11,
+   "ayah": 6,
+   "word": 28184,
+   "page": 222,
+   "juz": 12
+  },
+  {
+   "hizb": 24,
+   "surah": 11,
+   "ayah": 84,
+   "word": 29459,
+   "page": 231,
+   "juz": 12
+  },
+  {
+   "hizb": 25,
+   "surah": 12,
+   "ayah": 53,
+   "word": 30877,
+   "page": 242,
+   "juz": 13
+  },
+  {
+   "hizb": 26,
+   "surah": 13,
+   "ayah": 19,
+   "word": 32208,
+   "page": 252,
+   "juz": 13
+  },
+  {
+   "hizb": 27,
+   "surah": 15,
+   "ayah": 1,
+   "word": 33491,
+   "page": 262,
+   "juz": 14
+  },
+  {
+   "hizb": 28,
+   "surah": 16,
+   "ayah": 51,
+   "word": 34797,
+   "page": 272,
+   "juz": 14
+  },
+  {
+   "hizb": 29,
+   "surah": 17,
+   "ayah": 1,
+   "word": 35990,
+   "page": 282,
+   "juz": 15
+  },
+  {
+   "hizb": 30,
+   "surah": 17,
+   "ayah": 99,
+   "word": 37361,
+   "page": 292,
+   "juz": 15
+  },
+  {
+   "hizb": 31,
+   "surah": 18,
+   "ayah": 75,
+   "word": 38674,
+   "page": 302,
+   "juz": 16
+  },
+  {
+   "hizb": 32,
+   "surah": 20,
+   "ayah": 1,
+   "word": 40086,
+   "page": 312,
+   "juz": 16
+  },
+  {
+   "hizb": 33,
+   "surah": 21,
+   "ayah": 1,
+   "word": 41421,
+   "page": 322,
+   "juz": 17
+  },
+  {
+   "hizb": 34,
+   "surah": 22,
+   "ayah": 1,
+   "word": 42590,
+   "page": 332,
+   "juz": 17
+  },
+  {
+   "hizb": 35,
+   "surah": 23,
+   "ayah": 1,
+   "word": 43864,
+   "page": 342,
+   "juz": 18
+  },
+  {
+   "hizb": 36,
+   "surah": 24,
+   "ayah": 21,
+   "word": 45196,
+   "page": 352,
+   "juz": 18
+  },
+  {
+   "hizb": 37,
+   "surah": 25,
+   "ayah": 21,
+   "word": 46505,
+   "page": 362,
+   "juz": 19
+  },
+  {
+   "hizb": 38,
+   "surah": 26,
+   "ayah": 111,
+   "word": 47785,
+   "page": 371,
+   "juz": 19
+  },
+  {
+   "hizb": 39,
+   "surah": 27,
+   "ayah": 56,
+   "word": 49116,
+   "page": 382,
+   "juz": 20
+  },
+  {
+   "hizb": 40,
+   "surah": 28,
+   "ayah": 51,
+   "word": 50419,
+   "page": 392,
+   "juz": 20
+  },
+  {
+   "hizb": 41,
+   "surah": 29,
+   "ayah": 46,
+   "word": 51670,
+   "page": 402,
+   "juz": 21
+  },
+  {
+   "hizb": 42,
+   "surah": 31,
+   "ayah": 22,
+   "word": 53128,
+   "page": 413,
+   "juz": 21
+  },
+  {
+   "hizb": 43,
+   "surah": 33,
+   "ayah": 31,
+   "word": 54252,
+   "page": 422,
+   "juz": 22
+  },
+  {
+   "hizb": 44,
+   "surah": 34,
+   "ayah": 24,
+   "word": 55441,
+   "page": 431,
+   "juz": 22
+  },
+  {
+   "hizb": 45,
+   "surah": 36,
+   "ayah": 28,
+   "word": 56890,
+   "page": 442,
+   "juz": 23
+  },
+  {
+   "hizb": 46,
+   "surah": 37,
+   "ayah": 145,
+   "word": 58100,
+   "page": 451,
+   "juz": 23
+  },
+  {
+   "hizb": 47,
+   "surah": 39,
+   "ayah": 32,
+   "word": 59517,
+   "page": 462,
+   "juz": 24
+  },
+  {
+   "hizb": 48,
+   "surah": 40,
+   "ayah": 41,
+   "word": 60777,
+   "page": 472,
+   "juz": 24
+  },
+  {
+   "hizb": 49,
+   "surah": 41,
+   "ayah": 47,
+   "word": 62037,
+   "page": 482,
+   "juz": 25
+  },
+  {
+   "hizb": 50,
+   "surah": 43,
+   "ayah": 24,
+   "word": 63258,
+   "page": 491,
+   "juz": 25
+  },
+  {
+   "hizb": 51,
+   "surah": 46,
+   "ayah": 1,
+   "word": 64705,
+   "page": 502,
+   "juz": 26
+  },
+  {
+   "hizb": 52,
+   "surah": 48,
+   "ayah": 18,
+   "word": 66182,
+   "page": 513,
+   "juz": 26
+  },
+  {
+   "hizb": 53,
+   "surah": 51,
+   "ayah": 31,
+   "word": 67317,
+   "page": 522,
+   "juz": 27
+  },
+  {
+   "hizb": 54,
+   "surah": 55,
+   "ayah": 1,
+   "word": 68541,
+   "page": 531,
+   "juz": 27
+  },
+  {
+   "hizb": 55,
+   "surah": 58,
+   "ayah": 1,
+   "word": 69845,
+   "page": 542,
+   "juz": 28
+  },
+  {
+   "hizb": 56,
+   "surah": 62,
+   "ayah": 1,
+   "word": 71331,
+   "page": 553,
+   "juz": 28
+  },
+  {
+   "hizb": 57,
+   "surah": 67,
+   "ayah": 1,
+   "word": 72463,
+   "page": 562,
+   "juz": 29
+  },
+  {
+   "hizb": 58,
+   "surah": 72,
+   "ayah": 1,
+   "word": 73797,
+   "page": 572,
+   "juz": 29
+  },
+  {
+   "hizb": 59,
+   "surah": 78,
+   "ayah": 1,
+   "word": 75124,
+   "page": 582,
+   "juz": 30
+  },
+  {
+   "hizb": 60,
+   "surah": 87,
+   "ayah": 1,
+   "word": 76239,
+   "page": 591,
+   "juz": 30
+  }
+ ]
+}

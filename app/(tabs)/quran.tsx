@@ -7,7 +7,16 @@ import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-na
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-import { ayahByGlobal, globalAyahOf, juzStart, surahs, TOTAL_JUZ, type SurahInfo } from '../../src/data/quran';
+import {
+  ayahByGlobal,
+  globalAyahOf,
+  hizbStart,
+  juzStart,
+  surahs,
+  TOTAL_HIZB,
+  TOTAL_JUZ,
+  type SurahInfo,
+} from '../../src/data/quran';
 import { lastPosition } from '../../src/data/storage';
 import { useRecitation } from '../../src/context/RecitationProvider';
 import { useTheme } from '../../src/theme/ThemeProvider';
@@ -111,6 +120,12 @@ export default function QuranScreen() {
               setViewedPage(start.page);
               open(start.surah, start.ayah);
             }}
+            onJumpHizb={(hizb) => {
+              const start = hizbStart(hizb);
+              seekTo(start.word);
+              setViewedPage(start.page);
+              open(start.surah, start.ayah);
+            }}
             palette={palette}
           />
         }
@@ -136,9 +151,11 @@ function describe(cursor: number): string {
  */
 function GoToRow({
   onJumpJuz,
+  onJumpHizb,
   palette,
 }: {
   onJumpJuz: (juz: number) => void;
+  onJumpHizb: (hizb: number) => void;
   palette: Palette;
 }) {
   const [open, setOpen] = useState<'juz' | 'hizb' | null>(null);
@@ -175,23 +192,15 @@ function GoToRow({
       ) : null}
 
       {open === 'hizb' ? (
-        /**
-         * Honest empty state. The sixty hizb boundaries are a fixed list of
-         * ayah references and they are not in this app's data: the bundled text
-         * carries juz on every ayah but no hizb, the QUL layout database has
-         * only pages and lines, and the ۞ markers in the text are incomplete —
-         * 199 where 239 would be needed, thinning to one in the last juz. A
-         * boundary guessed from half a juz would send someone to the wrong ayah
-         * with total confidence, which is worse than a button that says what it
-         * is missing.
-         */
-        <View style={[styles.panel, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-          <Text style={[styles.panelNote, { color: palette.textMuted }]}>
-            The hizb boundaries are not in the app&apos;s data yet — the bundled text marks juz on
-            every ayah but not hizb. Send the list of the 60 hizb (each one&apos;s surah and ayah) and
-            this will work exactly like the juz field.
-          </Text>
-        </View>
+        <NumberPanel
+          placeholder={`Hizb number, 1 to ${TOTAL_HIZB}`}
+          max={TOTAL_HIZB}
+          onGo={(n) => {
+            setOpen(null);
+            onJumpHizb(n);
+          }}
+          palette={palette}
+        />
       ) : null}
     </View>
   );
