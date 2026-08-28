@@ -140,6 +140,88 @@ export default function PrayerScreen() {
         </View>
       ) : null}
 
+      {day !== null
+        ? PRAYERS.map((prayer) => {
+            const raw = day.timings[prayer] ?? '--:--';
+            const at = parseTime(raw, new Date(now));
+            const past = at.getTime() < now;
+            const isNext = next !== null && !next.tomorrow && next.name === prayer;
+            /**
+             * Read-only, deliberately. These rows used to be check-offs feeding a
+             * prayer streak; the tracker is about the Qur'an, and a checkbox on a
+             * prayer invites the app to keep score of someone's worship. What the
+             * row owes the reader is which prayer is next and what time it is.
+             */
+            return (
+              <View
+                key={prayer}
+                // NOT `accessible`: the row now contains a button, and collapsing
+                // it into one node would make the bell unreachable by screen
+                // reader. The texts inside carry their own labels.
+                accessibilityLabel={`${prayer} at ${raw.trim().slice(0, 5)}${isNext ? ', next' : past ? ', passed' : ''}`}
+                style={[
+                  styles.row,
+                  {
+                    backgroundColor: isNext ? palette.successSoft : palette.surface,
+                    borderColor: isNext ? palette.success : palette.border,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name={isNext ? 'arrow-forward-circle' : past ? 'checkmark-done-outline' : 'time-outline'}
+                  size={20}
+                  color={isNext ? palette.success : palette.textMuted}
+                />
+                <Text
+                  style={[
+                    styles.rowName,
+                    { color: past && !isNext ? palette.textMuted : palette.text },
+                  ]}
+                >
+                  {prayer}
+                </Text>
+                <Text style={[styles.rowArabic, { color: palette.textMuted }]}>
+                  {PRAYER_ARABIC[prayer]}
+                </Text>
+                <Text style={[styles.rowTime, { color: palette.text }]}>{raw.trim().slice(0, 5)}</Text>
+
+                {/**
+                  * The bell decides whether this prayer is HEARD, not whether it
+                  * is announced: with it off the banner and the notification still
+                  * appear, silently. Placed at the end of the row so the eye reads
+                  * name, then time, then the one thing that is a control.
+                  */}
+                <Pressable
+                  onPress={() =>
+                    setPrefs({
+                      bells: { ...prefs.bells, [prayer]: prefs.bells[prayer] === false },
+                    })
+                  }
+                  hitSlop={10}
+                  accessibilityRole="switch"
+                  accessibilityState={{ checked: prefs.bells[prayer] !== false }}
+                  accessibilityLabel={`Adhan sound for ${prayer}`}
+                  accessibilityHint={
+                    prefs.bells[prayer] === false
+                      ? 'Currently silent. Tap to hear the adhan at this prayer.'
+                      : 'Currently sounds the adhan. Tap to make it silent.'
+                  }
+                  style={styles.bell}
+                >
+                  <Ionicons
+                    name={prefs.bells[prayer] === false ? 'notifications-off-outline' : 'notifications'}
+                    size={20}
+                    color={prefs.bells[prayer] === false ? palette.textMuted : palette.accent}
+                  />
+                </Pressable>
+              </View>
+            );
+          })
+        : null}
+
+      {/* The times first, then everything that configures them. Somebody opening
+          this tab wants to know when the next prayer is, and settings stacked above
+          the answer push the answer off the screen. */}
       {day !== null ? (
         <View style={[styles.notifyCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
           <Toggle
@@ -298,85 +380,6 @@ export default function PrayerScreen() {
           ) : null}
         </View>
       ) : null}
-
-      {day !== null
-        ? PRAYERS.map((prayer) => {
-            const raw = day.timings[prayer] ?? '--:--';
-            const at = parseTime(raw, new Date(now));
-            const past = at.getTime() < now;
-            const isNext = next !== null && !next.tomorrow && next.name === prayer;
-            /**
-             * Read-only, deliberately. These rows used to be check-offs feeding a
-             * prayer streak; the tracker is about the Qur'an, and a checkbox on a
-             * prayer invites the app to keep score of someone's worship. What the
-             * row owes the reader is which prayer is next and what time it is.
-             */
-            return (
-              <View
-                key={prayer}
-                // NOT `accessible`: the row now contains a button, and collapsing
-                // it into one node would make the bell unreachable by screen
-                // reader. The texts inside carry their own labels.
-                accessibilityLabel={`${prayer} at ${raw.trim().slice(0, 5)}${isNext ? ', next' : past ? ', passed' : ''}`}
-                style={[
-                  styles.row,
-                  {
-                    backgroundColor: isNext ? palette.successSoft : palette.surface,
-                    borderColor: isNext ? palette.success : palette.border,
-                  },
-                ]}
-              >
-                <Ionicons
-                  name={isNext ? 'arrow-forward-circle' : past ? 'checkmark-done-outline' : 'time-outline'}
-                  size={20}
-                  color={isNext ? palette.success : palette.textMuted}
-                />
-                <Text
-                  style={[
-                    styles.rowName,
-                    { color: past && !isNext ? palette.textMuted : palette.text },
-                  ]}
-                >
-                  {prayer}
-                </Text>
-                <Text style={[styles.rowArabic, { color: palette.textMuted }]}>
-                  {PRAYER_ARABIC[prayer]}
-                </Text>
-                <Text style={[styles.rowTime, { color: palette.text }]}>{raw.trim().slice(0, 5)}</Text>
-
-                {/**
-                  * The bell decides whether this prayer is HEARD, not whether it
-                  * is announced: with it off the banner and the notification still
-                  * appear, silently. Placed at the end of the row so the eye reads
-                  * name, then time, then the one thing that is a control.
-                  */}
-                <Pressable
-                  onPress={() =>
-                    setPrefs({
-                      bells: { ...prefs.bells, [prayer]: prefs.bells[prayer] === false },
-                    })
-                  }
-                  hitSlop={10}
-                  accessibilityRole="switch"
-                  accessibilityState={{ checked: prefs.bells[prayer] !== false }}
-                  accessibilityLabel={`Adhan sound for ${prayer}`}
-                  accessibilityHint={
-                    prefs.bells[prayer] === false
-                      ? 'Currently silent. Tap to hear the adhan at this prayer.'
-                      : 'Currently sounds the adhan. Tap to make it silent.'
-                  }
-                  style={styles.bell}
-                >
-                  <Ionicons
-                    name={prefs.bells[prayer] === false ? 'notifications-off-outline' : 'notifications'}
-                    size={20}
-                    color={prefs.bells[prayer] === false ? palette.textMuted : palette.accent}
-                  />
-                </Pressable>
-              </View>
-            );
-          })
-        : null}
     </ScrollView>
   );
 }

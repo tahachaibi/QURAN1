@@ -41,6 +41,22 @@ export default function HadithTab() {
           <Text style={[styles.cardMeta, { color: palette.textMuted }]}>
             {item.englishAuthor} · {item.total.toLocaleString()} hadith · {item.chapters.length} books
           </Text>
+          {/**
+            * One word, and it is the only claim this app makes about strength.
+            *
+            * The two Sahihs are accepted as authentic throughout; the four Sunan
+            * hold sahih, hasan and da'if side by side and arrive with no grading
+            * field at all. Saying which is which at the level of the book is
+            * honest; saying nothing would let the shelf imply they are equivalent.
+            */}
+          <Text
+            style={[
+              styles.cardGrade,
+              { color: item.sahih ? palette.success : palette.textMuted },
+            ]}
+          >
+            {item.sahih ? 'Sahih throughout' : 'Mixed strength — check the number against a graded reference'}
+          </Text>
         </View>
         <Ionicons name="chevron-forward" size={20} color={palette.textMuted} />
       </Pressable>
@@ -55,7 +71,7 @@ export default function HadithTab() {
         <TextInput
           value={query}
           onChangeText={setQuery}
-          placeholder="Search both collections, Arabic or English"
+          placeholder="Search all six books, Arabic or English"
           placeholderTextColor={palette.textMuted}
           style={[styles.searchInput, { color: palette.text }]}
           accessibilityLabel="Search hadith"
@@ -79,7 +95,7 @@ export default function HadithTab() {
           initialNumToRender={6}
           ListEmptyComponent={
             <Text style={[styles.empty, { color: palette.textMuted }]}>
-              Nothing matches that in Bukhari or Muslim.
+              Nothing matches that in any of the six books.
             </Text>
           }
         />
@@ -146,5 +162,6 @@ const styles = StyleSheet.create({
   cardArabic: { fontFamily: 'Amiri_700Bold', fontSize: 22, writingDirection: 'rtl' },
   cardTitle: { fontSize: 15, fontWeight: '700' },
   cardMeta: { fontSize: 11 },
+  cardGrade: { fontSize: 10, marginTop: 3, fontWeight: '600' },
   empty: { textAlign: 'center', fontSize: 13, padding: space.lg },
 });

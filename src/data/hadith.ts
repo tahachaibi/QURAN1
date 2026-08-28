@@ -1,16 +1,21 @@
 /**
- * Hadith: Sahih al-Bukhari and Sahih Muslim, Arabic with the English underneath.
+ * Hadith: all six books, Arabic with the English underneath.
  *
- * WHY ONLY THESE TWO. The brief was hadith that are authentic. Bukhari and Muslim
- * are the collections the scholarly tradition accepts as authentic essentially in
- * their entirety, so restricting to them answers that without this code grading
- * individual narrations — which is a scholar's work, not a program's. The other
- * books of the six carry sahih, hasan and da'if side by side. Every hadith here
- * shows its collection and its number, so any of it can be checked against a
- * printed copy.
+ * WHAT THE TWO GROUPS ARE, because the difference is not decoration. Bukhari and
+ * Muslim are accepted by the scholarly tradition as authentic essentially in their
+ * entirety, so showing them promises authenticity without this code grading a
+ * narration — which is a scholar's work, not a program's. The four Sunan hold
+ * sahih, hasan and da'if side by side, deliberately, and the dataset they come
+ * from carries NO grading field: `grades` is null on all 19,441 of their rows.
  *
- * LOADING. The index — collections, chapter names, counts — is 11 KB and is
- * imported eagerly. The text is 21.8 MB and is `require`d lazily per collection:
+ * So `sahih` on a collection is the only claim this app makes, and it makes it at
+ * the level of the book rather than the narration. Every hadith shows its
+ * collection and its number, which is what lets anything here be checked against
+ * a printed copy or a graded reference — the honest limit of what the data
+ * supports.
+ *
+ * LOADING. The index — collections, chapter names, counts — is 26 KB and is
+ * imported eagerly. The text is 48 MB and is `require`d lazily per collection:
  * Metro runs a module's factory on first require, so nothing is materialised
  * until someone actually opens a collection.
  */
@@ -19,7 +24,7 @@ import rawIndex from '../assets/hadith-index.json';
 /** [chapterId, arabicName, englishName, count] */
 type ChapterRow = [number, string, string, number];
 /** [id, arTitle, enTitle, arAuthor, enAuthor, chapters] */
-type CollectionRow = [number, string, string, string, string, ChapterRow[]];
+type CollectionRow = [number, string, string, string, string, ChapterRow[], number];
 /** [chapterId, numberInBook, arabic, narrator, english] */
 type HadithRow = [number, number, string, string, string];
 
@@ -34,6 +39,14 @@ export interface HadithChapter {
 }
 
 export interface HadithCollection {
+  /**
+   * True for the two Sahihs, which the tradition accepts as authentic throughout.
+   *
+   * False for the four Sunan, which hold sahih, hasan and da'if side by side and
+   * arrive here with no grading field at all. The UI uses this to avoid implying
+   * a strength the data cannot support.
+   */
+  sahih: boolean;
   id: number;
   arabicTitle: string;
   englishTitle: string;
@@ -63,6 +76,7 @@ export const collections: readonly HadithCollection[] = INDEX.map((row) => {
   }));
   return {
     id: row[0],
+    sahih: row[6] === 1,
     arabicTitle: row[1],
     englishTitle: row[2],
     arabicAuthor: row[3],
@@ -92,6 +106,12 @@ function rowsOf(collectionId: number): HadithRow[] {
   const cached = loaded.get(collectionId);
   if (cached !== undefined) return cached;
   let rows: HadithRow[];
+  /**
+   * A switch of literal requires, not a template path.
+   *
+   * Metro resolves require() at build time, so `require(\`../assets/hadith-${id}.json\`)`
+   * would resolve to nothing at all. Each file has to be named.
+   */
   switch (collectionId) {
     case 1:
       rows = require('../assets/hadith-1.json') as HadithRow[];
@@ -99,8 +119,20 @@ function rowsOf(collectionId: number): HadithRow[] {
     case 2:
       rows = require('../assets/hadith-2.json') as HadithRow[];
       break;
+    case 3:
+      rows = require('../assets/hadith-3.json') as HadithRow[];
+      break;
+    case 4:
+      rows = require('../assets/hadith-4.json') as HadithRow[];
+      break;
+    case 5:
+      rows = require('../assets/hadith-5.json') as HadithRow[];
+      break;
+    case 6:
+      rows = require('../assets/hadith-6.json') as HadithRow[];
+      break;
     default:
-      rows = [];
+      return [];
   }
   loaded.set(collectionId, rows);
   return rows;
@@ -181,19 +213,37 @@ export function searchHadith(query: string, options: HadithSearchOptions = {}): 
     options.collectionId === undefined ? collections.map((c) => c.id) : [options.collectionId];
 
   const out: Hadith[] = [];
-  for (const id of ids) {
-    for (const row of rowsOf(id)) {
-      if (
-        foldArabic(row[2]).includes(arabicNeedle) ||
-        row[4].toLowerCase().includes(englishNeedle) ||
-        row[3].toLowerCase().includes(englishNeedle)
-      ) {
-        out.push(toHadith(id, row));
-        if (out.length >= limit) return out;
+  /**
+   * Searching every book means opening every book, and there are 48 MB of them.
+   *
+   * A common word stops at the limit and only ever touches the first collection.
+   * A rare one walks all six — and without this, all six would then stay resident
+   * for the rest of the session because one search asked a question of them. So
+   * anything opened BY this search and found to contain nothing is released
+   * again. Results keep the strings they matched; it is the row arrays that go.
+   */
+  const openedHere: number[] = [];
+  const contributed = new Set<number>();
+
+  try {
+    for (const id of ids) {
+      if (!isLoaded(id)) openedHere.push(id);
+      for (const row of rowsOf(id)) {
+        if (
+          foldArabic(row[2]).includes(arabicNeedle) ||
+          row[4].toLowerCase().includes(englishNeedle) ||
+          row[3].toLowerCase().includes(englishNeedle)
+        ) {
+          contributed.add(id);
+          out.push(toHadith(id, row));
+          if (out.length >= limit) return out;
+        }
       }
     }
+    return out;
+  } finally {
+    for (const id of openedHere) if (!contributed.has(id)) release(id);
   }
-  return out;
 }
 
 /** Filter chapters by name, for the chapter list's own search box. */

@@ -2,12 +2,20 @@
 /**
  * Builds src/assets/hadith.json from the hadith-json dataset.
  *
- * SELECTION. Only Sahih al-Bukhari and Sahih Muslim. That is a deliberate line,
- * not a shortcut: those two are the collections the scholarly tradition accepts
- * as authentic essentially in their entirety, so restricting to them answers
- * "only hadith that are authentic" without anyone — least of all this script —
- * grading individual narrations. The other books of the six contain sahih, hasan
- * and da'if side by side, and separating them is a scholar's work.
+ * SELECTION. All six books, on request: the two Sahihs and the four Sunan.
+ *
+ * That changes a property this file used to guarantee, and the change is worth
+ * stating rather than burying. Bukhari and Muslim are accepted by the scholarly
+ * tradition as authentic essentially in their entirety, so an app carrying only
+ * those two can promise authenticity without anyone — least of all this script —
+ * grading a narration. THE FOUR SUNAN DO NOT WORK THAT WAY: they hold sahih,
+ * hasan and da'if side by side, deliberately, and this dataset carries no grading
+ * field at all (`grades` is null on every row of all four). So the app cannot
+ * label strength, and it must not imply one.
+ *
+ * What it can do, and does: name the collection and the number on every single
+ * hadith, so anything shown can be looked up in a printed copy or against a
+ * graded reference. That is the honest limit of what this data supports.
  *
  * Every hadith keeps its collection and its number in that collection, so any of
  * it can be checked against a printed copy.
@@ -31,9 +39,18 @@
  */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 
+/**
+ * Ids are the dataset's own, so a hadith number in this app is the number in the
+ * source. The ORDER here is display order: the two Sahihs first, then the Sunan
+ * in the order they were asked for.
+ */
 const SOURCES = [
-  { id: 1, file: process.argv[2] ?? '/tmp/bukhari.json' },
-  { id: 2, file: process.argv[3] ?? '/tmp/muslim.json' },
+  { id: 1, file: '/tmp/bukhari.json', sahih: true },
+  { id: 2, file: '/tmp/muslim.json', sahih: true },
+  { id: 4, file: '/tmp/sunan-abudawud.json', sahih: false },
+  { id: 5, file: '/tmp/sunan-tirmidhi.json', sahih: false },
+  { id: 3, file: '/tmp/sunan-nasai.json', sahih: false },
+  { id: 6, file: '/tmp/sunan-ibnmajah.json', sahih: false },
 ];
 
 /** Collapse the runs of whitespace and stray newlines the scrape left behind. */
@@ -56,6 +73,9 @@ for (const source of SOURCES) {
     tidy(meta.arabic?.author),
     tidy(meta.english?.author),
     chapters,
+    // whether the tradition accepts this collection as authentic throughout;
+    // the UI needs it to avoid implying a strength the data cannot support
+    source.sahih ? 1 : 0,
   ]);
 
   const chapterIds = new Set(chapters.map((c) => c[0]));
