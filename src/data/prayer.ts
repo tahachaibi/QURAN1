@@ -47,6 +47,8 @@ export interface PrayerDay {
   source: string;
   /** null when the country could not be matched to an authority */
   resolved: ResolvedMethod | null;
+  /** why there is no authority, phrased for a human — null when there is one */
+  authorityNote: string | null;
   day: string;
   /** true when these came from the cache because the network was unreachable */
   fromCache: boolean;
@@ -83,14 +85,42 @@ async function whereAmI(
 /**
  * Work out whose timetable to follow, from the country, against the method list
  * the API itself publishes. Never from a number written into this app.
+ *
+ * It reports WHY when it cannot. One sentence used to cover three different
+ * failures — the phone not knowing where it is, the list of authorities not
+ * having loaded, and the country simply having no national timetable — and it
+ * only described the first. Telling somebody in Türkiye that the app cannot tell
+ * which country they are in, when the truth is that it has not downloaded the
+ * list yet, sends them to look in the wrong place.
  */
 async function resolveMethod(
   countryCode: string | null,
   countryName: string | null,
-): Promise<ResolvedMethod | null> {
-  if (countryCode === null && countryName === null) return null;
+): Promise<{ method: ResolvedMethod | null; note: string | null }> {
+  if (countryCode === null && countryName === null) {
+    return {
+      method: null,
+      note: 'Could not tell where this phone is, so these use a general calculation.',
+    };
+  }
+
   const { methods } = await fetchMethods();
-  return pickMethod(countryCode, methods, countryName);
+  if (methods.length === 0) {
+    return {
+      method: null,
+      note: 'The list of prayer-time authorities has not downloaded yet, so these use a general calculation. Connect once and it is saved.',
+    };
+  }
+
+  const method = pickMethod(countryCode, methods, countryName);
+  if (method === null) {
+    const where = countryName ?? countryCode ?? 'here';
+    return {
+      method: null,
+      note: `No national prayer timetable is published for ${where}, so these use a general calculation.`,
+    };
+  }
+  return { method, note: null };
 }
 
 export async function fetchPrayerTimes(options: PrayerOptions = {}): Promise<PrayerDay> {
@@ -126,6 +156,10 @@ export async function fetchPrayerTimes(options: PrayerOptions = {}): Promise<Pra
       fromCache: true,
       source: describeRegion(cached.city ?? null, cachedResolved(cached)),
       resolved: cachedResolved(cached),
+      authorityNote:
+        cachedResolved(cached) === null
+          ? 'Could not tell where this phone is, so these use a general calculation.'
+          : null,
       note: 'Showing your last saved times — location is unavailable right now.',
     };
   }
@@ -136,7 +170,10 @@ export async function fetchPrayerTimes(options: PrayerOptions = {}): Promise<Pra
   }
 
   const place = await whereAmI(coords);
-  const resolved = await resolveMethod(place.countryCode, place.country);
+  const { method: resolved, note: authorityNote } = await resolveMethod(
+    place.countryCode,
+    place.country,
+  );
   const method = options.method ?? resolved?.id ?? FALLBACK_METHOD;
 
   const day = today();
@@ -169,6 +206,7 @@ export async function fetchPrayerTimes(options: PrayerOptions = {}): Promise<Pra
       fromCache: false,
       source: describeRegion(place.city, resolved),
       resolved,
+      authorityNote,
       note: null,
     };
   } catch {
@@ -179,6 +217,7 @@ export async function fetchPrayerTimes(options: PrayerOptions = {}): Promise<Pra
         fromCache: true,
         source: describeRegion(cached.city ?? null, cachedResolved(cached)),
         resolved: cachedResolved(cached),
+        authorityNote: null,
         note:
           cached.day === day
             ? "You're offline — these are today's saved times."

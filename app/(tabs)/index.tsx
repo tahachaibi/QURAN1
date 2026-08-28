@@ -273,9 +273,7 @@ export default function PrayerScreen() {
               color={day.resolved === null ? palette.error : palette.textMuted}
             />
             <Text style={[styles.sourceText, { color: palette.text }]}>
-              {day.resolved === null
-                ? 'Could not tell which country you are in, so these use a general calculation.'
-                : day.source}
+              {day.resolved === null ? (day.authorityNote ?? day.source) : day.source}
             </Text>
             {/**
               * Refresh takes a NEW position reading rather than the last known
