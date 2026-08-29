@@ -21,6 +21,7 @@ import { linesOfPage, type MushafLine } from '../data/lines';
 import { ayahTextSizes, radius, space, type FontStep, type Palette } from '../theme/theme';
 import type { PageSlice } from '../hooks/usePageSlice';
 import { AyahWord, type WordState } from './AyahWord';
+import { solveScale } from './mushafFit';
 
 export interface MushafPageProps {
   page: number;
@@ -45,10 +46,15 @@ const toArabicDigits = (n: number): string =>
     .map((d) => ARABIC_DIGITS[Number(d)] ?? d)
     .join('');
 
-const MIN_SCALE = 0.3;
-const MAX_SCALE = 1.6;
 /** Slack so a rounding error cannot push the widest line past the margin. */
-const SAFETY = 0.985;
+/**
+ * Room for the measuring pass to lay a line out at its true width.
+ *
+ * Any number comfortably past the widest possible line on the widest phone. It
+ * exists so a long line is never measured against the page it has to be shrunk
+ * to fit — which is precisely how the clipping bug worked.
+ */
+const MEASURE_WIDTH = 4000;
 
 /** Converged scales, cached so revisiting a page is instant. */
 const scaleCache = new Map<string, number>();
@@ -139,9 +145,13 @@ function MushafPageImpl({
     // Widths scale linearly with font size, so the fit is exact in one step.
     let widest = 0;
     for (const w of natural.current.values()) widest = Math.max(widest, w);
-    const byWidth = widest > 0 ? box.w / widest : MAX_SCALE;
-    const byHeight = box.h / (lines.length * base.lineHeight);
-    const next = Math.max(MIN_SCALE, Math.min(MAX_SCALE, Math.min(byWidth, byHeight) * SAFETY));
+    const next = solveScale({
+      widest,
+      boxW: box.w,
+      boxH: box.h,
+      lines: lines.length,
+      lineHeight: base.lineHeight,
+    });
     scaleCache.set(scaleKey, next);
     setScale(next);
   }, [base.lineHeight, box.h, box.w, scaleKey, lines.length, measured, scale]);
@@ -251,7 +261,25 @@ function MushafPageImpl({
 
         <View style={styles.body} onLayout={onBoxLayout}>
           {scale === null ? (
-            <View>{lines.map((line, i) => renderLine(line, i, true))}</View>
+            /**
+             * The measuring pass, in a container far wider than any page and
+             * taken out of the flow.
+             *
+             * This is the whole bug it fixes. The measuring rows used to sit
+             * inside the page body, so a line WIDER than the page was laid out
+             * against the page's width and reported that width back. The widest
+             * line therefore measured as "exactly the page", the scale came out
+             * at 1, nothing was shrunk, and the surplus was clipped off the
+             * edge — invisible words on exactly the dense pages that needed
+             * shrinking most. alignSelf did not help: in a row-reverse parent it
+             * governs the vertical axis.
+             *
+             * Absolute and 4000 wide so nothing can clamp it, and transparent so
+             * the pass is never seen.
+             */
+            <View style={styles.measurePad} pointerEvents="none">
+              {lines.map((line, i) => renderLine(line, i, true))}
+            </View>
           ) : (
             <View style={styles.lines}>{lines.map((line, i) => renderLine(line, i, false))}</View>
           )}
@@ -346,7 +374,9 @@ const styles = StyleSheet.create({
   line: { flexDirection: 'row-reverse', alignItems: 'flex-end', justifyContent: 'space-between' },
   centredLine: { flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-end' },
   centredInner: { flexDirection: 'row-reverse', alignItems: 'flex-end', flexShrink: 1 },
-  measureRow: { flexDirection: 'row-reverse' },
+  /** Off the flow, wider than any phone, invisible: see the measuring pass. */
+  measurePad: { position: 'absolute', top: 0, right: 0, width: MEASURE_WIDTH, opacity: 0 },
+  measureRow: { flexDirection: 'row-reverse', width: MEASURE_WIDTH },
   naturalRow: { flexDirection: 'row-reverse', alignItems: 'flex-end', alignSelf: 'flex-start' },
   bandRow: { alignItems: 'center' },
   centeredRow: { alignItems: 'center' },
