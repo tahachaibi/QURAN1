@@ -86,6 +86,14 @@ jobs:
           java-version: 17
 
       - uses: android-actions/setup-android@v3
+        with:
+          # NOT the default 'tools platform-tools'. `tools` is the obsolete SDK
+          # Tools package, deprecated for years and now gone from Google's
+          # repository, so sdkmanager exits 1 on it and the job dies before it
+          # has seen a line of this repo — which is exactly how run 48 failed
+          # while the same commit's checks job passed. Nothing here needs it:
+          # the Gradle plugin fetches the build-tools and platforms it wants.
+          packages: platform-tools
 
       - run: npm ci
 
