@@ -21,7 +21,7 @@ import { linesOfPage, type MushafLine } from '../data/lines';
 import { ayahTextSizes, radius, space, type FontStep, type Palette } from '../theme/theme';
 import type { PageSlice } from '../hooks/usePageSlice';
 import { AyahWord, type WordState } from './AyahWord';
-import { solveScale } from './mushafFit';
+import { GUTTER, MEASURE_WIDTH, pxFont, pxLine, refine } from './mushafFit';
 
 export interface MushafPageProps {
   page: number;
@@ -46,16 +46,6 @@ const toArabicDigits = (n: number): string =>
     .map((d) => ARABIC_DIGITS[Number(d)] ?? d)
     .join('');
 
-/** Slack so a rounding error cannot push the widest line past the margin. */
-/**
- * Room for the measuring pass to lay a line out at its true width.
- *
- * Any number comfortably past the widest possible line on the widest phone. It
- * exists so a long line is never measured against the page it has to be shrunk
- * to fit — which is precisely how the clipping bug worked.
- */
-const MEASURE_WIDTH = 4000;
-
 /** Converged scales, cached so revisiting a page is instant. */
 const scaleCache = new Map<string, number>();
 
@@ -74,22 +64,49 @@ function MushafPageImpl({
   width,
 }: MushafPageProps) {
   const lines = useMemo(() => linesOfPage(page), [page]);
+  /**
+   * How many of this page's lines have a width worth measuring.
+   *
+   * A surah band is not one of them: it stretches to the page by design, so its
+   * width says nothing about how wide the page wants to be, and inside the
+   * measuring pad it would report the pad. Nor can it be counted and ignored —
+   * only its HEIGHT changes between two candidate type sizes, and a height that
+   * rounds to the same pixel fires no layout event at all, which would leave the
+   * page waiting forever for a measurement that never comes.
+   */
+  const measurable = useMemo(() => lines.filter((l) => l.kind !== 'surah').length, [lines]);
   const missedSet = useMemo(() => new Set(slice.missed), [slice.missed]);
   const recitedSet = useMemo(() => new Set(slice.recited), [slice.recited]);
 
   const base = ayahTextSizes[fontStep];
   const [box, setBox] = useState({ w: 0, h: 0 });
   /**
-   * Two keys, because they depend on different things.
+   * Three keys, because they depend on different things.
    *
-   * The natural width of a line depends only on the page and the type size, so
-   * measurements must NOT be discarded when the box changes — doing that threw
-   * away a complete set of widths the moment the container reported its size,
-   * which left the page stuck in the measuring pass on first visit.
+   * The natural width of a line depends only on the page and the type size it
+   * was measured at, so measurements must NOT be discarded when the box changes
+   * — doing that threw away a complete set of widths the moment the container
+   * reported its size, which left the page stuck in the measuring pass on first
+   * visit. They MUST be discarded when the probed size changes, since that is
+   * the thing they are widths of.
    */
-  const measureKey = `${page}:${fontStep}`;
-  const scaleKey = `${measureKey}:${Math.round(box.w)}:${Math.round(box.h)}`;
+  const sizeKey = `${page}:${fontStep}`;
+  const scaleKey = `${sizeKey}:${Math.round(box.w)}:${Math.round(box.h)}`;
   const [scale, setScale] = useState<number | null>(() => scaleCache.get(scaleKey) ?? null);
+  /**
+   * The scale currently being MEASURED, as opposed to the one being shown.
+   *
+   * A line's width is not proportional to its type size — word spacing and
+   * whole-pixel rounding don't shrink with the font — so one extrapolation from
+   * full size overshoots the margin, which is how words were still being
+   * clipped. So the candidate is measured at its own size and re-solved from
+   * there until the thing measured is the thing that fits.
+   */
+  const [probe, setProbe] = useState<number | null>(null);
+  const refinements = useRef(0);
+
+  /** widths belong to the size they were measured at, hence probe in the key */
+  const measureKey = `${sizeKey}:${probe ?? 1}`;
 
   const natural = useRef(new Map<number, number>());
   /** how many lines have reported a width; state, so the fit effect re-runs */
@@ -106,6 +123,8 @@ function MushafPageImpl({
   if (lastScaleKey.current !== scaleKey) {
     lastScaleKey.current = scaleKey;
     setScale(scaleCache.get(scaleKey) ?? null);
+    setProbe(null);
+    refinements.current = 0;
   }
 
   const onBoxLayout = useCallback((event: LayoutChangeEvent) => {
@@ -117,18 +136,20 @@ function MushafPageImpl({
     );
   }, []);
 
-  const onLineLayout = useCallback(
-    (i: number, event: LayoutChangeEvent) => {
-      const before = natural.current.size;
-      natural.current.set(i, event.nativeEvent.layout.width);
-      if (natural.current.size !== before) setMeasured(natural.current.size);
-    },
-    [],
-  );
+  const onLineWidth = useCallback((i: number, w: number) => {
+    const before = natural.current.size;
+    natural.current.set(i, w);
+    if (natural.current.size !== before) setMeasured(natural.current.size);
+  }, []);
+
+  /** the size on screen: the settled scale, or the candidate being measured */
+  const applied = scale ?? probe ?? 1;
+  const fontSize = pxFont(base.fontSize, applied);
+  const lineHeight = pxLine(base.lineHeight, applied);
 
   /**
-   * Solve the fit once the box AND every line width are known, in an effect
-   * rather than inside the layout callback.
+   * Run a round of the fit once the box AND every line width are known, in an
+   * effect rather than inside the layout callback.
    *
    * Inside the callback this was a LOST UPDATE: if all the line layouts happened
    * to fire before the body reported its box, the final callback bailed out on a
@@ -140,24 +161,33 @@ function MushafPageImpl({
   useEffect(() => {
     if (scale !== null) return;
     if (box.w <= 0 || box.h <= 0) return;
-    if (measured < lines.length) return;
+    if (measured < measurable) return;
 
-    // Widths scale linearly with font size, so the fit is exact in one step.
     let widest = 0;
     for (const w of natural.current.values()) widest = Math.max(widest, w);
-    const next = solveScale({
+
+    // `widest` was measured at the size on screen, so this asks a question
+    // about what IS rather than making a prediction about what would be.
+    const step = refine({
       widest,
       boxW: box.w,
       boxH: box.h,
       lines: lines.length,
       lineHeight: base.lineHeight,
+      fontSize: base.fontSize,
+      probe: probe ?? 1,
+      first: probe === null,
+      refinements: refinements.current,
     });
-    scaleCache.set(scaleKey, next);
-    setScale(next);
-  }, [base.lineHeight, box.h, box.w, scaleKey, lines.length, measured, scale]);
 
-  const fontSize = Math.max(8, Math.round(base.fontSize * (scale ?? 1)));
-  const lineHeight = Math.max(12, Math.round(base.lineHeight * (scale ?? 1)));
+    if (step.done) {
+      scaleCache.set(scaleKey, step.scale);
+      setScale(step.scale);
+      return;
+    }
+    refinements.current += 1;
+    setProbe(step.probe);
+  }, [base.fontSize, base.lineHeight, box.h, box.w, probe, scaleKey, lines.length, measurable, measured, scale]);
 
   const stateOf = (index: number): WordState => {
     if (missedSet.has(index)) return 'missed';
@@ -169,7 +199,10 @@ function MushafPageImpl({
   const renderLine = (line: MushafLine, i: number, measuring: boolean) => {
     if (line.kind === 'surah') {
       return (
-        <View key={`s${i}`} style={styles.bandRow} onLayout={measuring ? (e) => onLineLayout(i, e) : undefined}>
+        // Never measured — see `measurable`. Inside the 4000-wide measuring pad
+        // this row reports 4000, which as a "line width" collapses every surah
+        // page to the smallest readable type.
+        <View key={`s${i}`} style={styles.bandRow}>
           <SurahBand surah={line.surah} palette={palette} fontSize={fontSize} />
         </View>
       );
@@ -179,7 +212,7 @@ function MushafPageImpl({
         <View key={`b${i}`} style={styles.centeredRow}>
           <Text
             allowFontScaling={false}
-            onLayout={measuring ? (e) => onLineLayout(i, e) : undefined}
+            onLayout={measuring ? (e) => onLineWidth(i, e.nativeEvent.layout.width) : undefined}
             style={[styles.basmala, { color: palette.ink, fontSize, lineHeight }]}
           >
             بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ
@@ -221,7 +254,7 @@ function MushafPageImpl({
       // measured at natural width, so the scale can be solved directly
       return (
         <View key={`a${i}`} style={styles.measureRow}>
-          <View style={styles.naturalRow} onLayout={(e) => onLineLayout(i, e)}>
+          <View style={styles.naturalRow} onLayout={(e) => onLineWidth(i, e.nativeEvent.layout.width)}>
             {tokens}
           </View>
         </View>
@@ -370,7 +403,7 @@ const styles = StyleSheet.create({
   ribbonFill: { width: 3, borderRadius: 2 },
   body: { flex: 1 },
   /** the 15 lines fill the page height, as the print's do */
-  lines: { flex: 1, justifyContent: 'space-between' },
+  lines: { flex: 1, justifyContent: 'space-between', paddingHorizontal: GUTTER / 2 },
   line: { flexDirection: 'row-reverse', alignItems: 'flex-end', justifyContent: 'space-between' },
   centredLine: { flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-end' },
   centredInner: { flexDirection: 'row-reverse', alignItems: 'flex-end', flexShrink: 1 },

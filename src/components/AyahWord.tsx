@@ -81,6 +81,18 @@ function AyahWordImpl({
   const showFirstLetterOnly = hidden && hintLevel === 1 && !revealed;
   const [head, tail] = showFirstLetterOnly ? firstGrapheme(text) : ['', ''];
 
+  /**
+   * Word spacing, in proportion to the type — NOT a constant.
+   *
+   * As a fixed 4px this was width that did not shrink when the page shrank: a
+   * dense line carries ~10 words, so 80px of the line was immovable, and
+   * fitting the page by scaling the font alone always landed over the margin by
+   * 80px x (1 - scale). That is how words kept being clipped off dense pages.
+   * The proportion is chosen to land on the 4-6px it already was at the three
+   * type steps (24, 29, 34), so nothing looks different at full size.
+   */
+  const pad = Math.max(1, Math.round(fontSize * 0.18));
+
   const textColor = palette.ink;
 
   return (
@@ -95,7 +107,7 @@ function AyahWordImpl({
       accessibilityState={{ selected: state === 'current' }}
       style={styles.press}
     >
-      <View style={styles.wrap}>
+      <View style={[styles.wrap, { paddingHorizontal: pad }]}>
         {showFirstLetterOnly ? (
           // one Text node, two spans: on Android nested Text becomes a single
           // SpannableString, so the word still shapes and joins correctly
@@ -118,12 +130,12 @@ function AyahWordImpl({
         {/* current word: a gold underline that breathes with the voice, never a
             filled box over the sacred text (§6.3) */}
         {state === 'current' ? (
-          <VoiceUnderline palette={palette} level={level} reduceMotion={reduceMotion} />
+          <VoiceUnderline palette={palette} level={level} reduceMotion={reduceMotion} pad={pad} />
         ) : null}
 
         {/* a hinted word keeps a dashed gold underline as a record (§6.3) */}
         {hintLevel > 0 && state !== 'current' ? (
-          <View style={[styles.dashed, { borderColor: palette.accent }]} />
+          <View style={[styles.dashed, { borderColor: palette.accent, left: pad, right: pad }]} />
         ) : null}
 
         {/* a missed word gets a small red dot BENEATH it — no red on the text */}
@@ -149,19 +161,23 @@ const VoiceUnderline = memo(function VoiceUnderline({
   palette,
   level,
   reduceMotion,
+  pad,
 }: {
   palette: Palette;
   level: Animated.Value;
   reduceMotion: boolean;
+  pad: number;
 }) {
   if (reduceMotion) {
-    return <View style={[styles.underline, { backgroundColor: palette.accent }]} />;
+    return <View style={[styles.underline, { backgroundColor: palette.accent, left: pad, right: pad }]} />;
   }
   return (
     <Animated.View
       style={[
         styles.underline,
         {
+          left: pad,
+          right: pad,
           backgroundColor: palette.accent,
           opacity: level.interpolate({ inputRange: [0, 1], outputRange: [0.35, 1] }),
           transform: [{ scaleX: level.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }],
@@ -175,7 +191,6 @@ const styles = StyleSheet.create({
   press: {},
   wrap: {
     alignItems: 'center',
-    paddingHorizontal: 4,
   },
   word: {
     fontFamily: 'KFGQPC-Hafs',
@@ -186,16 +201,12 @@ const styles = StyleSheet.create({
   underline: {
     position: 'absolute',
     bottom: 2,
-    left: 4,
-    right: 4,
     height: 2,
     borderRadius: 1,
   },
   dashed: {
     position: 'absolute',
     bottom: 2,
-    left: 4,
-    right: 4,
     height: 0,
     borderBottomWidth: 1.5,
     borderStyle: 'dashed',
