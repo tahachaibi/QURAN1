@@ -99,9 +99,13 @@ jobs:
           # Tools package, deprecated for years and now gone from Google's
           # repository, so sdkmanager exits 1 on it and the job dies before it
           # has seen a line of this repo — which is exactly how run 48 failed
-          # while the same commit's checks job passed. Nothing here needs it:
-          # the Gradle plugin fetches the build-tools and platforms it wants.
-          packages: platform-tools
+          # while the same commit's checks job passed.
+          #
+          # build-tools is named explicitly, at the version app.json pins, so
+          # that aapt2 is GUARANTEED present rather than merely likely: two
+          # steps below verify the APK with it, and both used to exit 0 when it
+          # was missing. A verification that can silently pass is not one.
+          packages: platform-tools build-tools;35.0.0
 
       - run: npm ci
 
@@ -192,8 +196,8 @@ jobs:
           APK=android/app/build/outputs/apk/release/app-release.apk
           AAPT=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 2>/dev/null | sort | tail -1)
           if [ -z "$AAPT" ]; then
-            echo "::warning::aapt2 not found; cannot verify the merged permissions"
-            exit 0
+            echo "::error::aapt2 not found under $ANDROID_HOME/build-tools — this check cannot run, and passing without running it is how the res/raw check once reported a file present twice as missing"
+            exit 1
           fi
           "$AAPT" dump permissions "$APK" | tee /tmp/perms.txt
 
@@ -221,7 +225,7 @@ jobs:
             grep -q "android.permission.$p\b" /tmp/perms.txt \
               || { echo "::error::$p is MISSING from the APK — the feature that needs it is dead"; exit 1; }
           done
-          echo "permissions verified against the merged manifest"
+          echo "PERMISSION CHECK RAN: $(grep -c uses-permission /tmp/perms.txt) permissions in the merged manifest, all assertions passed"
 
       - name: Prove the bundled audio is actually inside the APK
         # `require()` returning an asset id proves the bundler SAW the file; it
@@ -240,8 +244,8 @@ jobs:
 
           AAPT=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 2>/dev/null | sort | tail -1)
           if [ -z "$AAPT" ]; then
-            echo "aapt2 not found; skipping the resource-name check"
-            exit 0
+            echo "::error::aapt2 not found under $ANDROID_HOME/build-tools — cannot verify the adhan actually reached the APK, and a silent skip here is indistinguishable from a pass"
+            exit 1
           fi
           echo "--- raw resources by NAME (what the runtime looks up) ---"
           "$AAPT" dump resources "$APK" | grep -oE 'raw/[A-Za-z0-9_]+' | sort -u
