@@ -36,14 +36,19 @@ import { clampOffset, describeOffsets, hasOffsets, OFFSET_LIMIT } from '../../sr
 import { selectedAdhan } from '../../src/data/adhanLibrary';
 import { useTheme } from '../../src/theme/ThemeProvider';
 import { radius, space } from '../../src/theme/theme';
-import { ADHAN_SOUND, hasAdhanSound } from '../../src/data/adhan';
-import { rescheduleAll, requestPermission } from '../../src/data/notifications';
 import { WARNING_MINUTES } from '../../src/data/prayerSchedule';
+import { useAdhan } from '../../src/context/AdhanProvider';
 
 export default function PrayerScreen() {
   const { palette, prefs, setPrefs } = useTheme();
   const router = useRouter();
-  const [notifyError, setNotifyError] = useState<string | null>(null);
+  /**
+   * Read, not owned. Scheduling moved to AdhanProvider, which is mounted above
+   * the router — this screen used to be the ONLY caller of rescheduleAll, and
+   * the app does not open here, so a user who never pressed Prayer had no call
+   * to prayer scheduled and nothing telling them so.
+   */
+  const { scheduleError } = useAdhan();
   const [day, setDay] = useState<PrayerDay | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -67,37 +72,6 @@ export default function PrayerScreen() {
   useEffect(() => {
     void load();
   }, [load]);
-
-  /**
-   * Rebuild the schedule whenever the times or the switches change. Rescheduling
-   * cancels everything first, so this is idempotent — running it again after a
-   * refresh cannot pile up duplicate alarms.
-   */
-  useEffect(() => {
-    if (day === null) return;
-    // Nothing to schedule: no reminder wanted and every bell off.
-    if (!prefs.prayerWarning && !PRAYERS.some((p) => prefs.bells[p] !== false)) return;
-    void (async () => {
-      const granted = await requestPermission();
-      if (!granted) {
-        setNotifyError(
-          'Notifications are turned off for Quran Habit. Enable them in Settings > Apps > Quran Habit > Notifications.',
-        );
-        return;
-      }
-      setNotifyError(null);
-      await rescheduleAll(
-        {
-          timings: day.timings,
-          warnBefore: prefs.prayerWarning,
-          // Always planned; the bells decide which of them make a sound.
-          adhan: true,
-          bells: prefs.bells,
-        },
-        hasAdhanSound ? ADHAN_SOUND : null,
-      );
-    })();
-  }, [day, prefs.prayerWarning, prefs.bells]);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -367,9 +341,9 @@ export default function PrayerScreen() {
             </View>
           ) : null}
 
-          {notifyError !== null ? (
+          {scheduleError !== null ? (
             <View style={styles.notifyProblem}>
-              <Text style={[styles.notifyNote, { color: palette.error }]}>{notifyError}</Text>
+              <Text style={[styles.notifyNote, { color: palette.error }]}>{scheduleError}</Text>
               {/**
                 * A button, not directions. Android stops showing the permission
                 * dialog once it has been refused twice, so asking again does

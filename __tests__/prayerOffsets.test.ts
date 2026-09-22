@@ -99,8 +99,8 @@ describe('one correction moves everything downstream', () => {
   });
 
   it('the notification moves with it', () => {
-    const before = planNotifications({ timings: TIMINGS, warnBefore: false, adhan: true, now: new Date(2026, 3, 20, 12, 0) });
-    const after = planNotifications({ timings: corrected, warnBefore: false, adhan: true, now: new Date(2026, 3, 20, 12, 0) });
+    const before = planNotifications({ days: [{ date: '2026-04-20', timings: TIMINGS }], warnBefore: false, adhan: true, now: new Date(2026, 3, 20, 12, 0) });
+    const after = planNotifications({ days: [{ date: '2026-04-20', timings: corrected }], warnBefore: false, adhan: true, now: new Date(2026, 3, 20, 12, 0) });
     const pick = (plan: typeof before) =>
       plan.find((p) => p.channel === CHANNEL_ADHAN && p.prayer === 'Maghrib')?.at.getMinutes();
     expect(pick(before)).toBe(20);
@@ -201,19 +201,19 @@ describe('per-prayer bells', () => {
   const at12 = new Date(2026, 3, 20, 12, 0);
 
   it('sounds the adhan for every prayer by default', () => {
-    const plan = planNotifications({ timings: TIMINGS, warnBefore: false, adhan: true, now: at12 });
+    const plan = planNotifications({ days: [{ date: '2026-04-20', timings: TIMINGS }], warnBefore: false, adhan: true, now: at12 });
     const today = plan.filter((p) => p.at.getDate() === 20);
     expect(today.every((p) => p.channel === CHANNEL_ADHAN)).toBe(true);
   });
 
   it('an absent bells record means all five sound, so an update cannot silence Fajr', () => {
-    const plan = planNotifications({ timings: TIMINGS, warnBefore: false, adhan: true, now: at12 });
+    const plan = planNotifications({ days: [{ date: '2026-04-20', timings: TIMINGS }], warnBefore: false, adhan: true, now: at12 });
     expect(plan.some((p) => p.channel === CHANNEL_SILENT)).toBe(false);
   });
 
   it('puts a muted prayer on the silent channel and leaves the others alone', () => {
     const plan = planNotifications({
-      timings: TIMINGS,
+      days: [{ date: '2026-04-20', timings: TIMINGS }],
       warnBefore: false,
       adhan: true,
       now: at12,
@@ -228,7 +228,7 @@ describe('per-prayer bells', () => {
 
   it('still schedules the muted prayer — seen, not heard', () => {
     const plan = planNotifications({
-      timings: TIMINGS,
+      days: [{ date: '2026-04-20', timings: TIMINGS }],
       warnBefore: false,
       adhan: true,
       now: at12,
@@ -249,7 +249,7 @@ describe('per-prayer bells', () => {
   it('a muted prayer keeps its five-minute reminder', () => {
     // The bell is about the adhan, not about being reminded.
     const plan = planNotifications({
-      timings: TIMINGS,
+      days: [{ date: '2026-04-20', timings: TIMINGS }],
       warnBefore: true,
       adhan: true,
       now: new Date(2026, 3, 20, 4, 0),

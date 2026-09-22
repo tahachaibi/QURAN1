@@ -26,11 +26,16 @@ import {
 import { AppState } from 'react-native';
 import * as Notifications from 'expo-notifications';
 
-import { hasAdhanSound } from '../data/adhan';
+import { ADHAN_SOUND, hasAdhanSound } from '../data/adhan';
 import { selectedAdhan, type AdhanEntry } from '../data/adhanLibrary';
 import { playAdhan, stopAdhan } from '../data/adhanPlayer';
 import { adhanKey, dueAdhan, msUntilCheck, timingsAreUsable } from '../data/adhanTimer';
-import { installForegroundBehaviour, payloadOf } from '../data/notifications';
+import {
+  installForegroundBehaviour,
+  payloadOf,
+  requestPermission,
+  rescheduleAll,
+} from '../data/notifications';
 import { loadPrayerCache } from '../data/storage';
 import { adjustTimings } from '../data/prayerOffsets';
 import { type PrayerName } from '../data/prayerTimes';
@@ -57,6 +62,14 @@ export interface AdhanContextValue {
   /** the entry currently sounding as a preview, so its row can show Stop */
   previewingId: string | null;
   stopPreview: () => void;
+  /**
+   * Why there are no prayer notifications, in words for the user, or null when
+   * they are scheduled.
+   *
+   * Scheduling lives here rather than on the prayer tab, so the tab reads the
+   * outcome instead of owning it — see the scheduling effect below.
+   */
+  scheduleError: string | null;
 }
 
 const AdhanContext = createContext<AdhanContextValue | null>(null);
@@ -65,7 +78,16 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
   const { prefs } = useTheme();
   const { session } = useRecitation();
   const [timings, setTimings] = useState<Record<string, string> | null>(null);
+  /**
+   * The calendar day `timings` are FOR, straight from the cache.
+   *
+   * Not "today". The cache may hold yesterday's answer, and filing yesterday's
+   * times under today is the same mistake the scheduler was just rewritten to
+   * make impossible.
+   */
+  const [timingsDay, setTimingsDay] = useState<string | null>(null);
   const [prayer, setPrayer] = useState<PrayerName | null>(null);
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
   const [previewingId, setPreviewingId] = useState<string | null>(null);
 
   /** The adhan already sounded, so none is sounded twice. */
@@ -94,13 +116,16 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
     const cache = await loadPrayerCache();
     if (cache === null) {
       setTimings(null);
+      setTimingsDay(null);
       return;
     }
     if (!timingsAreUsable(cache.day, new Date())) {
       setTimings(null);
+      setTimingsDay(null);
       return;
     }
     setTimings(adjustTimings(cache.timings, prefs.prayerOffsets));
+    setTimingsDay(cache.day);
   }, [prefs.prayerOffsets]);
 
   useEffect(() => {
@@ -178,6 +203,56 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
   }, []);
 
   /**
+   * Scheduling the prayer notifications — HERE, not on the prayer tab.
+   *
+   * It used to live in app/(tabs)/index.tsx, whose effect was the only caller of
+   * `rescheduleAll` in the whole app. The app opens on the Quran tab
+   * (app/index.tsx redirects there), so anyone who read Quran, listened, or used
+   * the tracker and never pressed Prayer had NO prayer notifications scheduled at
+   * all, and nothing on screen to tell them. This provider is mounted above the
+   * router and already refreshes on every foreground, which is exactly the
+   * lifetime a schedule wants.
+   *
+   * The times are passed with the day they belong to, so a cache holding
+   * yesterday's answer schedules nothing rather than something an hour wrong —
+   * `planNotifications` drops times that have already passed, which makes a
+   * stale cache self-cancelling.
+   */
+  useEffect(() => {
+    if (timings === null || timingsDay === null) return;
+    let cancelled = false;
+    void (async () => {
+      const granted = await requestPermission();
+      if (cancelled) return;
+      if (!granted) {
+        setScheduleError(
+          'Notifications are turned off for Quran Habit, so there is no call to prayer. Turn them on in Settings > Apps > Quran Habit > Notifications.',
+        );
+        return;
+      }
+      const set = await rescheduleAll(
+        {
+          days: [{ date: timingsDay, timings }],
+          warnBefore: prefs.prayerWarning,
+          // Always planned; the bells decide which of them make a sound.
+          adhan: true,
+          bells: prefs.bells,
+        },
+        hasAdhanSound ? ADHAN_SOUND : null,
+      );
+      if (cancelled) return;
+      setScheduleError(
+        set === 0
+          ? 'Today\u2019s prayer times have all passed, or the saved times are out of date. Open the Prayer tab while online to refresh them.'
+          : null,
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [timings, timingsDay, prefs.prayerWarning, prefs.bells]);
+
+  /**
    * The timer. Re-armed after every check rather than set once per prayer: a
    * single long timeout is exactly what Android's doze mode does not honour.
    */
@@ -245,7 +320,7 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
   useEffect(() => () => void stopAdhan(), []);
 
   return (
-    <AdhanContext.Provider value={{ prayer, dismiss, previewEntry, previewingId, stopPreview }}>
+    <AdhanContext.Provider value={{ prayer, dismiss, previewEntry, previewingId, stopPreview, scheduleError }}>
       {children}
     </AdhanContext.Provider>
   );

@@ -69,10 +69,33 @@ export async function requestPermission(): Promise<boolean> {
   return asked.granted;
 }
 
-/** Cancel everything and reschedule from scratch. Returns how many were set. */
+/**
+ * Cancel OUR scheduled notifications, leaving anything else alone.
+ *
+ * `cancelAllScheduledNotificationsAsync` cancels every pending notification the
+ * app has. Today that is the same set, so this is not a bug fix — it is a
+ * landmine removal. The moment anything else schedules a notification (a hifz
+ * review reminder is the obvious next one), rebuilding the prayer schedule would
+ * silently delete it, and the symptom would appear in a different feature.
+ * Filtering on our own payload keeps rescheduling idempotent without claiming
+ * ownership of the whole queue.
+ */
+async function cancelOurs(): Promise<number> {
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+  let cancelled = 0;
+  for (const item of scheduled) {
+    const data = item.content.data as Partial<NotificationPayload> | null;
+    if (data?.kind !== 'adhan' && data?.kind !== 'warning') continue;
+    await Notifications.cancelScheduledNotificationAsync(item.identifier);
+    cancelled += 1;
+  }
+  return cancelled;
+}
+
+/** Cancel ours and reschedule from scratch. Returns how many were set. */
 export async function rescheduleAll(options: ScheduleOptions, adhanSound: string | null): Promise<number> {
   await ensureChannels(adhanSound);
-  await Notifications.cancelAllScheduledNotificationsAsync();
+  await cancelOurs();
 
   const planned = planNotifications(options);
   for (const item of planned) {
@@ -95,7 +118,10 @@ export async function rescheduleAll(options: ScheduleOptions, adhanSound: string
   return planned.length;
 }
 
-export const cancelAll = (): Promise<void> => Notifications.cancelAllScheduledNotificationsAsync();
+/** Take every prayer notification down — ours only, for the same reason. */
+export const cancelAll = async (): Promise<void> => {
+  await cancelOurs();
+};
 
 /**
  * How a notification behaves when it arrives while the app is OPEN.

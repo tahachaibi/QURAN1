@@ -6,7 +6,14 @@
  * above all never scheduling a time that has already passed, which either fires
  * immediately or is dropped silently and looks like a bug either way.
  */
-import { PRAYER_ARABIC, PRAYERS, parseTime, type PrayerName } from './prayerTimes';
+import {
+  PRAYER_ARABIC,
+  PRAYERS,
+  localDayKey,
+  localMidnight,
+  parseTime,
+  type PrayerName,
+} from './prayerTimes';
 
 /** Minutes before the adhan for the warning notification. */
 export const WARNING_MINUTES = 5;
@@ -22,12 +29,45 @@ export const CHANNEL_WARNING = 'prayer-warning';
  * changing one.
  */
 export const CHANNEL_SILENT = 'prayer-silent';
-/** Days ahead to schedule. Android caps concurrent alarms, so keep it modest. */
-const DAYS_AHEAD = 7;
+/**
+ * The most days ahead worth scheduling. Android caps concurrent alarms, so keep
+ * it modest.
+ *
+ * This is a ceiling for whoever FETCHES the times, not a licence to invent them:
+ * `planNotifications` schedules exactly the days it is handed and no more. The
+ * difference is the whole point of this file's rewrite — see `days` below.
+ */
+export const MAX_DAYS_AHEAD = 7;
 
-export interface ScheduleOptions {
+/**
+ * One calendar day's prayer times, tagged with the day they are FOR.
+ *
+ * The tag is not decoration. It is the fix for the worst bug this app has had:
+ * the scheduler used to take a single `timings` object and apply it to each of
+ * the next seven days, so tomorrow's Fajr alarm was set to TODAY's Fajr time and
+ * day seven's was a week stale. Prayer times move a minute or two a day, so by
+ * the end of the week the call to prayer was minutes off — and this file's own
+ * comment says it best: a call to prayer five minutes early is worse than no
+ * reminder, because it is wrong.
+ *
+ * Carrying the date with the times makes that mistake unexpressible. A day can
+ * only be scheduled if someone actually knows that day's times.
+ */
+export interface PrayerDayTimes {
+  /** the local calendar day these times belong to, as YYYY-MM-DD */
+  date: string;
   /** timings as returned by Aladhan, e.g. { Fajr: '05:14 (+01)' } */
   timings: Record<string, string>;
+}
+
+export interface ScheduleOptions {
+  /**
+   * Every day to schedule, each carrying its OWN times.
+   *
+   * Hand it one day and one day is scheduled. There is deliberately no way to
+   * say "and repeat that for a week".
+   */
+  days: PrayerDayTimes[];
   /** notify five minutes before each prayer */
   warnBefore: boolean;
   /** play the adhan at prayer time */
@@ -105,12 +145,18 @@ export function planNotifications(options: ScheduleOptions): PlannedNotification
   const now = options.now ?? new Date();
   const out: PlannedNotification[] = [];
 
-  for (let day = 0; day < DAYS_AHEAD; day++) {
-    const base = new Date(now);
-    base.setDate(base.getDate() + day);
+  for (const day of options.days) {
+    /**
+     * A day whose date cannot be read is DROPPED, never guessed at.
+     *
+     * Falling back to "today" here would rebuild the original bug inside the
+     * function written to prevent it.
+     */
+    const base = localMidnight(day.date);
+    if (base === null) continue;
 
     for (const prayer of PRAYERS) {
-      const raw = options.timings[prayer];
+      const raw = day.timings[prayer];
       if (raw === undefined) continue;
       const at = parseTime(raw, base);
       if (at.getTime() <= now.getTime()) continue;
@@ -146,3 +192,13 @@ export function planNotifications(options: ScheduleOptions): PlannedNotification
   return out;
 }
 
+
+/**
+ * The common case: the times we have, filed under the day they belong to.
+ *
+ * Most of the time the app holds exactly one day's times — the ones it fetched
+ * today — and this is how you say so honestly. One day in, one day scheduled.
+ */
+export function singleDay(timings: Record<string, string>, now = new Date()): PrayerDayTimes[] {
+  return [{ date: localDayKey(now), timings }];
+}

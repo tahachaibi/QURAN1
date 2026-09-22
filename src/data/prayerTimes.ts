@@ -58,3 +58,44 @@ export const PRAYER_ARABIC: Record<PrayerName, string> = {
   Maghrib: 'المغرب',
   Isha: 'العشاء',
 };
+
+// ---------------------------------------------------------------------------
+// Calendar days
+// ---------------------------------------------------------------------------
+
+/**
+ * A local calendar day as YYYY-MM-DD.
+ *
+ * Deliberately NOT toISOString().slice(0, 10), which is the UTC day: east of
+ * Greenwich that is yesterday for the first hours of the morning, so Fajr —
+ * the prayer most likely to be scheduled overnight — would be filed under the
+ * wrong date.
+ */
+export function localDayKey(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/**
+ * Midnight, local time, on a YYYY-MM-DD day — or null if that is not a real day.
+ *
+ * Strict on purpose. `new Date('2026-09-21')` parses as UTC midnight, which is
+ * the previous evening in the Americas, and `new Date(2026, 1, 31)` silently
+ * rolls into March. Both would put a prayer on the wrong day, and a wrong prayer
+ * time is worse than a missing one — so anything unreadable returns null and the
+ * caller drops that day rather than guessing at it.
+ */
+export function localMidnight(day: string): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
+  if (match === null) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const date = Number(match[3]);
+  const out = new Date(year, month - 1, date, 0, 0, 0, 0);
+  if (out.getFullYear() !== year || out.getMonth() !== month - 1 || out.getDate() !== date) {
+    return null;
+  }
+  return out;
+}
