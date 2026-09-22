@@ -170,6 +170,51 @@ jobs:
         working-directory: android
         run: ./gradlew :app:assembleRelease --stacktrace
 
+      - name: The APK asks for exactly the permissions the code uses
+        # The MERGED manifest is the only truth, and app.json is not it: the
+        # `permissions` array is ADDITIVE into the manifest merge, so a permission
+        # a dependency declares cannot be removed by deleting a line from app.json.
+        # Measured from node_modules: expo-location declares ACCESS_FINE_LOCATION,
+        # expo-file-system declares WRITE_EXTERNAL_STORAGE and READ_EXTERNAL_STORAGE,
+        # and the Expo template adds SYSTEM_ALERT_WINDOW. Only `blockedPermissions`
+        # removes those, via tools:node="remove" — and whether that survived the
+        # merge is exactly the kind of thing that fails silently: the build
+        # succeeds and Play shows the user a permission the app never touches.
+        run: |
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          AAPT=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 2>/dev/null | sort | tail -1)
+          if [ -z "$AAPT" ]; then
+            echo "::warning::aapt2 not found; cannot verify the merged permissions"
+            exit 0
+          fi
+          "$AAPT" dump permissions "$APK" | tee /tmp/perms.txt
+
+          # Blocked: declared by a dependency or the template, used by no code here.
+          for p in ACCESS_FINE_LOCATION SYSTEM_ALERT_WINDOW WRITE_EXTERNAL_STORAGE; do
+            if grep -q "android.permission.$p\b" /tmp/perms.txt; then
+              echo "::error::$p survived the manifest merge — blockedPermissions did not take"
+              exit 1
+            fi
+          done
+          # Never re-added: nothing in this app starts a foreground service.
+          for p in FOREGROUND_SERVICE FOREGROUND_SERVICE_MEDIA_PLAYBACK; do
+            if grep -q "android.permission.$p\b" /tmp/perms.txt; then
+              echo "::error::$p is back, and still nothing calls startForeground"
+              exit 1
+            fi
+          done
+          # Load-bearing: each one is used, and losing one breaks a feature quietly.
+          #   RECORD_AUDIO         the follow-along
+          #   MODIFY_AUDIO_SETTINGS  the native audio-mode repair (earpiece routing)
+          #   POST_NOTIFICATIONS   the call to prayer
+          #   SCHEDULE_EXACT_ALARM it firing at the right minute
+          #   ACCESS_COARSE_LOCATION  which timetable applies
+          for p in RECORD_AUDIO MODIFY_AUDIO_SETTINGS POST_NOTIFICATIONS SCHEDULE_EXACT_ALARM ACCESS_COARSE_LOCATION; do
+            grep -q "android.permission.$p\b" /tmp/perms.txt \
+              || { echo "::error::$p is MISSING from the APK — the feature that needs it is dead"; exit 1; }
+          done
+          echo "permissions verified against the merged manifest"
+
       - name: Prove the bundled audio is actually inside the APK
         # `require()` returning an asset id proves the bundler SAW the file; it
         # does not prove the file was packaged, and the app cannot tell the

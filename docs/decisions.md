@@ -310,3 +310,52 @@ unmeasured.** The session transcript is capped at 600 words, the event capture a
 4,000 events, per-page slices are cached by reference, and no `Set` or `Map` is
 reallocated when nothing changed. Whether that holds against a real recognizer
 for five minutes is exactly the kind of claim that needs a device.
+
+## The permission I did not change, and why
+
+`USE_EXACT_ALARM` stays declared, and that is a decision rather than an
+oversight. It needs a human with current Play policy in front of them.
+
+The case for removing it: Google restricts it to apps whose *core function* is
+alarms, timers or a calendar, it cannot be revoked by the user, and declaring it
+forces a justification in Play Console that a reviewer can refuse — which holds
+up the whole submission.
+
+The case for keeping it: from Android 14 the *other* permission,
+`SCHEDULE_EXACT_ALARM`, is no longer granted by default to apps that do not
+qualify for `USE_EXACT_ALARM`. Dropping it therefore risks the prayer
+notification firing late or not at all, which is the exact defect the scheduler
+was just rewritten to fix, and a prayer app's core function genuinely *is*
+announcing precise times.
+
+I could not verify the current policy wording or the current grant behaviour from
+this environment, and the failure mode of guessing wrong is the app's most
+important feature degrading silently on the newest Android versions. So it is
+left as it is, with the trade-off written down, rather than changed on a hunch.
+
+What *was* changed, all of it backed by a grep or a built manifest:
+
+- `FOREGROUND_SERVICE` and `FOREGROUND_SERVICE_MEDIA_PLAYBACK` are gone. Nothing
+  in `src/`, `app/` or `modules/` calls `startForeground`, and no dependency
+  declares them, so they were pure surface area.
+- `ACCESS_FINE_LOCATION`, `SYSTEM_ALERT_WINDOW` and `WRITE_EXTERNAL_STORAGE` are
+  now in `blockedPermissions`. This matters more than it looks: app.json's
+  `permissions` array is ADDITIVE into the manifest merge, so deleting a line
+  there does nothing when a dependency declares the same permission —
+  `expo-location` declares FINE, `expo-file-system` declares the storage pair,
+  and the Expo template adds SYSTEM_ALERT_WINDOW. Only `blockedPermissions`
+  removes them, and CI now asserts the removal survived the merge by reading the
+  built APK rather than trusting app.json.
+- The location code only ever asks for `Accuracy.Low` or `Balanced`
+  (`src/data/prayer.ts`), so the app now requests approximate location — which is
+  also what a person expects a prayer app to need.
+- `READ_EXTERNAL_STORAGE` is left alone deliberately. The document picker uses
+  SAF content URIs, which need no storage permission, but `minSdkVersion` is 26
+  and I cannot test "add your own adhan" on an API 26-28 phone from here.
+  Blocking it to tidy the list is not worth breaking that feature on old phones.
+- The microphone disclosure string said "Audio is processed on your device and
+  never uploaded". That is false below API 33: `supportsOnDevice()` in
+  `RecitationRecognizer.kt` requires TIRAMISU, minSdk is 26, and the recognizer
+  falls back to Android's network service. The string now says what actually
+  happens, which is both the honest thing and what Play's prominent-disclosure
+  rule asks for.
