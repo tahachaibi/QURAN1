@@ -13,6 +13,7 @@ import type { FontStep } from '../theme/theme';
 import { NO_OFFSETS, type PrayerOffsets } from './prayerOffsets';
 import { ALL_BELLS_ON, type PrayerBells } from './prayerSchedule';
 import type { StoredAdhan } from './adhanLibrary';
+import { NOT_ENTITLED, type EntitlementSnapshot } from '../billing/entitlement';
 
 const KEY = {
   prefs: 'qh:prefs:v1',
@@ -26,7 +27,18 @@ const KEY = {
   mistakeLog: 'qh:mistake-log:v1',
   reciters: 'qh:reciters:v1',
   adhkar: 'qh:adhkar:v1',
+  entitlement: 'qh:entitlement:v1',
 } as const;
+
+/**
+ * Every key this app owns, for export and restore.
+ *
+ * Derived from KEY rather than written out again, so a key added above cannot
+ * be silently left out of a backup — which is the failure mode that turns
+ * "restore" into "restore most of it", discovered by the user months later when
+ * something they cared about is missing.
+ */
+export const ALL_KEYS: readonly string[] = Object.values(KEY);
 
 export type { PrayerOffsets } from './prayerOffsets';
 export type { PrayerBells } from './prayerSchedule';
@@ -369,3 +381,75 @@ export async function loadCachedReciters(): Promise<CachedReciters | null> {
 
 export const saveCachedReciters = (reciters: Reciter[]): Promise<void> =>
   writeJson(KEY.reciters, { fetchedAt: Date.now(), reciters } satisfies CachedReciters);
+
+// ---------------------------------------------------------------------------
+// entitlement (src/billing)
+// ---------------------------------------------------------------------------
+
+/**
+ * The last thing the store told us, kept so the coach still works offline.
+ *
+ * Read defensively like everything else here, and a corrupt record degrades to
+ * NOT_ENTITLED rather than throwing — but note that this is the one default in
+ * this file that is worse for the user than the alternative, so the entitlement
+ * reducer treats "no record" and "could not ask" very differently. See
+ * src/billing/entitlement.ts.
+ */
+export const loadEntitlement = (): Promise<EntitlementSnapshot> =>
+  readJson<EntitlementSnapshot>(KEY.entitlement, NOT_ENTITLED);
+
+export const saveEntitlement = (snapshot: EntitlementSnapshot): Promise<void> =>
+  writeJson(KEY.entitlement, snapshot);
+
+// ---------------------------------------------------------------------------
+// export and restore
+// ---------------------------------------------------------------------------
+
+/**
+ * Everything this app knows about you, as plain JSON.
+ *
+ * This exists because the app has no backend and no account, so an uninstall,
+ * a lost phone or a switch to a new one takes the hifz deck, the streak, the
+ * mistake history and the reading position with it — months of work, gone, with
+ * nothing anywhere to recover it from. That is the single worst consequence of
+ * the no-server promise, and a file the user holds is the honest answer to it.
+ *
+ * Raw strings are returned rather than parsed values: this is a copy, and a
+ * copy that re-serialises is a copy that can quietly change something.
+ */
+export async function exportAll(): Promise<Record<string, string>> {
+  const out: Record<string, string> = {};
+  for (const key of ALL_KEYS) {
+    try {
+      const raw = await AsyncStorage.getItem(key);
+      if (raw !== null) out[key] = raw;
+    } catch {
+      // A key that cannot be read is omitted rather than failing the whole
+      // export: a partial backup is worth a great deal more than none.
+    }
+  }
+  return out;
+}
+
+/**
+ * Write a restored snapshot back.
+ *
+ * Only keys this app owns are written, so a hand-edited or hostile file cannot
+ * put arbitrary entries into storage. Returns the keys actually restored, which
+ * the UI reports — "restored 7 of 9" is the kind of thing a person needs to be
+ * told rather than left to discover.
+ */
+export async function importAll(values: Record<string, string>): Promise<string[]> {
+  const restored: string[] = [];
+  for (const key of ALL_KEYS) {
+    const raw = values[key];
+    if (typeof raw !== 'string') continue;
+    try {
+      await AsyncStorage.setItem(key, raw);
+      restored.push(key);
+    } catch {
+      // keep going; a failed key is reported by its absence from the result
+    }
+  }
+  return restored;
+}
