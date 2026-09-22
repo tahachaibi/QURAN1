@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy — Quran Habit</title>
+<meta name="description" content="Quran Habit collects nothing. No account, no analytics, no ads. Your recitation is processed on your device and never uploaded.">
+<link rel="canonical" href="https://tahachaibi.github.io/QURAN1/privacy.html">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#1B4332">
+<style>
+:root{--green:#1B4332;--paper:#F6F2E9;--edge:#E5E0D3;--ink:#20241F;--muted:#6F6B60}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--green:#74C69D;--paper:#14170F;--edge:#333828;--ink:#F0EADB;--muted:#A39C8B}}
+:root[data-theme="dark"]{--green:#74C69D;--paper:#14170F;--edge:#333828;--ink:#F0EADB;--muted:#A39C8B}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 17px/1.7 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:720px;margin:0 auto;padding:56px 16px 80px}
+h1{font-size:34px;line-height:1.2;margin:0 0 8px}
+h2{font-size:22px;margin:40px 0 10px}
+.date{color:var(--muted);margin:0 0 28px}
+a{color:var(--green)}
+ul{padding-inline-start:20px}li{margin:6px 0}
+footer{border-top:1px solid var(--edge);margin-top:48px;padding-top:20px;color:var(--muted);font-size:15px}
+</style>
+</head>
+<body><div class="wrap">
+
+<h1>Privacy Policy</h1>
+<p class="date">Quran Habit (<code>com.quranhabit.app</code>) · last updated 21 September 2026</p>
+
+<p><strong>Quran Habit has no account system, no server of its own, and collects no personal data.</strong> Everything the app remembers about you is stored only on your phone, and is deleted when you uninstall it.</p>
+
+<h2>Your recitation and the microphone</h2>
+<p>The app requests microphone access so it can follow your recitation on the page. Audio is passed to Android's own speech recognition service on your device and is used only to decide which word you are reciting. Quran Habit does not record audio to a file, does not keep audio after a session, and never uploads audio anywhere.</p>
+<p>Speech recognition itself is provided by Android, not by this app. Google's recognizer can run fully on-device when the Arabic language pack is installed; some devices may otherwise fall back to a network-based recognition service supplied by the device manufacturer or by Google. That processing is governed by your device provider's privacy policy, not this one. The app shows which strategy is in use in Settings → Diagnostics, and installing your phone's offline Arabic language pack keeps recognition entirely on the device.</p>
+
+<h2>Location</h2>
+<p>If you enable prayer times, the app reads your device location to work out which prayer-time authority applies and to request that day's times. It asks Android for <strong>approximate</strong> location only &mdash; never precise.</p>
+<p>Two things outside this app see those coordinates, and you should know about both:</p>
+<ul>
+  <li>The public Aladhan prayer-time API (<a href="https://aladhan.com/prayer-times-api">aladhan.com</a>), which receives the latitude and longitude in order to return the times. No identifier is sent with them.</li>
+  <li>Android's own geocoder, which the app asks to turn the coordinates into a country and city name so the screen can tell you which authority it is following. On most Android phones that service is provided by Google, and the lookup happens under Android's privacy terms, not this app's.</li>
+</ul>
+<p>Beyond the cached result for the current day, this app stores no location and associates it with no identifier.</p>
+
+<h2>What is stored on your phone</h2>
+<ul>
+  <li>Your reading position, session history, streak, and the memorization review schedule.</li>
+  <li>The list of words you missed or misread, used to build your personal error profile.</li>
+  <li>Your settings, including prayer-time corrections and the chosen reciter.</li>
+  <li>The most recent prayer-time response, cached for up to two days so the screen still shows something without a connection.</li>
+</ul>
+<p>All of this lives in the app's private storage on your device. None of it is transmitted.</p>
+
+<h2>Network use</h2>
+<p>Four hosts, and nothing else:</p>
+<ul>
+  <li><code>api.aladhan.com</code> — that day's prayer times for your coordinates, and the list of calculation authorities.</li>
+  <li><code>quranicaudio.com</code> and <code>download.quranicaudio.com</code> — the reciter list, and the recitation audio itself, only when you press play in Listen.</li>
+  <li>Android's geocoder, as described under Location.</li>
+</ul>
+<p>Everything else works with no network at all: the entire Quran text, all 604 mushaf pages, both hadith collections, the adhkar, the adhan playback and the recitation matching. Prayer times are the one screen that genuinely needs a connection — they are fetched, not calculated on the phone — so after two days offline it asks you to reconnect rather than show times it cannot stand behind.</p>
+
+<h2>What the app does not do</h2>
+<ul>
+  <li>No advertising, and no advertising identifier is read.</li>
+  <li>No analytics, crash reporting, telemetry or usage tracking of any kind.</li>
+  <li>No account, sign-in, email address or phone number.</li>
+  <li>Nothing is sold, and nothing is transferred to anyone for their own purposes. The two exceptions above &mdash; Aladhan and Android's geocoder &mdash; receive coordinates solely to answer the request that needed them.</li>
+</ul>
+
+<h2>Children</h2>
+<p>The app is suitable for all ages and collects no data from anyone, including children.</p>
+
+<h2>Changes</h2>
+<p>If a future version collects anything, this page will be updated before that version ships, and the change will be described here with its date.</p>
+
+<h2>Contact</h2>
+<p>Questions or requests: open an issue at <a href="mailto:SUPPORT_EMAIL_PLACEHOLDER">github.com/tahachaibi/QURAN1</a>.</p>
+
+<footer><a href="./">Quran Habit</a> · <a href="ar/">بالعربية</a></footer>
+
+</div></body></html>

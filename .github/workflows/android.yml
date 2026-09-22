@@ -66,6 +66,14 @@ jobs:
       - name: Engine latency budget
         run: npm run bench
 
+      - name: Store listing fits inside Play's limits
+        # Play truncates a title at 30 characters, a short description at 80 and a
+        # full description at 4000, and it does it AT UPLOAD — after the build,
+        # after the release notes, at the point where you least want to be editing
+        # copy. Catching it here costs a second. It has already earned its place:
+        # correcting a false privacy claim pushed the English description to 4134.
+        run: node store/check-lengths.mjs
+
       - name: Metro bundle resolves
         run: npm run bundle:check
 
