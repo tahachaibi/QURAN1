@@ -7,7 +7,9 @@
  * best for their recitation (§4).
  */
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 
+import { useBilling } from '../src/billing/BillingProvider';
 import { useRecitation } from '../src/context/RecitationProvider';
 import { useTheme } from '../src/theme/ThemeProvider';
 import { ayahTextSizes, radius, space, type FontStep } from '../src/theme/theme';
@@ -22,6 +24,8 @@ const THEMES: { value: 'system' | 'light' | 'dark'; label: string }[] = [
 export default function Settings() {
   const { palette, prefs, setPrefs } = useTheme();
   const { recognizer } = useRecitation();
+  const billing = useBilling();
+  const router = useRouter();
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
@@ -145,6 +149,38 @@ export default function Settings() {
           <Text style={[styles.hint, { color: palette.error }]}>{recognizer.lastError.message}</Text>
         ) : null}
       </Section>
+
+      {/*
+        One of the three places this app is allowed to mention money
+        (src/billing/gates.ts PAYWALL_SITES), and it is a plain row rather than a
+        card, a badge or a banner.
+
+        The whole section disappears when MONETISATION_ENABLED is false, which is
+        every build today: not disabled, not greyed out with a "coming soon",
+        absent. A dormant paid tier that still advertises itself is just an ad,
+        and nothing here is locked for the user to be curious about.
+      */}
+      {billing.monetisationEnabled ? (
+        <Section title="The coach" palette={palette}>
+          <Pressable
+            onPress={() => router.push('/upgrade')}
+            accessibilityRole="button"
+            accessibilityLabel={billing.state.active ? 'Coach subscription details' : 'Unlock the coach'}
+            style={styles.toggleRow}
+          >
+            <View style={styles.toggleText}>
+              <Text style={[styles.rowLabel, { color: palette.text }]}>
+                {billing.state.active ? 'Coach — active' : 'Unlock the coach'}
+              </Text>
+              <Text style={[styles.hint, { color: palette.textMuted }]}>
+                {billing.state.active
+                  ? 'Your revision schedule, mistake history and backup. Tap for the plan and how to restore it.'
+                  : 'Revision schedule, mistake history, weak-ayah report and backup. The Quran, prayer times, the adhan and following along with your voice stay free.'}
+              </Text>
+            </View>
+          </Pressable>
+        </Section>
+      ) : null}
 
       <Section title="Diagnostics" palette={palette}>
         <Toggle

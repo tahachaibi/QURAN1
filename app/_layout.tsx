@@ -14,6 +14,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import { Amiri_400Regular, Amiri_700Bold } from '@expo-google-fonts/amiri';
 
+import { BillingProvider } from '../src/billing/BillingProvider';
 import { RecitationProvider } from '../src/context/RecitationProvider';
 import { AdhanProvider } from '../src/context/AdhanProvider';
 import { AdhanBanner } from '../src/components/AdhanBanner';
@@ -75,14 +76,22 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <RecitationProvider>
-          {/* Inside RecitationProvider so the adhan can hold back while the
-              microphone is live, and above the router so it can sound on any
-              screen without a navigation. */}
-          <AdhanProvider>
-            <Chrome />
-          </AdhanProvider>
-        </RecitationProvider>
+        {/* Above the router so settings and the upgrade screen read one
+            snapshot, and OUTSIDE RecitationProvider because it must never be
+            able to delay a recitation: it renders its children immediately and
+            answers NOT_ENTITLED until AsyncStorage comes back. With
+            MONETISATION_ENABLED false it never talks to a store at all, so
+            mounting it costs one read of one key. */}
+        <BillingProvider>
+          <RecitationProvider>
+            {/* Inside RecitationProvider so the adhan can hold back while the
+                microphone is live, and above the router so it can sound on any
+                screen without a navigation. */}
+            <AdhanProvider>
+              <Chrome />
+            </AdhanProvider>
+          </RecitationProvider>
+        </BillingProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );
@@ -119,6 +128,11 @@ function Chrome() {
         <Stack.Screen name="hadith/[collection]/index" options={{ title: 'Books' }} />
         <Stack.Screen name="hadith/[collection]/[chapter]" options={{ title: 'Hadith' }} />
         <Stack.Screen name="settings" options={{ title: 'Settings', presentation: 'modal' }} />
+        {/* Registered so the route exists and can be developed against. With
+            monetisation off nothing in the app navigates here — there is no row,
+            no banner and no link — but a screen that only exists behind a
+            switch is a screen nobody ever sees until the day it is sold. */}
+        <Stack.Screen name="upgrade" options={{ title: 'The coach', presentation: 'modal' }} />
       </Stack>
       {/* Last sibling, so it paints over the header and every screen. */}
       <AdhanBanner />
