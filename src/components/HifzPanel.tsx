@@ -23,6 +23,20 @@ export interface HifzPanelProps {
   /** start a practice run over a word range */
   onPractise: (fromWord: number, toWord: number) => void;
   onOpenAyah: (surah: number, ayah: number) => void;
+  /**
+   * The non-voice way to fill the deck, offered right here rather than only on
+   * the mushaf.
+   *
+   * An empty deck used to be a paragraph of encouragement with nothing to press,
+   * and the encouragement was wrong for most of the people reading it: anyone
+   * whose phone has no Arabic speech pack, anyone reading silently, anyone who
+   * will not recite aloud on a bus or in a masjid. "Recite an ayah or two" is
+   * not advice they can take, so the panel now carries the other door too.
+   *
+   * Optional and nullable so the panel still renders with no reading position
+   * and in tests that do not care about it.
+   */
+  selfReport?: { label: string; onPress: () => void } | null;
 }
 
 const QUEUE_LIMIT = 8;
@@ -34,6 +48,7 @@ export const HifzPanel = memo(function HifzPanel({
   now,
   onPractise,
   onOpenAyah,
+  selfReport,
 }: HifzPanelProps) {
   const summary = useMemo(() => summarize(deck, now), [deck, now]);
   const due = useMemo(() => dueQueue(deck, now, QUEUE_LIMIT), [deck, now]);
@@ -49,6 +64,24 @@ export const HifzPanel = memo(function HifzPanel({
             Recite an ayah or two and this becomes your revision plan. Every session grades what you
             recited, and the ayahs you stumble on come back sooner than the ones you know cold.
           </Text>
+          <Text style={[styles.empty, { color: palette.textMuted }]}>
+            You do not have to recite out loud to use it. If you read silently, or you are somewhere
+            you would rather not speak into a phone, or your phone has no Arabic speech pack, tell it
+            what you read and the same schedule starts. It is marked as read rather than verified,
+            and only recitation ever changes that.
+          </Text>
+          {selfReport !== undefined && selfReport !== null ? (
+            <Pressable
+              onPress={selfReport.onPress}
+              accessibilityRole="button"
+              accessibilityLabel={selfReport.label}
+              accessibilityHint="Adds those ayahs to your revision schedule as read, without using the microphone"
+              style={[styles.cta, { backgroundColor: palette.primary }]}
+            >
+              <Ionicons name="book-outline" size={16} color={palette.paper} />
+              <Text style={[styles.ctaLabel, { color: palette.paper }]}>{selfReport.label}</Text>
+            </Pressable>
+          ) : null}
         </View>
       </View>
     );
@@ -102,6 +135,28 @@ export const HifzPanel = memo(function HifzPanel({
               Nothing due. The next review comes back on its own.
             </Text>
           )}
+
+          {selfReport !== undefined && selfReport !== null ? (
+            <Pressable
+              onPress={selfReport.onPress}
+              accessibilityRole="button"
+              accessibilityLabel={selfReport.label}
+              accessibilityHint="Adds those ayahs to your revision schedule as read, without using the microphone"
+              style={[styles.secondaryCta, { borderColor: palette.border }]}
+            >
+              <Ionicons name="book-outline" size={15} color={palette.primary} />
+              <Text style={[styles.secondaryLabel, { color: palette.primary }]}>{selfReport.label}</Text>
+            </Pressable>
+          ) : null}
+
+          {/* Said out loud rather than quietly folded in, because the whole
+              worth of this schedule is that it reports what happened. */}
+          {summary.verified < summary.tracked ? (
+            <Text style={[styles.hint, { color: palette.textMuted }]}>
+              {summary.tracked - summary.verified} of these you added by hand. They are scheduled the
+              same way, but nothing has heard them — recite one and it counts as verified.
+            </Text>
+          ) : null}
         </View>
       </View>
 
@@ -242,6 +297,16 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   ctaLabel: { fontSize: 14, fontWeight: '700' },
+  secondaryCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: space.sm,
+    borderRadius: radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingVertical: 11,
+  },
+  secondaryLabel: { fontSize: 13, fontWeight: '600' },
   dueRow: {
     flexDirection: 'row',
     alignItems: 'center',

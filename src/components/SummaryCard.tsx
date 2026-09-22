@@ -21,6 +21,16 @@ export interface SummaryCardProps {
   onPractise: () => void;
   /** save this session's recogniser log so matching can be improved from it (§9) */
   onExport: () => void;
+  /**
+   * Add the page by hand when the recogniser produced nothing gradeable.
+   *
+   * A session can end with zero grades for reasons that have nothing to do with
+   * the reciter — no Arabic speech pack, a noisy masjid, a recogniser that
+   * returned a transcript nobody could align. Leaving the revision line simply
+   * absent told them the app had decided their recitation did not count. It
+   * did not decide that; it could not hear.
+   */
+  onAddByHand?: () => void;
 }
 
 export const SummaryCard = memo(function SummaryCard({
@@ -30,6 +40,7 @@ export const SummaryCard = memo(function SummaryCard({
   onLog,
   onPractise,
   onExport,
+  onAddByHand,
 }: SummaryCardProps) {
   if (summary === null) return null;
   const surah = surahInfo(summary.surah);
@@ -61,6 +72,22 @@ export const SummaryCard = memo(function SummaryCard({
                 : ` · weakest ${weakest(summary)} — it comes back tomorrow`}
               {summary.dueNow > 0 ? ` · ${summary.dueNow} due now` : ''}
             </Text>
+          ) : onAddByHand !== undefined ? (
+            <>
+              <Text style={[styles.hifz, { color: palette.textMuted }]}>
+                Nothing was matched clearly enough to schedule for revision. That is the recogniser,
+                not your recitation — if you did recite this, add it yourself. It goes in as read
+                rather than verified.
+              </Text>
+              <Pressable
+                onPress={onAddByHand}
+                accessibilityRole="button"
+                accessibilityLabel="Add this page to my revision schedule by hand"
+                accessibilityHint="Schedules the ayahs on the page you are reading, without the microphone"
+              >
+                <Text style={[styles.dismiss, { color: palette.primary }]}>Add it to revision anyway</Text>
+              </Pressable>
+            </>
           ) : null}
 
           {summary.hintedWords.length > 0 ? (
@@ -70,13 +97,23 @@ export const SummaryCard = memo(function SummaryCard({
           ) : null}
 
           <View style={styles.actions}>
+            {/* A session that was backgrounded part-way through has already
+                reached the streak on its own, so the button says so rather than
+                implying nothing was saved. Pressing it is still worth doing: it
+                supersedes that partial row with the finished numbers. */}
             <Pressable
               onPress={onLog}
               accessibilityRole="button"
-              accessibilityLabel="Log this session to my streak"
+              accessibilityLabel={
+                summary.autoLogged
+                  ? 'Update the streak entry already saved for this session'
+                  : 'Log this session to my streak'
+              }
               style={[styles.primaryButton, { backgroundColor: palette.primary }]}
             >
-              <Text style={[styles.primaryLabel, { color: palette.paper }]}>Log to streak</Text>
+              <Text style={[styles.primaryLabel, { color: palette.paper }]}>
+                {summary.autoLogged ? 'Saved — update it' : 'Log to streak'}
+              </Text>
             </Pressable>
             <Pressable
               onPress={onPractise}

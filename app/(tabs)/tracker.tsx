@@ -13,8 +13,9 @@ import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native
 
 import { useRouter } from 'expo-router';
 
-import { ayahByGlobal, globalAyahOf, surahs } from '../../src/data/quran';
+import { ayahByGlobal, globalAyahOf, pageOf, pageWordRange, surahs } from '../../src/data/quran';
 import {
+  lastPosition,
   loadHifzDeck,
   loadMistakeLog,
   loadSessions,
@@ -34,21 +35,42 @@ const HEATMAP_WEEKS = 18;
 export default function TrackerScreen() {
   const { palette } = useTheme();
   const router = useRouter();
-  const { practiseRange } = useRecitation();
-  const [sessions, setSessions] = useState<LoggedSession[]>([]);
+  const { practiseRange, commitSelfReport } = useRecitation();
+  const [logged, setLogged] = useState<LoggedSession[]>([]);
   const [deck, setDeck] = useState<HifzDeck>({});
   const [profile, setProfile] = useState<ConfusionProfile>(() => buildProfile([]));
   const [refreshing, setRefreshing] = useState(false);
+  /** where this reader was last reading, which is what the by-hand button offers */
+  const [lastRead, setLastRead] = useState<{ surah: number; cursor: number } | null>(null);
+  /** what the by-hand button just did, said back rather than left to be guessed */
+  const [selfReportNote, setSelfReportNote] = useState<string | null>(null);
   // A single timestamp for the whole render: due-ness and strength must not
   // shift between two components in the same pass.
   const [now, setNow] = useState(() => Date.now());
 
   const load = useCallback(async () => {
     setNow(Date.now());
-    setSessions(await loadSessions());
+    setLogged(await loadSessions());
     setDeck(await loadHifzDeck());
     setProfile(buildProfile(await loadMistakeLog()));
+    setLastRead(await lastPosition());
   }, []);
+
+  /**
+   * One row per session.
+   *
+   * A session that is abandoned — backgrounded, then killed from recents — is
+   * logged when it goes away, and logged again if the reciter comes back and
+   * finishes it. Both rows carry the session's start time as their id, because
+   * storage can only append and superseding is the only way the tail of a
+   * resumed session ever reaches the streak. The later row wins. Rows written
+   * before ids were session-stable all have unique ids, so they pass through.
+   */
+  const sessions = useMemo(() => {
+    const byId = new Map<string, LoggedSession>();
+    for (const s of logged) byId.set(s.id, s);
+    return [...byId.values()];
+  }, [logged]);
 
   useEffect(() => {
     void load();
@@ -114,6 +136,26 @@ export default function TrackerScreen() {
         profile={profile}
         palette={palette}
         now={now}
+        selfReport={
+          lastRead === null
+            ? null
+            : {
+                label: `I read page ${pageOf(lastRead.cursor)} — add it`,
+                onPress: () => {
+                  // pageWordRange is [from, to); commitSelfReport wants an
+                  // inclusive last word.
+                  const [from, to] = pageWordRange(pageOf(lastRead.cursor));
+                  void commitSelfReport('read', from, to - 1).then((added) => {
+                    setSelfReportNote(
+                      added === 0
+                        ? 'That page is already in your revision schedule from earlier today.'
+                        : `${added} ${added === 1 ? 'ayah' : 'ayahs'} added as read. Recite one and it counts as verified.`,
+                    );
+                    return load();
+                  });
+                },
+              }
+        }
         onPractise={(from, to) => {
           practiseRange(from, to);
           const ayah = ayahByGlobal(globalAyahOf(from));
@@ -126,6 +168,10 @@ export default function TrackerScreen() {
           router.push({ pathname: '/surah/[id]', params: { id: String(surah), ayah: String(ayah) } });
         }}
       />
+
+      {selfReportNote === null ? null : (
+        <Text style={[styles.empty, { color: palette.textMuted }]}>{selfReportNote}</Text>
+      )}
 
       <Text style={[styles.section, { color: palette.textMuted }]}>Last {HEATMAP_WEEKS} weeks</Text>
       <View style={styles.heatmap}>
@@ -158,7 +204,8 @@ export default function TrackerScreen() {
       <Text style={[styles.section, { color: palette.textMuted }]}>Recent sessions</Text>
       {recent.length === 0 ? (
         <Text style={[styles.empty, { color: palette.textMuted }]}>
-          Nothing logged yet. Finish a recitation and tap “Log to streak” on the summary card.
+          Nothing logged yet. Finish a recitation and tap “Log to streak” on the summary card — or
+          just start one and walk away: a session you abandon is saved on its own.
         </Text>
       ) : (
         recent.map((s) => (

@@ -18,7 +18,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { Animated } from 'react-native';
+import { Animated, AppState, type AppStateStatus } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 
@@ -33,7 +33,14 @@ import {
   words,
 } from '../data/quran';
 import { collectEvidence } from '../engine/evidence';
-import { applyEvidence, dueQueue, summarize, type HifzDeck } from '../engine/hifz';
+import {
+  applyEvidence,
+  applySelfReport,
+  ayahsInWordRange,
+  dueQueue,
+  type HifzDeck,
+  type SelfReportKind,
+} from '../engine/hifz';
 import type { MistakeRecord } from '../engine/confusion';
 import { vocabulary } from '../engine/searchIndex';
 import {
@@ -84,6 +91,14 @@ export interface SessionSummary {
   graded: { ayah: number; grade: number }[];
   /** how many ayahs are due for review right now, after this session */
   dueNow: number;
+  /**
+   * True when this session already reached the tracker on its own.
+   *
+   * A session that was backgrounded part-way through is flushed and logged
+   * without waiting for the summary card, so the card has to be able to say so
+   * rather than offer to do it again.
+   */
+  autoLogged: boolean;
 }
 
 export interface RecitationContextValue {
@@ -146,6 +161,21 @@ export interface RecitationContextValue {
   practiseRange: (from: number, to: number) => void;
 
   /**
+   * The non-voice way into the revision deck.
+   *
+   * Commits the ayahs substantially inside `[fromWord, toWord]` (inclusive) as a
+   * self-report and returns how many cards actually moved — zero when the same
+   * ayahs were already committed inside the cooldown, which the caller should
+   * report honestly rather than pretending something happened.
+   *
+   * This exists because the recogniser is not always available and is never
+   * obligatory: no Arabic speech pack, a bus, a masjid, silent reading, or
+   * simply a first session that has not happened yet. None of those should mean
+   * an empty coach.
+   */
+  commitSelfReport: (kind: SelfReportKind, fromWord: number, toWord: number) => Promise<number>;
+
+  /**
    * Register a function that stops Listen-tab playback. Called when the mic
    * starts (§4) — done explicitly rather than by relying on audio focus, which
    * governs playback and says nothing about who holds the microphone.
@@ -157,6 +187,72 @@ const RecitationContext = createContext<RecitationContextValue | null>(null);
 
 /** Haptics fire per completed AYAH, never per word — per-word is maddening. */
 const HAPTIC_PER_AYAH = true;
+
+/**
+ * How often a LIVE session is allowed to touch AsyncStorage.
+ *
+ * It used to be far more often than anyone intended. `saveProgress` ran in an
+ * effect keyed on `session.cursor`, and the cursor moves once per matched word —
+ * several times a second at ordinary recitation speed — and each call is a
+ * read-modify-write of the whole progress map, so following a reciter meant a
+ * JSON parse and a serialise per word on the storage queue. Everything a live
+ * session persists now goes through one timer instead.
+ *
+ * Thirty seconds is chosen against what is actually lost if the process dies
+ * between flushes: at most half a minute of reading position and of grading,
+ * which is recoverable by looking at the page. Shorter buys nothing a reciter
+ * would notice; much longer starts losing real work.
+ */
+const FLUSH_INTERVAL_MS = 30_000;
+
+/**
+ * Below this, an abandoned session is not worth a row in the tracker.
+ *
+ * Opening the microphone and putting the phone down is not a recitation, and a
+ * streak that can be extended by doing that is not worth having. The explicit
+ * "Log to streak" button has no such floor — that is a person deliberately
+ * saying it counted.
+ */
+const AUTO_LOG_MIN_WORDS = 5;
+
+/** Word range of one global ayah, [from, to) — the shape `ayahsInWordRange` wants. */
+const ayahWordRangeOf = (globalAyah: number): readonly [number, number] => [
+  ayahStartWord[globalAyah],
+  ayahStartWord[globalAyah + 1],
+];
+
+/**
+ * A finished (or abandoned) session as a tracker row.
+ *
+ * The id is the session's start time rather than the time of writing, so the
+ * same session written twice — once when it was backgrounded, once when it was
+ * finally stopped — produces two rows the tracker can recognise as one. Nothing
+ * in storage can update a row in place, so superseding it is the only way the
+ * tail of a resumed session ever reaches the streak.
+ *
+ * `startedAt` is passed in rather than read off the state, because
+ * `state.startedAt` moves on every 'resume' and a row whose id moves with it
+ * supersedes nothing. See the `sessionStartedAt` ref.
+ */
+function trackerEntry(state: SessionState, startedAt: number, now: number): LoggedSession {
+  const verses = new Set<number>();
+  for (const w of state.matched) verses.add(globalAyahOf(w));
+  const attempted = state.matched.size + state.mistakes.length;
+  return {
+    id: `${startedAt}`,
+    day: today(new Date(startedAt)),
+    at: startedAt,
+    surah: surahOf(state.cursor),
+    wordsRecited: state.matched.size,
+    versesCovered: verses.size,
+    accuracy: attempted === 0 ? 0 : state.matched.size / attempted,
+    longestCleanRun: state.longestCleanRun,
+    hintsUsed: state.hinted.size,
+    mistakes: state.mistakes.length,
+    durationMs: elapsedOf(state, now),
+    furthestWord: state.cursor,
+  };
+}
 
 export function RecitationProvider({ children }: { children: ReactNode }) {
   const { prefs } = useTheme();
@@ -176,11 +272,78 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
    */
   const hifzLoaded = useRef<Promise<void> | null>(null);
   /**
-   * Guards against double-grading. Applying one session's evidence twice would
-   * push every ayah in it a step further up the interval ladder on the strength
-   * of a single recitation.
+   * When THIS session began, and therefore which session the bookkeeping below
+   * belongs to. Set in `dispatch`, because 'start' and 'resetStats' are the
+   * only two events that begin a fresh set of session statistics.
+   *
+   * Deliberately NOT `session.startedAt`. That field is the start of the
+   * current LISTENING stretch — the reducer resets it on every 'resume',
+   * because it is what `elapsedMs` accumulates against. Keying this
+   * bookkeeping on it meant a paused-and-resumed session looked like a brand
+   * new one, which is not an exotic case: backgrounding pauses the recognizer,
+   * which calls `onInterrupted`, which dispatches 'pause'. So the ordinary
+   * background-then-come-back-and-finish path re-graded every ayah the session
+   * had already been graded for (verified: reviews 1 -> 2, interval 1 -> 3 day
+   * on a single recitation of Al-Fatiha) and wrote a second tracker row under a
+   * different id, which is precisely the double-count the id scheme exists to
+   * prevent.
    */
-  const gradedSessionAt = useRef(0);
+  const sessionStartedAt = useRef(0);
+  /**
+   * Which session's evidence has already been folded, and what it has already
+   * done for it. Reset lazily, the first time a new session is folded, so no
+   * start path can forget to clear it.
+   *
+   * This replaces a single "already graded this session" boolean. The boolean
+   * was correct while grading only ever happened once, at stop(); now that a
+   * session is folded repeatedly it has to remember WHICH ayahs it graded, or
+   * the first flush would swallow the rest of the session.
+   */
+  const foldedSessionAt = useRef(0);
+  /**
+   * Ayah -> grade, for every ayah this session has already folded into the deck.
+   *
+   * Doubles as the summary's `graded` list, because after several partial folds
+   * the last fold's return value is no longer the whole session.
+   */
+  const gradedAyahs = useRef<Map<number, number>>(new Map());
+  /**
+   * Words whose mistake has already been written to the confusion log this
+   * session. Keyed by word rather than counted, because a mistake can be
+   * retracted (`dismiss`, or a later match) and a count would then re-log the
+   * entries that shuffled down into its place.
+   */
+  const loggedMistakes = useRef<Set<number>>(new Set());
+  /**
+   * The last tracker row written for a session, so a flush cannot double-count.
+   * Keyed by `sessionStartedAt`, not by `session.startedAt` — see that ref.
+   */
+  const loggedRow = useRef<{ session: number; words: number }>({ session: 0, words: 0 });
+  /**
+   * Reading position not yet written to storage, or null when storage is
+   * current. See FLUSH_INTERVAL_MS for why this is not written immediately.
+   */
+  const unsavedPosition = useRef<{ surah: number; cursor: number } | null>(null);
+  /**
+   * Flushes are serialised. The interval tick, a background event and stop()
+   * can all land within a few milliseconds of each other.
+   *
+   * Not for the reason it first looks like: the deck read and its write sit in
+   * the same microtask, and `gradedAyahs`, `loggedMistakes` and `loggedRow` are
+   * all updated synchronously BEFORE their awaits, so the common case of two
+   * identical flushes is already safe without this.
+   *
+   * What this actually guards is the LOST UPDATE in the storage helpers.
+   * `appendMistakeLog` and `logSession` (src/data/storage.ts) both load, modify
+   * and save across an await. Two flushes carrying DIFFERENT new data — the
+   * interval fires, more is recited, then the app is backgrounded — can
+   * interleave so the second reads storage before the first has written, and
+   * the first flush's mistakes vanish. Serialising is a cheaper fix than making
+   * every storage helper atomic, and it is the kind of race that would show up
+   * as "some of my mistakes are missing sometimes", which nobody would ever
+   * report precisely enough to find.
+   */
+  const flushChain = useRef<Promise<void>>(Promise.resolve());
   const playbackStopper = useRef<(() => void) | null>(null);
 
   const config = useMemo<SessionConfig>(
@@ -205,7 +368,137 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
     initialSession(0),
   );
 
-  const dispatch = useCallback((event: SessionEvent) => rawDispatch(event), []);
+  const dispatch = useCallback((event: SessionEvent) => {
+    // The one choke point where a new session's identity can be recorded.
+    // 'start' and 'resetStats' are the only events that run `initialSession`
+    // and so the only two that begin a fresh set of statistics; everything
+    // else, 'resume' included, continues the session already in progress. See
+    // `sessionStartedAt` for what went wrong when this was read off the state.
+    if (event.type === 'start' || event.type === 'resetStats') sessionStartedAt.current = event.at;
+    rawDispatch(event);
+  }, []);
+
+  // The flush paths are driven by timers and by AppState, neither of which
+  // re-runs when React re-renders, so they read the live state through refs
+  // rather than capturing a stale copy in a closure.
+  const sessionRef = useRef(session);
+  sessionRef.current = session;
+  const hintsRef = useRef(hints);
+  hintsRef.current = hints;
+
+  /**
+   * Fold whatever this session has proved so far into the deck and the mistake
+   * log, without touching the session itself.
+   *
+   * THE DEFECT THIS FIXES: `applyEvidence` had exactly one call site, inside
+   * buildSummary, reached only from stop(). A session that was backgrounded,
+   * interrupted by a call or swiped away therefore contributed nothing at all —
+   * the app watched somebody recite for ten minutes and then forgot it. This is
+   * called on a timer, on backgrounding and at stop, and deliberately does NOT
+   * call stop(): docs/decisions.md records that backgrounding must not tear the
+   * session down (the AppState pause already fires only on 'background', and
+   * only because Android reports 'inactive' for permission dialogs).
+   *
+   * `final` is the difference between a checkpoint and the end. Mid-session,
+   * only ayahs the voice has already left are graded — `collectEvidence` emits
+   * an ayah at 50% coverage, so grading one still being recited would score a
+   * perfect recitation as a partial one.
+   */
+  const foldSession = useCallback(async (state: SessionState, final: boolean): Promise<void> => {
+    if (sessionStartedAt.current === 0) return;
+    if (foldedSessionAt.current !== sessionStartedAt.current) {
+      foldedSessionAt.current = sessionStartedAt.current;
+      gradedAyahs.current = new Map();
+      loggedMistakes.current = new Set();
+    }
+    if (hifzLoaded.current !== null) await hifzLoaded.current;
+
+    const revealed = new Set<number>();
+    for (const [word, level] of hintsRef.current) if (level === 2) revealed.add(word);
+    const evidence = collectEvidence({
+      matched: state.matched,
+      missed: state.mistakes.map((m) => m.word),
+      hinted: state.hinted,
+      revealed,
+      globalAyahOf,
+      ayahWordCount: (globalAyah) => ayahStartWord[globalAyah + 1] - ayahStartWord[globalAyah],
+    });
+    // The earliest of the two positions, because the voice may have gone back
+    // to re-recite: whichever is lower is the ayah still in flight.
+    const inFlight = Math.min(globalAyahOf(state.cursor), globalAyahOf(state.livePos));
+    const ready = final ? evidence : evidence.filter((e) => e.ayah < inFlight);
+    const fresh = ready.filter((e) => !gradedAyahs.current.has(e.ayah));
+    if (fresh.length > 0) {
+      const folded = applyEvidence(hifzDeck.current, fresh, Date.now());
+      hifzDeck.current = folded.deck;
+      for (const g of folded.graded) gradedAyahs.current.set(g.ayah, g.grade);
+      await saveHifzDeck(folded.deck);
+    }
+
+    const newMistakes = state.mistakes.filter((m) => !loggedMistakes.current.has(m.word));
+    if (newMistakes.length > 0) {
+      for (const m of newMistakes) loggedMistakes.current.add(m.word);
+      // Expected text comes from the word array, so the confusion profile is
+      // built on the same normalization the matcher used.
+      const records: MistakeRecord[] = newMistakes.map((m) => ({
+        word: m.word,
+        expected: words[m.word] ?? '',
+        heardInstead: m.heardInstead,
+      }));
+      await appendMistakeLog(records);
+    }
+  }, []);
+
+  /**
+   * Write a tracker row for this session, at most once per state of it.
+   *
+   * `minWords` is the whole difference between the automatic path and the
+   * button: an abandoned session has to clear a floor before it counts, a
+   * person tapping "Log to streak" has already decided that it does.
+   */
+  const logSessionRow = useCallback(async (state: SessionState, minWords: number): Promise<boolean> => {
+    const startedAt = sessionStartedAt.current;
+    if (startedAt === 0) return false;
+    if (state.matched.size < minWords) return false;
+    // Re-logging is allowed only when the session has actually advanced, so a
+    // resumed session's tail reaches the streak while an idle re-stop does not.
+    if (loggedRow.current.session === startedAt && state.matched.size <= loggedRow.current.words) {
+      return false;
+    }
+    loggedRow.current = { session: startedAt, words: state.matched.size };
+    await logSession(trackerEntry(state, startedAt, Date.now()));
+    return true;
+  }, []);
+
+  /**
+   * Everything a live session owes storage, in one serialised pass.
+   *
+   * `autoLog` is set only for the abandonment paths; the ordinary stop path
+   * leaves the tracker row to the summary card, where it has always been the
+   * reciter's choice.
+   */
+  const flush = useCallback(
+    (opts: { final: boolean; autoLog: boolean; state?: SessionState }): Promise<void> => {
+      const run = async (): Promise<void> => {
+        // stop() applies the reducer itself and hands the resulting state
+        // straight here, because React has not committed it yet.
+        const state = opts.state ?? sessionRef.current;
+        const position = unsavedPosition.current;
+        if (position !== null) {
+          unsavedPosition.current = null;
+          await saveProgress(position.surah, position.cursor);
+        }
+        await foldSession(state, opts.final);
+        if (opts.autoLog) await logSessionRow(state, AUTO_LOG_MIN_WORDS);
+      };
+      const next = flushChain.current.then(run, run);
+      // Keep the chain alive even if one flush throws; a failed write must not
+      // wedge every later one.
+      flushChain.current = next.catch(() => undefined);
+      return next;
+    },
+    [foldSession, logSessionRow],
+  );
 
   // --- recognizer event capture, for the replay harness (§9) ---
   const capture = useRef<ReplayFixture>({ name: 'captured', startCursor: 0, events: [] });
@@ -349,11 +642,57 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
   }, [session]);
 
   // --- persist resume position per surah (§6.7) ---
+  // Recorded on every cursor change, WRITTEN on the flush timer. See
+  // FLUSH_INTERVAL_MS: this effect used to call saveProgress directly, which
+  // was a read-modify-write of the whole progress map per recited word.
   const persistSurah = surahOf(session.cursor);
   useEffect(() => {
     if (session.status === 'idle') return;
-    void saveProgress(persistSurah, session.cursor);
+    unsavedPosition.current = { surah: persistSurah, cursor: session.cursor };
   }, [persistSurah, session.cursor, session.status]);
+
+  // --- checkpoint a live session, so abandoning it cannot lose everything ---
+  useEffect(() => {
+    if (session.status !== 'listening') return undefined;
+    const id = setInterval(() => void flush({ final: false, autoLog: false }), FLUSH_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [flush, session.status]);
+
+  // Leaving 'listening' for any reason — paused by a phone call, by the
+  // silence timeout, by backgrounding — is a natural moment to write. It is a
+  // flush, not a stop: the session is still there to resume.
+  useEffect(() => {
+    if (session.status === 'listening' || session.status === 'idle') return;
+    void flush({ final: false, autoLog: false });
+  }, [flush, session.status]);
+
+  /**
+   * Backgrounding is the abandonment case, and the one that used to lose
+   * everything: the recognizer pauses itself on 'background' (deliberately, and
+   * only on 'background' — see docs/decisions.md), nothing else happened, and
+   * if the process was then killed from recents the whole session went with it.
+   *
+   * This flushes and logs WITHOUT calling stop(), exactly as that decision
+   * requires: no summary card is built, no recognizer teardown, the session is
+   * still sitting there paused when the reciter comes back.
+   */
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next: AppStateStatus) => {
+      if (next !== 'background') return;
+      const status = sessionRef.current.status;
+      if (status === 'idle') return;
+      // Only a session that is still live is being ABANDONED. Once it has been
+      // stopped, buildSummary has already folded everything and the tracker row
+      // is the reciter's own choice on the summary card — writing one here
+      // because they switched apps would quietly make that choice for them.
+      // `final: false` on purpose. The ayah the voice is in the middle of is
+      // incomplete evidence, and grading it here would both score a good
+      // recitation as a partial one and stop the finished version from ever
+      // being graded if the reciter comes back and completes it.
+      void flush({ final: false, autoLog: status === 'listening' || status === 'paused' });
+    });
+    return () => sub.remove();
+  }, [flush]);
 
   const registerPlaybackStopper = useCallback((stop: (() => void) | null) => {
     playbackStopper.current = stop;
@@ -379,9 +718,12 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
 
   const buildSummary = useCallback(
     async (state: SessionState): Promise<SessionSummary> => {
-      // never grade the same session twice
-      const alreadyGraded = gradedSessionAt.current === state.startedAt && state.startedAt !== 0;
-      if (hifzLoaded.current !== null) await hifzLoaded.current;
+      // The last fold of this session: everything still ungraded, in-flight
+      // ayah included, plus whatever position and mistakes are outstanding.
+      // Grading itself is deduped per ayah inside foldSession, so a session
+      // already checkpointed three times cannot be pushed three steps further
+      // up the interval ladder by stopping it.
+      await flush({ final: true, autoLog: false, state });
       const surah = surahOf(state.cursor);
       const [surahStart] = surahWordRange(surah);
       const previous = await bestPreviousFor(surah);
@@ -389,39 +731,13 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       for (const w of state.matched) versesCovered.add(globalAyahOf(w));
       const attempted = state.matched.size + state.mistakes.length;
 
-      // Fold the session into the hifz deck. This is the part that makes the
-      // app remember which ayahs YOU are weak on rather than which ayahs exist.
       const now = Date.now();
-      const revealed = new Set<number>();
-      for (const [word, level] of hints) if (level === 2) revealed.add(word);
-      const evidence = collectEvidence({
-        matched: state.matched,
-        missed: state.mistakes.map((m) => m.word),
-        hinted: state.hinted,
-        revealed,
-        globalAyahOf,
-        ayahWordCount: (globalAyah) => ayahStartWord[globalAyah + 1] - ayahStartWord[globalAyah],
-      });
-      const folded = alreadyGraded
-        ? { deck: hifzDeck.current, graded: [] as { ayah: number; grade: number }[] }
-        : applyEvidence(hifzDeck.current, evidence, now);
-      if (!alreadyGraded) {
-        gradedSessionAt.current = state.startedAt;
-        hifzDeck.current = folded.deck;
-        void saveHifzDeck(folded.deck);
-      }
-
-      // Record the mistakes for the confusion profile. Expected text comes from
-      // the word array, so the profile is built on the same normalization the
-      // matcher used.
-      if (!alreadyGraded) {
-        const records: MistakeRecord[] = state.mistakes.map((m) => ({
-          word: m.word,
-          expected: words[m.word] ?? '',
-          heardInstead: m.heardInstead,
-        }));
-        void appendMistakeLog(records);
-      }
+      // The whole session's grades, not the last fold's: a long session is
+      // folded several times, so the final call's return value would report
+      // only the tail of it.
+      const graded = [...gradedAyahs.current]
+        .map(([ayah, grade]) => ({ ayah, grade }))
+        .sort((a, b) => a.ayah - b.ayah);
 
       return {
         wordsRecited: state.matched.size,
@@ -434,11 +750,12 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
         furthestWord: state.cursor,
         surah,
         previousFurthest: previous === null ? null : previous.furthestWord,
-        graded: folded.graded,
-        dueNow: dueQueue(folded.deck, now, 500).length,
+        graded,
+        dueNow: dueQueue(hifzDeck.current, now, 500).length,
+        autoLogged: sessionStartedAt.current !== 0 && loggedRow.current.session === sessionStartedAt.current,
       };
     },
-    [hints],
+    [flush],
   );
 
   const stop = useCallback(() => {
@@ -501,24 +818,59 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
     [dispatch],
   );
 
+  /**
+   * "Log to streak" on the summary card.
+   *
+   * No word floor — the reciter has said this counted — but it shares the
+   * one-row-per-session guard with the automatic path, so a session that was
+   * already logged when it was backgrounded is superseded rather than counted
+   * twice. The tracker keeps the last row for each id.
+   */
   const logSummaryToTracker = useCallback(async () => {
     if (summary === null) return;
-    const entry: LoggedSession = {
-      id: `${Date.now()}`,
-      day: today(),
-      at: Date.now(),
-      surah: summary.surah,
-      wordsRecited: summary.wordsRecited,
-      versesCovered: summary.versesCovered,
-      accuracy: summary.accuracy,
-      longestCleanRun: summary.longestCleanRun,
-      hintsUsed: summary.hintedWords.length,
-      mistakes: summary.mistakes.length,
-      durationMs: summary.durationMs,
-      furthestWord: summary.furthestWord,
-    };
-    await logSession(entry);
-  }, [summary]);
+    await logSessionRow(sessionRef.current, 0);
+  }, [logSessionRow, summary]);
+
+  /**
+   * The second door into the revision deck: "I read this" / "I revised this".
+   *
+   * Everything about which ayahs a word range honestly covers, what a
+   * self-report is worth and how often it may be repeated lives in
+   * src/engine/hifz.ts, where it is pure and tested. This is the wiring.
+   *
+   * Queued on the same chain as the session flushes, because both are a
+   * read-modify-write of `hifzDeck.current`: the tracker's button is reachable
+   * while a session sits paused in another tab, and a flush already in flight
+   * would write back the deck it read before these cards existed.
+   */
+  const commitSelfReport = useCallback(
+    (kind: SelfReportKind, fromWord: number, toWord: number): Promise<number> => {
+      const run = async (): Promise<number> => {
+        if (hifzLoaded.current !== null) await hifzLoaded.current;
+        const ayahs = ayahsInWordRange({
+          fromWord,
+          toWord,
+          globalAyahOf,
+          ayahWordRange: ayahWordRangeOf,
+        });
+        const { deck, graded } = applySelfReport(hifzDeck.current, ayahs, kind, Date.now());
+        // Nothing moved means every ayah was inside its cooldown; do not write.
+        // One tap is one review, and a no-op write is still a write.
+        if (graded.length === 0) return 0;
+        hifzDeck.current = deck;
+        await saveHifzDeck(deck);
+        return graded.length;
+      };
+      const next = flushChain.current.then(run, run);
+      // Same as in `flush`: a rejection must not wedge everything behind it.
+      flushChain.current = next.then(
+        () => undefined,
+        () => undefined,
+      );
+      return next;
+    },
+    [],
+  );
 
   const awayFromPlace = session.status !== 'idle' && viewedPage !== pageOf(session.livePos);
 
@@ -555,6 +907,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       silenceTimedOut,
       captureFixture: () => capture.current,
       practiseRange,
+      commitSelfReport,
       registerPlaybackStopper,
     }),
     [
@@ -580,6 +933,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       interruption,
       silenceTimedOut,
       practiseRange,
+      commitSelfReport,
       registerPlaybackStopper,
     ],
   );

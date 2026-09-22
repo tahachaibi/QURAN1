@@ -46,6 +46,7 @@ import {
   StatsColumn,
 } from '../../src/components/controls';
 import { useRecitation, type ReadMode } from '../../src/context/RecitationProvider';
+import type { SelfReportKind } from '../../src/engine/hifz';
 import { useTheme } from '../../src/theme/ThemeProvider';
 import { radius, space } from '../../src/theme/theme';
 import { ListenPanel } from '../../src/components/ListenPanel';
@@ -94,6 +95,7 @@ export default function SurahScreen() {
     setRange,
     range,
     practiseRange,
+    commitSelfReport,
     registerPlaybackStopper,
   } = recitation;
 
@@ -107,6 +109,8 @@ export default function SurahScreen() {
   const [mistakesOpen, setMistakesOpen] = useState(false);
   const [transcriptOpen, setTranscriptOpen] = useState(false);
   const [selecting, setSelecting] = useState<number | null>(null);
+  /** what the "I read this" commit just did; clears itself like the other notices */
+  const [selfReportNote, setSelfReportNote] = useState<string | null>(null);
   const deck = useRef<PageDeckHandle>(null);
   const seeded = useRef(false);
 
@@ -117,6 +121,20 @@ export default function SurahScreen() {
     if (seeded.current) return;
     seeded.current = true;
     const explicit = params.ayah !== undefined;
+    /**
+     * A LIVE session owns the cursor (§2), so a remount must not re-seed from
+     * storage. This screen can be unmounted and remounted mid-session by the
+     * tab bar, and the saved position is now written on a flush interval rather
+     * than per recited word — so restoring from it would drag a live cursor
+     * back to wherever the last flush happened to land. Follow the cursor that
+     * is already there instead. An explicit route ayah still wins: that is
+     * somebody asking to be taken somewhere.
+     */
+    if (!explicit && session.status !== 'idle') {
+      setViewedPage(pageOf(session.cursor));
+      deck.current?.goToPage(pageOf(session.cursor), false);
+      return;
+    }
     void loadProgress().then((progress) => {
       const saved = progress[String(seedSurah)];
       const word =
@@ -127,7 +145,7 @@ export default function SurahScreen() {
       setViewedPage(pageOf(word));
       deck.current?.goToPage(pageOf(word), false);
     });
-  }, [params.ayah, seedAyah, seedSurah, seekTo, setViewedPage]);
+  }, [params.ayah, seedAyah, seedSurah, seekTo, session.cursor, session.status, setViewedPage]);
 
   // --- auto page-turn: the deck follows the voice (§6.1) ---
   const cursorPage = pageOf(session.livePos);
@@ -201,6 +219,41 @@ export default function SurahScreen() {
     if (listening) stop();
     else start();
   }, [listening, start, stop]);
+
+  /**
+   * The non-voice way into the revision deck, from the page itself.
+   *
+   * Which claim it records comes from the mode you are already in, so there is
+   * no extra choice to make: Hidden mode conceals the text and reveals it as
+   * you recall, which is revision from memory; Follow mode has the words in
+   * front of you, which is reading. Neither is a matched recitation and the
+   * deck says so either way — the mode only decides how much of a claim the
+   * reciter is making.
+   */
+  const selfReportKind: SelfReportKind = mode === 'hidden' ? 'revised' : 'read';
+  const selfReportRange = useMemo((): [number, number] => {
+    if (range !== null) return [range.from, range.to];
+    // pageWordRange is [from, to); commitSelfReport wants an inclusive last word
+    const [from, to] = pageWordRange(viewedPage);
+    return [from, to - 1];
+  }, [range, viewedPage]);
+
+  const onSelfReport = useCallback(() => {
+    const [from, to] = selfReportRange;
+    void commitSelfReport(selfReportKind, from, to).then((added) => {
+      setSelfReportNote(
+        added === 0
+          ? 'Already in your revision schedule from earlier today.'
+          : `${added} ${added === 1 ? 'ayah' : 'ayahs'} added to revision, as read rather than heard.`,
+      );
+    });
+  }, [commitSelfReport, selfReportKind, selfReportRange]);
+
+  useEffect(() => {
+    if (selfReportNote === null) return undefined;
+    const id = setTimeout(() => setSelfReportNote(null), 5000);
+    return () => clearTimeout(id);
+  }, [selfReportNote]);
 
   /**
    * First run lands here via router.replace from onboarding, so there is no
@@ -333,6 +386,32 @@ export default function SurahScreen() {
 
         {selecting !== null ? (
           <Chip label="Now tap the last word of the range" icon="hand-left-outline" palette={palette} onPress={() => setSelecting(null)} />
+        ) : null}
+
+        {selfReportNote !== null ? (
+          <Chip
+            label={selfReportNote}
+            icon="checkmark-circle-outline"
+            palette={palette}
+            onPress={() => setSelfReportNote(null)}
+          />
+        ) : null}
+
+        {/* Offered only when the microphone is off. While somebody is reciting,
+            the recogniser is already the evidence and a second, weaker way to
+            claim the same page would only compete with it. */}
+        {!listening && selfReportNote === null ? (
+          <Chip
+            label={
+              range !== null
+                ? `${selfReportKind === 'revised' ? 'I revised' : 'I read'} ${rangeLabel(range.from, range.to)} — add it`
+                : `${selfReportKind === 'revised' ? 'I revised' : 'I read'} page ${viewedPage} — add it`
+            }
+            icon="book-outline"
+            palette={palette}
+            onPress={onSelfReport}
+            accessibilityHint="Adds these ayahs to your revision schedule without the microphone, marked as read rather than verified"
+          />
         ) : null}
 
         {recognizer.status === 'unavailable' ? (
@@ -495,6 +574,10 @@ export default function SurahScreen() {
         summary={summary}
         palette={palette}
         onExport={() => void exportFixture(captureFixture())}
+        onAddByHand={() => {
+          onSelfReport();
+          dismissSummary();
+        }}
         onClose={dismissSummary}
         onLog={() => {
           void logSummaryToTracker().then(dismissSummary);
