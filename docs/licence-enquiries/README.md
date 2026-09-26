@@ -15,7 +15,16 @@ work is blocked while you wait.
 | 1 | KFGQPC font | email, 2026-09-26 | waiting |
 | 2a | Hadith dataset (GitHub issue) | not yet | — |
 | 2b | Hadith translations (sunnah.com) | email, 2026-09-26 | waiting |
-| 3 | QUL layout | not yet: check the resource page first | — |
+| 3 | QUL layout | resource page checked 2026-09-26, no licence stated: open the GitHub issue | — |
+
+**What QUL says (checked 2026-09-26).** Neither the "KFGQPC V2 layout (1421H
+print)" page nor its related resources state a licence. The related resources
+are the QPC V2 per-page fonts (`p1-v2` …), and their page is web-integration
+instructions only. This app does not use those fonts anyway: it draws the page
+in KFGQPC Uthmanic Hafs and takes only the line breaks from the layout. The
+`TarteelAI/quranic-universal-library` repository is MIT-licensed, but that
+licence covers the site's code, and its README says nothing about the data. So
+the GitHub issue in `03-qul-layout.md` is the right next step.
 
 Follow up once, politely, if nothing has come back by 2026-10-24 (four weeks).
 
