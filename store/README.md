@@ -175,6 +175,32 @@ keytool -list -keystore upload.jks
 
 It should show one entry, `quran-habit-upload`, of type `PrivateKeyEntry`.
 
+#### Can't install anything? (a work laptop, for example)
+
+Do it in a **GitHub Codespace** instead. It is a Linux machine in the browser
+with Java already installed, and nothing gets installed on the laptop.
+
+1. On the repository page: **Code** → **Codespaces** → the `…` menu → **New with
+   options**. Pick branch `claude/quran-habit-android-jr6hwv` (or any branch
+   whose `.gitignore` has `/.keys/`) and create it.
+2. In the terminal at the bottom:
+   ```bash
+   mkdir -p .keys && cd .keys
+   keytool -genkeypair -v -keystore upload.jks -alias quran-habit-upload -keyalg RSA -keysize 4096 -validity 10000
+   base64 -w0 upload.jks > upload.b64
+   ```
+   (If it says `keytool: command not found`, run
+   `sudo apt-get update && sudo apt-get install -y openjdk-17-jdk-headless` first.)
+3. Check nothing is about to be committed: `git status` must NOT list `.keys`.
+4. Explorer on the left → `.keys` → right-click `upload.jks` → **Download**.
+   Store it straight into your backup (step 2 below), not in the laptop's
+   Downloads folder.
+5. Open `upload.b64`, select all, copy, and paste it as the
+   `UPLOAD_KEYSTORE_BASE64` secret (step 3 below).
+6. When the backup and the secrets are done: github.com/codespaces → `…` next
+   to this codespace → **Delete**. Otherwise a copy of the key stays on
+   GitHub's servers for as long as the codespace exists.
+
 ### 2. Back it up somewhere you will still have in five years
 
 **This is the step people regret.** Once Play App Signing is enrolled, Google

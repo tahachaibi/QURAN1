@@ -31,3 +31,6 @@ coverage/
 *.jks
 *.keystore
 keystore.properties
+# The scratch folder the no-install route in store/README.md uses. It holds the
+# key AND its base64 text, and the text is just as secret as the file.
+/.keys/
