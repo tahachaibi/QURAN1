@@ -1,0 +1,2472 @@
+{
+"name": "device-2026-09-26-05",
+"startCursor": 259,
+"events": [
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 245
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 1
+},
+{
+"kind": "partial",
+"alternatives": [
+"يا"
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+"يا"
+],
+"dt": 488
+},
+{
+"kind": "partial",
+"alternatives": [
+"يا ايها"
+],
+"dt": 245
+},
+{
+"kind": "partial",
+"alternatives": [
+"يا ايها"
+],
+"dt": 249
+},
+{
+"kind": "partial",
+"alternatives": [
+"يا ايها"
+],
+"dt": 244
+},
+{
+"kind": "partial",
+"alternatives": [
+"يا ايها الناس"
+],
+"dt": 240
+},
+{
+"kind": "partial",
+"alternatives": [
+"يا ايها الناس"
+],
+"dt": 244
+},
+{
+"kind": "partial",
+"alternatives": [
+"يا ايها الناس"
+],
+"dt": 246
+},
+{
+"kind": "partial",
+"alternatives": [
+"يا ايها الناس"
+],
+"dt": 239
+},
+{
+"kind": "partial",
+"alternatives": [
+"يا ايها الناس اعبدوا"
+],
+"dt": 487
+},
+{
+"kind": "partial",
+"alternatives": [
+"يا ايها الناس اعبدوا"
+],
+"dt": 252
+},
+{
+"kind": "partial",
+"alternatives": [
+"يا ايها الناس اعبدوا ربكم"
+],
+"dt": 244
+},
+{
+"kind": "partial",
+"alternatives": [
+"يا ايها الناس اعبدوا ربكم"
+],
+"dt": 255
+},
+{
+"kind": "partial",
+"alternatives": [
+"يا ايها الناس اعبدوا ربكم الذي"
+],
+"dt": 241
+},
+{
+"kind": "partial",
+"alternatives": [
+"يا ايها الناس اعبدوا ربكم الذي"
+],
+"dt": 255
+},
+{
+"kind": "partial",
+"alternatives": [
+"يا ايها الناس اعبدوا ربكم الذي"
+],
+"dt": 250
+},
+{
+"kind": "partial",
+"alternatives": [
+"يا ايها الناس اعبدوا ربكم الذي خلقكم"
+],
+"dt": 246
+},
+{
+"kind": "partial",
+"alternatives": [
+"يا ايها الناس اعبدوا ربكم الذي خلقكم"
+],
+"dt": 248
+},
+{
+"kind": "partial",
+"alternatives": [
+"يا ايها الناس اعبدوا ربكم الذي خلقكم"
+],
+"dt": 243
+},
+{
+"kind": "partial",
+"alternatives": [
+"يا ايها الناس اعبدوا ربكم الذي خلقكم"
+],
+"dt": 241
+},
+{
+"kind": "partial",
+"alternatives": [
+"يا ايها الناس اعبدوا ربكم الذي خلقكم والذين"
+],
+"dt": 250
+},
+{
+"kind": "partial",
+"alternatives": [
+"يا ايها الناس اعبدوا ربكم الذي خلقكم والذين"
+],
+"dt": 253
+},
+{
+"kind": "partial",
+"alternatives": [
+"يا ايها الناس اعبدوا ربكم الذي خلقكم والذين من"
+],
+"dt": 240
+},
+{
+"kind": "partial",
+"alternatives": [
+"يا ايها الناس اعبدوا ربكم الذي خلقكم والذين من قبلكم"
+],
+"dt": 251
+},
+{
+"kind": "partial",
+"alternatives": [
+"يا ايها الناس اعبدوا ربكم الذي خلقكم والذين من قبلكم"
+],
+"dt": 259
+},
+{
+"kind": "partial",
+"alternatives": [
+"يا ايها الناس اعبدوا ربكم الذي خلقكم والذين من قبلكم"
+],
+"dt": 239
+},
+{
+"kind": "partial",
+"alternatives": [
+"يا ايها الناس اعبدوا ربكم الذي خلقكم والذين من قبلكم لعلكم"
+],
+"dt": 245
+},
+{
+"kind": "partial",
+"alternatives": [
+"يا ايها الناس اعبدوا ربكم الذي خلقكم والذين من قبلكم لعلكم"
+],
+"dt": 259
+},
+{
+"kind": "partial",
+"alternatives": [
+"يا ايها الناس اعبدوا ربكم الذي خلقكم والذين من قبلكم لعلكم"
+],
+"dt": 241
+},
+{
+"kind": "partial",
+"alternatives": [
+"يا ايها الناس اعبدوا ربكم الذي خلقكم والذين من قبلكم لعلكم تتق"
+],
+"dt": 250
+},
+{
+"kind": "partial",
+"alternatives": [
+"يا ايها الناس اعبدوا ربكم الذي خلقكم والذين من قبلكم لعلكم"
+],
+"dt": 252
+},
+{
+"kind": "final",
+"alternatives": [
+"يا ايها الناس اعبدوا ربكم الذي خلقكم والذين من قبلكم لعلكم تتقون",
+"يا ايها الناس اعبدوا ربكم الذي خلقكم والذين من قبلكم لعلكم تتق"
+],
+"dt": 250
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 711
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 332
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 72
+},
+{
+"kind": "partial",
+"alternatives": [
+" الذي"
+],
+"dt": 124
+},
+{
+"kind": "partial",
+"alternatives": [
+" الذي جعل"
+],
+"dt": 561
+},
+{
+"kind": "partial",
+"alternatives": [
+" الذي جعل"
+],
+"dt": 240
+},
+{
+"kind": "partial",
+"alternatives": [
+" الذي جعل لكم"
+],
+"dt": 241
+},
+{
+"kind": "final",
+"alternatives": [
+" الذي جعل لكم الارض"
+],
+"dt": 249
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 502
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 46
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 68
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 57
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 54
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 803
+},
+{
+"kind": "partial",
+"alternatives": [
+" فئران"
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+" فئران والس"
+],
+"dt": 361
+},
+{
+"kind": "partial",
+"alternatives": [
+" فئران"
+],
+"dt": 243
+},
+{
+"kind": "partial",
+"alternatives": [
+" فئران والسماء"
+],
+"dt": 409
+},
+{
+"kind": "partial",
+"alternatives": [
+" فئران والسماء"
+],
+"dt": 1090
+},
+{
+"kind": "partial",
+"alternatives": [
+" فئران والسماء"
+],
+"dt": 470
+},
+{
+"kind": "partial",
+"alternatives": [
+" فئران والسماء"
+],
+"dt": 339
+},
+{
+"kind": "final",
+"alternatives": [
+" فئران والسماء بنا",
+" فئران والسماء بناء"
+],
+"dt": 452
+},
+{
+"kind": "final",
+"alternatives": [
+""
+],
+"dt": 1010
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 1032
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 0
+},
+{
+"kind": "final",
+"alternatives": [
+" وان",
+" وانزل"
+],
+"dt": 462
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 2238
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 332
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 186
+},
+{
+"kind": "partial",
+"alternatives": [
+" وانزل"
+],
+"dt": 355
+},
+{
+"kind": "partial",
+"alternatives": [
+" وانزل"
+],
+"dt": 238
+},
+{
+"kind": "partial",
+"alternatives": [
+" وانزل"
+],
+"dt": 237
+},
+{
+"kind": "partial",
+"alternatives": [
+" وانزل من"
+],
+"dt": 254
+},
+{
+"kind": "partial",
+"alternatives": [
+" وانزل من السماء"
+],
+"dt": 242
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 6485
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 241
+},
+{
+"kind": "partial",
+"alternatives": [
+"وانزل"
+],
+"dt": 20
+},
+{
+"kind": "partial",
+"alternatives": [
+"وانزل من"
+],
+"dt": 314
+},
+{
+"kind": "partial",
+"alternatives": [
+"وانزل من"
+],
+"dt": 319
+},
+{
+"kind": "partial",
+"alternatives": [
+"وانزل من"
+],
+"dt": 335
+},
+{
+"kind": "partial",
+"alternatives": [
+"وانزل من السماء"
+],
+"dt": 566
+},
+{
+"kind": "partial",
+"alternatives": [
+"وانزل من السماء"
+],
+"dt": 1029
+},
+{
+"kind": "partial",
+"alternatives": [
+"وانزل من السماء"
+],
+"dt": 249
+},
+{
+"kind": "final",
+"alternatives": [
+"وانزل من السماء ماء"
+],
+"dt": 321
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 572
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 85
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 505
+},
+{
+"kind": "partial",
+"alternatives": [
+" فاخرج"
+],
+"dt": 346
+},
+{
+"kind": "partial",
+"alternatives": [
+" فاخرج"
+],
+"dt": 237
+},
+{
+"kind": "partial",
+"alternatives": [
+" فاخرج به"
+],
+"dt": 253
+},
+{
+"kind": "partial",
+"alternatives": [
+" فاخرج به من"
+],
+"dt": 245
+},
+{
+"kind": "partial",
+"alternatives": [
+" فاخرج به من"
+],
+"dt": 245
+},
+{
+"kind": "partial",
+"alternatives": [
+" فاخرج به من"
+],
+"dt": 239
+},
+{
+"kind": "partial",
+"alternatives": [
+" فاخرج به من"
+],
+"dt": 242
+},
+{
+"kind": "partial",
+"alternatives": [
+" فاخرج به من"
+],
+"dt": 241
+},
+{
+"kind": "partial",
+"alternatives": [
+" فاخرج به من"
+],
+"dt": 249
+},
+{
+"kind": "partial",
+"alternatives": [
+" فاخرج به من الثمرات"
+],
+"dt": 242
+},
+{
+"kind": "partial",
+"alternatives": [
+" فاخرج به من الثمرات"
+],
+"dt": 243
+},
+{
+"kind": "final",
+"alternatives": [
+" فاخرج به من الثمرات رزقا لكم",
+" فاخرج به من الثمرات رزقا"
+],
+"dt": 242
+},
+{
+"kind": "final",
+"alternatives": [
+""
+],
+"dt": 1005
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 513
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 57
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 118
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 325
+},
+{
+"kind": "final",
+"alternatives": [
+" فلا تجعل",
+" فلا تجعلوا"
+],
+"dt": 192
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 485
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 157
+},
+{
+"kind": "partial",
+"alternatives": [
+"وا"
+],
+"dt": 56
+},
+{
+"kind": "partial",
+"alternatives": [
+"وا لله"
+],
+"dt": 531
+},
+{
+"kind": "partial",
+"alternatives": [
+"وا لله"
+],
+"dt": 2007
+},
+{
+"kind": "partial",
+"alternatives": [
+"وا لله وانتم"
+],
+"dt": 572
+},
+{
+"kind": "partial",
+"alternatives": [
+"وا لله وانتم"
+],
+"dt": 307
+},
+{
+"kind": "partial",
+"alternatives": [
+"وا لله وانتم تعلمون"
+],
+"dt": 368
+},
+{
+"kind": "partial",
+"alternatives": [
+"وا لله وانتم تعلمون"
+],
+"dt": 1659
+},
+{
+"kind": "partial",
+"alternatives": [
+"وا لله وانتم تعلمون"
+],
+"dt": 539
+},
+{
+"kind": "partial",
+"alternatives": [
+"وا لله وانتم تعلمون"
+],
+"dt": 245
+},
+{
+"kind": "partial",
+"alternatives": [
+"وا لله وانتم تعلمون وان"
+],
+"dt": 245
+},
+{
+"kind": "partial",
+"alternatives": [
+"وا لله وانتم تعلمون وان"
+],
+"dt": 251
+},
+{
+"kind": "partial",
+"alternatives": [
+"وا لله وانتم تعلمون وان كنتم"
+],
+"dt": 241
+},
+{
+"kind": "partial",
+"alternatives": [
+"وا لله وانتم تعلمون وان كنتم"
+],
+"dt": 254
+},
+{
+"kind": "partial",
+"alternatives": [
+"وا لله وانتم تعلمون وان كنتم"
+],
+"dt": 239
+},
+{
+"kind": "partial",
+"alternatives": [
+"وا لله وانتم تعلمون وان كنتم"
+],
+"dt": 237
+},
+{
+"kind": "partial",
+"alternatives": [
+"وا لله وانتم تعلمون وان كنتم"
+],
+"dt": 251
+},
+{
+"kind": "partial",
+"alternatives": [
+"وا لله وانتم تعلمون وان كنتم"
+],
+"dt": 250
+},
+{
+"kind": "partial",
+"alternatives": [
+"وا لله وانتم تعلمون وان كنتم"
+],
+"dt": 244
+},
+{
+"kind": "partial",
+"alternatives": [
+"وا لله وانتم تعلمون وان كنتم"
+],
+"dt": 242
+},
+{
+"kind": "partial",
+"alternatives": [
+"وا لله وانتم تعلمون وان كنتم في ريب مما"
+],
+"dt": 241
+},
+{
+"kind": "partial",
+"alternatives": [
+"وا لله وانتم تعلمون وان كنتم في ريب مما"
+],
+"dt": 252
+},
+{
+"kind": "partial",
+"alternatives": [
+"وا لله وانتم تعلمون وان كنتم في ريب مما"
+],
+"dt": 247
+},
+{
+"kind": "partial",
+"alternatives": [
+"وا لله وانتم تعلمون وان كنتم في ريب مما نزلنا"
+],
+"dt": 244
+},
+{
+"kind": "partial",
+"alternatives": [
+"وا لله وانتم تعلمون وان كنتم في ريب مما نزلنا"
+],
+"dt": 254
+},
+{
+"kind": "partial",
+"alternatives": [
+"وا لله وانتم تعلمون وان كنتم في ريب مما نزلنا على"
+],
+"dt": 244
+},
+{
+"kind": "partial",
+"alternatives": [
+"وا لله وانتم تعلمون وان كنتم في ريب مما نزلنا على"
+],
+"dt": 250
+},
+{
+"kind": "partial",
+"alternatives": [
+"وا لله وانتم تعلمون وان كنتم في ريب مما نزلنا على عبدنا"
+],
+"dt": 240
+},
+{
+"kind": "partial",
+"alternatives": [
+"وا لله وانتم تعلمون وان كنتم في ريب مما نزلنا على عبدنا"
+],
+"dt": 263
+},
+{
+"kind": "partial",
+"alternatives": [
+"وا لله وانتم تعلمون وان كنتم في ريب مما نزلنا على عبدنا"
+],
+"dt": 251
+},
+{
+"kind": "partial",
+"alternatives": [
+"وا لله وانتم تعلمون وان كنتم في ريب مما نزلنا على عبدنا"
+],
+"dt": 244
+},
+{
+"kind": "partial",
+"alternatives": [
+"وا لله وانتم تعلمون وان كنتم في ريب مما نزلنا على عبدنا"
+],
+"dt": 238
+},
+{
+"kind": "final",
+"alternatives": [
+"وا لله وانتم تعلمون وان كنتم في ريب مما نزلنا على عبدنا",
+"وا لله وانتم تعلمون وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره"
+],
+"dt": 243
+},
+{
+"kind": "final",
+"alternatives": [
+""
+],
+"dt": 5489
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 981
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+"ان"
+],
+"dt": 366
+},
+{
+"kind": "partial",
+"alternatives": [
+"ان كنت"
+],
+"dt": 238
+},
+{
+"kind": "partial",
+"alternatives": [
+"ان"
+],
+"dt": 243
+},
+{
+"kind": "partial",
+"alternatives": [
+"ان"
+],
+"dt": 239
+},
+{
+"kind": "partial",
+"alternatives": [
+"ان"
+],
+"dt": 238
+},
+{
+"kind": "partial",
+"alternatives": [
+"ان"
+],
+"dt": 245
+},
+{
+"kind": "partial",
+"alternatives": [
+"ان"
+],
+"dt": 252
+},
+{
+"kind": "partial",
+"alternatives": [
+"ان كنتم"
+],
+"dt": 239
+},
+{
+"kind": "partial",
+"alternatives": [
+"ان كنتم صادقين"
+],
+"dt": 243
+},
+{
+"kind": "final",
+"alternatives": [
+"ان كنتم صادقين"
+],
+"dt": 483
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 1624
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 475
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 16
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان"
+],
+"dt": 47
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان"
+],
+"dt": 486
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم"
+],
+"dt": 250
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم"
+],
+"dt": 247
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في"
+],
+"dt": 244
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب"
+],
+"dt": 245
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب"
+],
+"dt": 577
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب"
+],
+"dt": 319
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب"
+],
+"dt": 269
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما"
+],
+"dt": 242
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما"
+],
+"dt": 255
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما"
+],
+"dt": 258
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا"
+],
+"dt": 342
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا"
+],
+"dt": 255
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا"
+],
+"dt": 247
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على"
+],
+"dt": 248
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا"
+],
+"dt": 252
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا"
+],
+"dt": 254
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا"
+],
+"dt": 244
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا"
+],
+"dt": 241
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا"
+],
+"dt": 245
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره"
+],
+"dt": 307
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره"
+],
+"dt": 748
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره"
+],
+"dt": 527
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره"
+],
+"dt": 244
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره من"
+],
+"dt": 243
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره من"
+],
+"dt": 257
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره من مثله"
+],
+"dt": 246
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره من مثله"
+],
+"dt": 249
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره من مثله"
+],
+"dt": 239
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره من مثله"
+],
+"dt": 244
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره من مثله"
+],
+"dt": 243
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره من مثله وادعموا"
+],
+"dt": 250
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره من مثله وادعموا شهداء"
+],
+"dt": 256
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره من مثله وادعموا"
+],
+"dt": 249
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره من مثله وادعموا شهداءكم"
+],
+"dt": 249
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره من مثله وادعموا شهداءكم"
+],
+"dt": 253
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره من مثله وادعموا شهداءكم"
+],
+"dt": 245
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره من مثله وادعموا شهداءكم"
+],
+"dt": 252
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره من مثله وادعموا شهداءكم من"
+],
+"dt": 244
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره من مثله وادعموا شهداءكم من"
+],
+"dt": 257
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره من مثله وادعموا شهداءكم من دون"
+],
+"dt": 243
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره من مثله وادعموا شهداءكم من دون الله"
+],
+"dt": 248
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره من مثله وادعموا شهداءكم من دون الله"
+],
+"dt": 249
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره من مثله وادعموا شهداءكم من دون الله"
+],
+"dt": 249
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره من مثله وادعموا شهداءكم من دون الله ان"
+],
+"dt": 251
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره من مثله وادعموا شهداءكم من دون الله ان كنت"
+],
+"dt": 255
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره من مثله وادعموا شهداءكم من دون الله ان"
+],
+"dt": 249
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره من مثله وادعموا شهداءكم من دون الله ان"
+],
+"dt": 248
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره من مثله وادعموا شهداءكم من دون الله ان"
+],
+"dt": 245
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره من مثله وادعموا شهداءكم من دون الله ان"
+],
+"dt": 248
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره من مثله وادعموا شهداءكم من دون الله ان كنتم"
+],
+"dt": 248
+},
+{
+"kind": "partial",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره من مثله وادعموا شهداءكم من دون الله ان كنتم صادقين"
+],
+"dt": 252
+},
+{
+"kind": "final",
+"alternatives": [
+" وان كنتم في ريب مما نزلنا على عبدنا فاتوا بسوره من مثله وادعموا شهداءكم من دون الله ان كنتم صادقين"
+],
+"dt": 251
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 544
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 130
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 327
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 105
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان"
+],
+"dt": 113
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان"
+],
+"dt": 291
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم"
+],
+"dt": 250
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم"
+],
+"dt": 246
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم"
+],
+"dt": 248
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا"
+],
+"dt": 245
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا"
+],
+"dt": 239
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا"
+],
+"dt": 240
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا"
+],
+"dt": 247
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا ولن"
+],
+"dt": 249
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا ولن"
+],
+"dt": 250
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا ولن"
+],
+"dt": 241
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا ولن تفعلوا"
+],
+"dt": 242
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا ولن تفعلوا"
+],
+"dt": 247
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا ولن تفعلوا"
+],
+"dt": 254
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا ولن تفعلوا"
+],
+"dt": 246
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا ولن تفعلوا"
+],
+"dt": 244
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا ولن تفعلوا فاتقوا"
+],
+"dt": 245
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا ولن تفعلوا فاتقوا النار"
+],
+"dt": 250
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا ولن تفعلوا فاتقوا النار"
+],
+"dt": 256
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا ولن تفعلوا فاتقوا النار التي"
+],
+"dt": 254
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا ولن تفعلوا فاتقوا النار التي"
+],
+"dt": 259
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا ولن تفعلوا فاتقوا النار التي"
+],
+"dt": 242
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا ولن تفعلوا فاتقوا النار التي"
+],
+"dt": 242
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا ولن تفعلوا فاتقوا النار التي وقودها"
+],
+"dt": 245
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا ولن تفعلوا فاتقوا النار التي وقودها"
+],
+"dt": 253
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا ولن تفعلوا فاتقوا النار التي وقودها الناس"
+],
+"dt": 246
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا ولن تفعلوا فاتقوا النار التي وقودها الناس"
+],
+"dt": 255
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا ولن تفعلوا فاتقوا النار التي وقودها الناس"
+],
+"dt": 250
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا ولن تفعلوا فاتقوا النار التي وقودها الناس والحجاره"
+],
+"dt": 244
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا ولن تفعلوا فاتقوا النار التي وقودها الناس والحجاره"
+],
+"dt": 254
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا ولن تفعلوا فاتقوا النار التي وقودها الناس والحجاره"
+],
+"dt": 239
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا ولن تفعلوا فاتقوا النار التي وقودها الناس والحجاره"
+],
+"dt": 242
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا ولن تفعلوا فاتقوا النار التي وقودها الناس والحجاره"
+],
+"dt": 253
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا ولن تفعلوا فاتقوا النار التي وقودها الناس والحجاره"
+],
+"dt": 244
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا ولن تفعلوا فاتقوا النار التي وقودها الناس والحجاره"
+],
+"dt": 239
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا ولن تفعلوا فاتقوا النار التي وقودها الناس والحجاره"
+],
+"dt": 242
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا ولن تفعلوا فاتقوا النار التي وقودها الناس والحجاره"
+],
+"dt": 239
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا ولن تفعلوا فاتقوا النار التي وقودها الناس والحجاره"
+],
+"dt": 245
+},
+{
+"kind": "partial",
+"alternatives": [
+" فان لم تفعلوا ولن تفعلوا فاتقوا النار التي وقودها الناس والحجاره اعدت"
+],
+"dt": 253
+},
+{
+"kind": "final",
+"alternatives": [
+" فان لم تفعلوا ولن تفعلوا فاتقوا النار التي وقودها الناس والحجاره اعدت للكافرين",
+" فان لم تفعلوا ولن تفعلوا فاتقوا النار التي وقودها الناس والحجاره اعدت للكاف"
+],
+"dt": 500
+},
+{
+"kind": "segment",
+"dt": 495
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 731
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 411
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 685
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 3
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 1
+},
+{
+"kind": "partial",
+"alternatives": [
+"امنوا"
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+"امنوا"
+],
+"dt": 305
+},
+{
+"kind": "partial",
+"alternatives": [
+"امنوا"
+],
+"dt": 312
+},
+{
+"kind": "partial",
+"alternatives": [
+"امنوا"
+],
+"dt": 305
+},
+{
+"kind": "partial",
+"alternatives": [
+"امنوا وعملوا"
+],
+"dt": 301
+},
+{
+"kind": "partial",
+"alternatives": [
+"امنوا وعملوا"
+],
+"dt": 627
+},
+{
+"kind": "partial",
+"alternatives": [
+"امنوا وعملوا الصالحات"
+],
+"dt": 333
+},
+{
+"kind": "partial",
+"alternatives": [
+"امنوا وعملوا الصالحات"
+],
+"dt": 305
+},
+{
+"kind": "partial",
+"alternatives": [
+"امنوا وعملوا الصالحات ان"
+],
+"dt": 306
+},
+{
+"kind": "partial",
+"alternatives": [
+"امنوا وعملوا الصالحات ان لهم"
+],
+"dt": 338
+},
+{
+"kind": "partial",
+"alternatives": [
+"امنوا وعملوا الصالحات ان لهم"
+],
+"dt": 343
+},
+{
+"kind": "partial",
+"alternatives": [
+"امنوا وعملوا الصالحات ان لهم"
+],
+"dt": 309
+},
+{
+"kind": "partial",
+"alternatives": [
+"امنوا وعملوا الصالحات ان لهم جنات"
+],
+"dt": 318
+},
+{
+"kind": "partial",
+"alternatives": [
+"امنوا وعملوا الصالحات ان لهم جنات"
+],
+"dt": 354
+},
+{
+"kind": "partial",
+"alternatives": [
+"امنوا وعملوا الصالحات ان لهم جنات تجري"
+],
+"dt": 306
+},
+{
+"kind": "partial",
+"alternatives": [
+"امنوا وعملوا الصالحات ان لهم جنات تجري"
+],
+"dt": 724
+},
+{
+"kind": "partial",
+"alternatives": [
+"امنوا وعملوا الصالحات ان لهم جنات تجري"
+],
+"dt": 335
+},
+{
+"kind": "partial",
+"alternatives": [
+"امنوا وعملوا الصالحات ان لهم جنات تجري من"
+],
+"dt": 316
+},
+{
+"kind": "partial",
+"alternatives": [
+"امنوا وعملوا الصالحات ان لهم جنات تجري من"
+],
+"dt": 319
+},
+{
+"kind": "partial",
+"alternatives": [
+"امنوا وعملوا الصالحات ان لهم جنات تجري من"
+],
+"dt": 302
+},
+{
+"kind": "partial",
+"alternatives": [
+"امنوا وعملوا الصالحات ان لهم جنات تجري من تحتها"
+],
+"dt": 304
+},
+{
+"kind": "partial",
+"alternatives": [
+"امنوا وعملوا الصالحات ان لهم جنات تجري من تحتها الان"
+],
+"dt": 316
+},
+{
+"kind": "partial",
+"alternatives": [
+"امنوا وعملوا الصالحات ان لهم جنات تجري من تحتها"
+],
+"dt": 316
+},
+{
+"kind": "partial",
+"alternatives": [
+"امنوا وعملوا الصالحات ان لهم جنات تجري من تحتها"
+],
+"dt": 324
+},
+{
+"kind": "final",
+"alternatives": [
+"امنوا وعملوا الصالحات ان لهم جنات تجري من تحتها الانهار"
+],
+"dt": 301
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 345
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 1
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+" كلما"
+],
+"dt": 1
+},
+{
+"kind": "partial",
+"alternatives": [
+" كلما"
+],
+"dt": 305
+},
+{
+"kind": "partial",
+"alternatives": [
+" كلما رزقوا"
+],
+"dt": 312
+},
+{
+"kind": "partial",
+"alternatives": [
+" كلما رزقوا"
+],
+"dt": 311
+},
+{
+"kind": "partial",
+"alternatives": [
+" كلما رزقوا منها"
+],
+"dt": 305
+},
+{
+"kind": "partial",
+"alternatives": [
+" كلما رزقوا منها"
+],
+"dt": 305
+},
+{
+"kind": "partial",
+"alternatives": [
+" كلما رزقوا منها"
+],
+"dt": 300
+},
+{
+"kind": "partial",
+"alternatives": [
+" كلما رزقوا منها من"
+],
+"dt": 304
+},
+{
+"kind": "partial",
+"alternatives": [
+" كلما رزقوا منها من"
+],
+"dt": 316
+},
+{
+"kind": "partial",
+"alternatives": [
+" كلما رزقوا منها من"
+],
+"dt": 302
+},
+{
+"kind": "partial",
+"alternatives": [
+" كلما رزقوا منها من ثمره"
+],
+"dt": 301
+},
+{
+"kind": "partial",
+"alternatives": [
+" كلما رزقوا منها من ثمره رزق"
+],
+"dt": 308
+},
+{
+"kind": "partial",
+"alternatives": [
+" كلما رزقوا منها من ثمره"
+],
+"dt": 305
+},
+{
+"kind": "partial",
+"alternatives": [
+" كلما رزقوا منها من ثمره"
+],
+"dt": 314
+},
+{
+"kind": "partial",
+"alternatives": [
+" كلما رزقوا منها من ثمره رزقا"
+],
+"dt": 310
+},
+{
+"kind": "partial",
+"alternatives": [
+" كلما رزقوا منها من ثمره رزقا"
+],
+"dt": 308
+},
+{
+"kind": "partial",
+"alternatives": [
+" كلما رزقوا منها من ثمره رزقا قالوا"
+],
+"dt": 305
+},
+{
+"kind": "partial",
+"alternatives": [
+" كلما رزقوا منها من ثمره رزقا قالوا"
+],
+"dt": 310
+},
+{
+"kind": "partial",
+"alternatives": [
+" كلما رزقوا منها من ثمره رزقا قالوا هذا"
+],
+"dt": 305
+},
+{
+"kind": "partial",
+"alternatives": [
+" كلما رزقوا منها من ثمره رزقا قالوا هذا"
+],
+"dt": 317
+},
+{
+"kind": "partial",
+"alternatives": [
+" كلما رزقوا منها من ثمره رزقا قالوا هذا"
+],
+"dt": 310
+},
+{
+"kind": "partial",
+"alternatives": [
+" كلما رزقوا منها من ثمره رزقا قالوا هذا الذي"
+],
+"dt": 304
+},
+{
+"kind": "partial",
+"alternatives": [
+" كلما رزقوا منها من ثمره رزقا قالوا هذا الذي"
+],
+"dt": 307
+},
+{
+"kind": "partial",
+"alternatives": [
+" كلما رزقوا منها من ثمره رزقا قالوا هذا الذي"
+],
+"dt": 310
+},
+{
+"kind": "partial",
+"alternatives": [
+" كلما رزقوا منها من ثمره رزقا قالوا هذا الذي رزقنا"
+],
+"dt": 312
+},
+{
+"kind": "partial",
+"alternatives": [
+" كلما رزقوا منها من ثمره رزقا قالوا هذا الذي رزقنا"
+],
+"dt": 313
+},
+{
+"kind": "partial",
+"alternatives": [
+" كلما رزقوا منها من ثمره رزقا قالوا هذا الذي رزقنا من"
+],
+"dt": 307
+},
+{
+"kind": "partial",
+"alternatives": [
+" كلما رزقوا منها من ثمره رزقا قالوا هذا الذي رزقنا من قبل"
+],
+"dt": 309
+},
+{
+"kind": "final",
+"alternatives": [
+" كلما رزقوا منها من ثمره رزقا قالوا هذا الذي رزقنا من قبل"
+],
+"dt": 307
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 312
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 1
+},
+{
+"kind": "partial",
+"alternatives": [
+" واتوا"
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+" واتوا"
+],
+"dt": 312
+},
+{
+"kind": "partial",
+"alternatives": [
+" واتوا به"
+],
+"dt": 306
+},
+{
+"kind": "partial",
+"alternatives": [
+" واتوا به"
+],
+"dt": 305
+},
+{
+"kind": "partial",
+"alternatives": [
+" واتوا به"
+],
+"dt": 306
+},
+{
+"kind": "partial",
+"alternatives": [
+" واتوا به"
+],
+"dt": 302
+},
+{
+"kind": "partial",
+"alternatives": [
+" واتوا به متشابها"
+],
+"dt": 309
+},
+{
+"kind": "partial",
+"alternatives": [
+" واتوا به متشابها"
+],
+"dt": 314
+},
+{
+"kind": "partial",
+"alternatives": [
+" واتوا به متشابها"
+],
+"dt": 303
+},
+{
+"kind": "partial",
+"alternatives": [
+" واتوا به متشابها"
+],
+"dt": 302
+},
+{
+"kind": "partial",
+"alternatives": [
+" واتوا به متشابها"
+],
+"dt": 304
+},
+{
+"kind": "partial",
+"alternatives": [
+" واتوا به متشابها ولهم"
+],
+"dt": 302
+},
+{
+"kind": "partial",
+"alternatives": [
+" واتوا به متشابها ولهم فيها"
+],
+"dt": 315
+},
+{
+"kind": "partial",
+"alternatives": [
+" واتوا به متشابها ولهم فيها"
+],
+"dt": 317
+},
+{
+"kind": "partial",
+"alternatives": [
+" واتوا به متشابها ولهم فيها"
+],
+"dt": 304
+},
+{
+"kind": "partial",
+"alternatives": [
+" واتوا به متشابها ولهم فيها ازواج"
+],
+"dt": 305
+},
+{
+"kind": "partial",
+"alternatives": [
+" واتوا به متشابها ولهم فيها ازواج"
+],
+"dt": 316
+},
+{
+"kind": "partial",
+"alternatives": [
+" واتوا به متشابها ولهم فيها ازواج"
+],
+"dt": 313
+},
+{
+"kind": "partial",
+"alternatives": [
+" واتوا به متشابها ولهم فيها ازواج"
+],
+"dt": 312
+},
+{
+"kind": "final",
+"alternatives": [
+" واتوا به متشابها ولهم فيها ازواج مطهره",
+" واتوا به متشابها ولهم فيها ازواج مطهرا"
+],
+"dt": 309
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 1719
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 1
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 502
+},
+{
+"kind": "partial",
+"alternatives": [
+" وهم"
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+" وهم فيها"
+],
+"dt": 423
+},
+{
+"kind": "partial",
+"alternatives": [
+" وهم فيها"
+],
+"dt": 578
+},
+{
+"kind": "partial",
+"alternatives": [
+" وهم فيها خالد"
+],
+"dt": 662
+},
+{
+"kind": "partial",
+"alternatives": [
+" وهم فيها"
+],
+"dt": 1134
+},
+{
+"kind": "partial",
+"alternatives": [
+" وهم فيها خالد"
+],
+"dt": 302
+},
+{
+"kind": "partial",
+"alternatives": [
+" وهم فيها"
+],
+"dt": 543
+},
+{
+"kind": "partial",
+"alternatives": [
+" وهم فيها خالدون"
+],
+"dt": 671
+},
+{
+"kind": "final",
+"alternatives": [
+" وهم فيها خالدون"
+],
+"dt": 925
+},
+{
+"kind": "segment",
+"dt": 303
+}
+]
+}

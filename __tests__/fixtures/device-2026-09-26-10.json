@@ -1,0 +1,797 @@
+{
+"name": "device-2026-09-26-10",
+"startCursor": 647,
+"events": [
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 271
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 257
+},
+{
+"kind": "partial",
+"alternatives": [
+"اتامرون"
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+"اتامرون"
+],
+"dt": 259
+},
+{
+"kind": "partial",
+"alternatives": [
+"اتامرون"
+],
+"dt": 260
+},
+{
+"kind": "partial",
+"alternatives": [
+"اتامرون الناس"
+],
+"dt": 262
+},
+{
+"kind": "partial",
+"alternatives": [
+"اتامرون الناس"
+],
+"dt": 265
+},
+{
+"kind": "partial",
+"alternatives": [
+"اتامرون الناس"
+],
+"dt": 271
+},
+{
+"kind": "partial",
+"alternatives": [
+"اتامرون الناس بالبر"
+],
+"dt": 256
+},
+{
+"kind": "partial",
+"alternatives": [
+"اتامرون الناس بالبر"
+],
+"dt": 260
+},
+{
+"kind": "partial",
+"alternatives": [
+"اتامرون الناس بالبر"
+],
+"dt": 260
+},
+{
+"kind": "partial",
+"alternatives": [
+"اتامرون الناس بالبر"
+],
+"dt": 269
+},
+{
+"kind": "partial",
+"alternatives": [
+"اتامرون الناس بالبر وتنسون"
+],
+"dt": 255
+},
+{
+"kind": "partial",
+"alternatives": [
+"اتامرون الناس بالبر وتنسون"
+],
+"dt": 448
+},
+{
+"kind": "partial",
+"alternatives": [
+"اتامرون الناس بالبر وتنسون انفسكم"
+],
+"dt": 242
+},
+{
+"kind": "partial",
+"alternatives": [
+"اتامرون الناس بالبر وتنسون انفسكم"
+],
+"dt": 488
+},
+{
+"kind": "partial",
+"alternatives": [
+"اتامرون الناس بالبر وتنسون انفسكم وانتم"
+],
+"dt": 241
+},
+{
+"kind": "partial",
+"alternatives": [
+"اتامرون الناس بالبر وتنسون انفسكم وانتم تتلون"
+],
+"dt": 249
+},
+{
+"kind": "partial",
+"alternatives": [
+"اتامرون الناس بالبر وتنسون انفسكم وانتم تتلون"
+],
+"dt": 246
+},
+{
+"kind": "partial",
+"alternatives": [
+"اتامرون الناس بالبر وتنسون انفسكم وانتم تتلون الكتاب"
+],
+"dt": 237
+},
+{
+"kind": "partial",
+"alternatives": [
+"اتامرون الناس بالبر وتنسون انفسكم وانتم تتلون الكتاب"
+],
+"dt": 255
+},
+{
+"kind": "partial",
+"alternatives": [
+"اتامرون الناس بالبر وتنسون انفسكم وانتم تتلون الكتاب"
+],
+"dt": 245
+},
+{
+"kind": "partial",
+"alternatives": [
+"اتامرون الناس بالبر وتنسون انفسكم وانتم تتلون الكتاب"
+],
+"dt": 371
+},
+{
+"kind": "partial",
+"alternatives": [
+"اتامرون الناس بالبر وتنسون انفسكم وانتم تتلون الكتاب"
+],
+"dt": 327
+},
+{
+"kind": "partial",
+"alternatives": [
+"اتامرون الناس بالبر وتنسون انفسكم وانتم تتلون الكتاب افلا"
+],
+"dt": 239
+},
+{
+"kind": "final",
+"alternatives": [
+"اتامرون الناس بالبر وتنسون انفسكم وانتم تتلون الكتاب افلا تعق",
+"اتامرون الناس بالبر وتنسون انفسكم وانتم تتلون الكتاب افلا تعقلون"
+],
+"dt": 246
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 1006
+},
+{
+"kind": "partial",
+"alternatives": [
+"لون"
+],
+"dt": 229
+},
+{
+"kind": "partial",
+"alternatives": [
+"لون"
+],
+"dt": 543
+},
+{
+"kind": "partial",
+"alternatives": [
+"لون"
+],
+"dt": 237
+},
+{
+"kind": "partial",
+"alternatives": [
+"لون"
+],
+"dt": 243
+},
+{
+"kind": "partial",
+"alternatives": [
+"لون"
+],
+"dt": 247
+},
+{
+"kind": "partial",
+"alternatives": [
+"لون"
+],
+"dt": 240
+},
+{
+"kind": "partial",
+"alternatives": [
+"لون"
+],
+"dt": 239
+},
+{
+"kind": "partial",
+"alternatives": [
+"لون"
+],
+"dt": 238
+},
+{
+"kind": "partial",
+"alternatives": [
+"لون واستعينوا"
+],
+"dt": 239
+},
+{
+"kind": "partial",
+"alternatives": [
+"لون واستعينوا"
+],
+"dt": 249
+},
+{
+"kind": "partial",
+"alternatives": [
+"لون واستعينوا بالصبر"
+],
+"dt": 246
+},
+{
+"kind": "partial",
+"alternatives": [
+"لون واستعينوا بالصبر والص"
+],
+"dt": 242
+},
+{
+"kind": "partial",
+"alternatives": [
+"لون واستعينوا بالصبر"
+],
+"dt": 239
+},
+{
+"kind": "final",
+"alternatives": [
+"لون واستعينوا بالصبر والصلاه",
+"لون واستعينوا بالصبر والص"
+],
+"dt": 243
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 651
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 406
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 44
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 198
+},
+{
+"kind": "partial",
+"alternatives": [
+" وانها"
+],
+"dt": 355
+},
+{
+"kind": "partial",
+"alternatives": [
+" وانها"
+],
+"dt": 259
+},
+{
+"kind": "partial",
+"alternatives": [
+" وانها لكبيره"
+],
+"dt": 256
+},
+{
+"kind": "partial",
+"alternatives": [
+" وانها لكبيره"
+],
+"dt": 262
+},
+{
+"kind": "partial",
+"alternatives": [
+" وانها لكبيره الا"
+],
+"dt": 270
+},
+{
+"kind": "partial",
+"alternatives": [
+" وانها لكبيره الا"
+],
+"dt": 265
+},
+{
+"kind": "partial",
+"alternatives": [
+" وانها لكبيره الا على"
+],
+"dt": 256
+},
+{
+"kind": "partial",
+"alternatives": [
+" وانها لكبيره الا على"
+],
+"dt": 261
+},
+{
+"kind": "partial",
+"alternatives": [
+" وانها لكبيره الا على"
+],
+"dt": 261
+},
+{
+"kind": "partial",
+"alternatives": [
+" وانها لكبيره الا على الخاشعين"
+],
+"dt": 265
+},
+{
+"kind": "partial",
+"alternatives": [
+" وانها لكبيره الا على الخاشعين"
+],
+"dt": 1118
+},
+{
+"kind": "partial",
+"alternatives": [
+" وانها لكبيره الا على الخاشعين"
+],
+"dt": 567
+},
+{
+"kind": "partial",
+"alternatives": [
+" وانها لكبيره الا على الخاشعين الذين"
+],
+"dt": 259
+},
+{
+"kind": "partial",
+"alternatives": [
+" وانها لكبيره الا على الخاشعين الذين"
+],
+"dt": 273
+},
+{
+"kind": "partial",
+"alternatives": [
+" وانها لكبيره الا على الخاشعين الذين"
+],
+"dt": 261
+},
+{
+"kind": "partial",
+"alternatives": [
+" وانها لكبيره الا على الخاشعين الذين"
+],
+"dt": 258
+},
+{
+"kind": "partial",
+"alternatives": [
+" وانها لكبيره الا على الخاشعين الذين يظنون"
+],
+"dt": 261
+},
+{
+"kind": "partial",
+"alternatives": [
+" وانها لكبيره الا على الخاشعين الذين يظنون"
+],
+"dt": 263
+},
+{
+"kind": "final",
+"alternatives": [
+" وانها لكبيره الا على الخاشعين الذين يظنون انهم",
+" وانها لكبيره الا على الخاشعين الذين يظنون ان"
+],
+"dt": 263
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 1050
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 1
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 570
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 2
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 137
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم"
+],
+"dt": 275
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم"
+],
+"dt": 282
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم"
+],
+"dt": 1049
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم"
+],
+"dt": 258
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه"
+],
+"dt": 259
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه راجعون"
+],
+"dt": 290
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه راجعون"
+],
+"dt": 1805
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه راجعون يا"
+],
+"dt": 594
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه راجعون يا"
+],
+"dt": 613
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه راجعون يا"
+],
+"dt": 297
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه راجعون يا"
+],
+"dt": 299
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه راجعون يا بني"
+],
+"dt": 299
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه راجعون يا بني اسرائيل"
+],
+"dt": 305
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه راجعون يا بني اسرائيل"
+],
+"dt": 311
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه راجعون يا بني اسرائيل"
+],
+"dt": 304
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه راجعون يا بني اسرائيل"
+],
+"dt": 299
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه راجعون يا بني اسرائيل"
+],
+"dt": 298
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه راجعون يا بني اسرائيل"
+],
+"dt": 293
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه راجعون يا بني اسرائيل اذكروا"
+],
+"dt": 300
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه راجعون يا بني اسرائيل اذكروا"
+],
+"dt": 317
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه راجعون يا بني اسرائيل اذكروا نعمتي"
+],
+"dt": 315
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه راجعون يا بني اسرائيل اذكروا نعمتي التي"
+],
+"dt": 311
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه راجعون يا بني اسرائيل اذكروا نعمتي التي"
+],
+"dt": 314
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه راجعون يا بني اسرائيل اذكروا نعمتي التي"
+],
+"dt": 297
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه راجعون يا بني اسرائيل اذكروا نعمتي التي"
+],
+"dt": 301
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه راجعون يا بني اسرائيل اذكروا نعمتي التي"
+],
+"dt": 308
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه راجعون يا بني اسرائيل اذكروا نعمتي التي انعمت"
+],
+"dt": 305
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه راجعون يا بني اسرائيل اذكروا نعمتي التي انعمت عليكم"
+],
+"dt": 315
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه راجعون يا بني اسرائيل اذكروا نعمتي التي انعمت عليكم"
+],
+"dt": 314
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه راجعون يا بني اسرائيل اذكروا نعمتي التي انعمت عليكم"
+],
+"dt": 300
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه راجعون يا بني اسرائيل اذكروا نعمتي التي انعمت عليكم"
+],
+"dt": 306
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه راجعون يا بني اسرائيل اذكروا نعمتي التي انعمت عليكم واني"
+],
+"dt": 305
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه راجعون يا بني اسرائيل اذكروا نعمتي التي انعمت عليكم واني"
+],
+"dt": 314
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه راجعون يا بني اسرائيل اذكروا نعمتي التي انعمت عليكم واني"
+],
+"dt": 304
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه راجعون يا بني اسرائيل اذكروا نعمتي التي انعمت عليكم واني"
+],
+"dt": 298
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه راجعون يا بني اسرائيل اذكروا نعمتي التي انعمت عليكم واني فضلتكم"
+],
+"dt": 300
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه راجعون يا بني اسرائيل اذكروا نعمتي التي انعمت عليكم واني فضلتكم"
+],
+"dt": 313
+},
+{
+"kind": "partial",
+"alternatives": [
+" مربيهم وانهم اليه راجعون يا بني اسرائيل اذكروا نعمتي التي انعمت عليكم واني فضلتكم على"
+],
+"dt": 300
+},
+{
+"kind": "final",
+"alternatives": [
+" مربيهم وانهم اليه راجعون يا بني اسرائيل اذكروا نعمتي التي انعمت عليكم واني فضلتكم على العالمين"
+],
+"dt": 613
+},
+{
+"kind": "segment",
+"dt": 304
+}
+]
+}

@@ -97,6 +97,60 @@ const EXPECTATIONS: Record<string, (out: ReplayOutcome) => void> = {
   },
 };
 
+/**
+ * Ten sessions recorded on one phone on 2026-09-26, read in order from 1:1 to
+ * 2:48, with the recognizer's own misspellings intact ("دائم" for "تبع هداي",
+ * "وعوفوا بعه" for "وأوفوا بعهدي"). Each is pinned to where it ends and to a
+ * ceiling on how many words it blames, so an engine change that loses the
+ * reciter, or starts blaming words they said, shows up as a named session.
+ *
+ * The ceilings are today's counts. Lowering one is an improvement to be made
+ * on purpose; raising one needs a reason.
+ */
+const DEVICE_RUN: Record<string, { end: number; maxMistakes: number }> = {
+  '01': { end: 30, maxMistakes: 0 },
+  '02': { end: 88, maxMistakes: 0 },
+  '03': { end: 173, maxMistakes: 2 },
+  '04': { end: 259, maxMistakes: 5 },
+  '05': { end: 360, maxMistakes: 2 },
+  '06': { end: 460, maxMistakes: 0 },
+  '07': { end: 528, maxMistakes: 0 },
+  '08': { end: 589, maxMistakes: 1 },
+  '09': { end: 647, maxMistakes: 0 },
+  '10': { end: 699, maxMistakes: 0 },
+};
+for (const [id, { end, maxMistakes }] of Object.entries(DEVICE_RUN)) {
+  EXPECTATIONS[`device-2026-09-26-${id}`] = (out) => {
+    expect(out.final.cursor).toBe(end);
+    expect(out.mistakes.length).toBeLessThanOrEqual(maxMistakes);
+  };
+}
+
+/**
+ * Session 09 is the one where the reciter went back. What the transcript shows:
+ * after 2:39 they began 2:40, "يا بني إسرائيل اذكروا نعمتي التي أنعمت عليكم", and
+ * finished it with 2:47's ending, "أني فضلتكم على العالمين" — the two verses open
+ * with the same eight words. They carried on into 2:48, stopped, and went back
+ * to recite 2:40 properly, then 2:41 and 2:42.
+ *
+ * The engine relocated three times — into 2:48, to 2:47 on the repeated
+ * opening (the words cannot tell the two apart), and to 2:41 on "وآمنوا بما
+ * أنزلت مصدقا" — and ended following 2:42. Every backward move is one of those.
+ *
+ * NOT asserted, deliberately: that the slip into 2:47 was flagged. It was not;
+ * the engine followed the reciter to 2:47 instead of telling them they had left
+ * 2:40. Pinning mistakes = [] here would make that gap look intended.
+ */
+const baseline09 = EXPECTATIONS['device-2026-09-26-09'];
+EXPECTATIONS['device-2026-09-26-09'] = (out) => {
+  baseline09(out);
+  const backward = out.cursorPath.filter((c, i) => i > 0 && c < out.cursorPath[i - 1]);
+  expect(backward).toHaveLength(3);
+  // never back past where the session began
+  expect(Math.min(...out.cursorPath)).toBeGreaterThanOrEqual(589);
+  expect(out.frames[out.frames.length - 1].lockedOn).toBe(true);
+};
+
 describe('replay fixtures', () => {
   it('finds fixtures to run', () => {
     expect(files.length).toBeGreaterThan(0);
@@ -128,9 +182,21 @@ describe('replay fixtures', () => {
         expect(again.mistakes).toEqual(out.mistakes);
       });
 
-      it('never moves the cursor backwards', () => {
+      /**
+       * `cursor` is the furthest point reached, so re-reading words already
+       * behind it — a transcript restart, a breath taken and a phrase repeated —
+       * must never pull it back; that is what `livePos` is for.
+       *
+       * The one legitimate way back is a RELOCATION: the reciter deliberately
+       * goes somewhere else, the engine finds them there and says so with a
+       * JUMPED reason. Session 09 from the phone does exactly that, and the user
+       * confirmed it was them. Anything else moving the cursor back is the bug.
+       */
+      it('only moves the cursor backwards by relocating', () => {
         for (let i = 1; i < out.cursorPath.length; i++) {
-          expect(out.cursorPath[i]).toBeGreaterThanOrEqual(out.cursorPath[i - 1]);
+          if (out.cursorPath[i] < out.cursorPath[i - 1]) {
+            expect(out.frames[i].jumpReason).toMatch(/^JUMPED/);
+          }
         }
       });
 

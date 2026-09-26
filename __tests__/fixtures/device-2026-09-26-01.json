@@ -1,0 +1,511 @@
+{
+"name": "device-2026-09-26-01",
+"startCursor": 0,
+"events": [
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+"الحمد لله"
+],
+"dt": 527
+},
+{
+"kind": "partial",
+"alternatives": [
+"الحمد لله"
+],
+"dt": 649
+},
+{
+"kind": "partial",
+"alternatives": [
+"الحمد لله"
+],
+"dt": 302
+},
+{
+"kind": "partial",
+"alternatives": [
+"الحمد لله رب"
+],
+"dt": 268
+},
+{
+"kind": "partial",
+"alternatives": [
+"الحمد لله رب العالمين"
+],
+"dt": 333
+},
+{
+"kind": "partial",
+"alternatives": [
+"الحمد لله رب العالمين"
+],
+"dt": 2149
+},
+{
+"kind": "partial",
+"alternatives": [
+"الحمد لله رب العالمين"
+],
+"dt": 405
+},
+{
+"kind": "partial",
+"alternatives": [
+"الحمد لله رب العالمين الرحمن"
+],
+"dt": 117
+},
+{
+"kind": "partial",
+"alternatives": [
+"الحمد لله رب العالمين الرحمن الرحيم"
+],
+"dt": 532
+},
+{
+"kind": "final",
+"alternatives": [
+"الحمد لله رب العالمين الرحمن الرحيم"
+],
+"dt": 1079
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 953
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 317
+},
+{
+"kind": "partial",
+"alternatives": [
+" مالك"
+],
+"dt": 345
+},
+{
+"kind": "partial",
+"alternatives": [
+" مالك يوم"
+],
+"dt": 255
+},
+{
+"kind": "partial",
+"alternatives": [
+" مالك يوم"
+],
+"dt": 903
+},
+{
+"kind": "partial",
+"alternatives": [
+" مالك يوم الدين"
+],
+"dt": 744
+},
+{
+"kind": "partial",
+"alternatives": [
+" مالك يوم الدين"
+],
+"dt": 766
+},
+{
+"kind": "partial",
+"alternatives": [
+" مالك يوم الدين"
+],
+"dt": 181
+},
+{
+"kind": "partial",
+"alternatives": [
+" مالك يوم الدين"
+],
+"dt": 274
+},
+{
+"kind": "partial",
+"alternatives": [
+" مالك يوم الدين"
+],
+"dt": 62
+},
+{
+"kind": "partial",
+"alternatives": [
+" مالك يوم الدين"
+],
+"dt": 147
+},
+{
+"kind": "partial",
+"alternatives": [
+" مالك يوم الدين اياك"
+],
+"dt": 106
+},
+{
+"kind": "partial",
+"alternatives": [
+" مالك يوم الدين اياك"
+],
+"dt": 315
+},
+{
+"kind": "partial",
+"alternatives": [
+" مالك يوم الدين اياك نعبد"
+],
+"dt": 205
+},
+{
+"kind": "partial",
+"alternatives": [
+" مالك يوم الدين اياك نعبد"
+],
+"dt": 119
+},
+{
+"kind": "partial",
+"alternatives": [
+" مالك يوم الدين اياك نعبد"
+],
+"dt": 387
+},
+{
+"kind": "partial",
+"alternatives": [
+" مالك يوم الدين اياك نعبد"
+],
+"dt": 146
+},
+{
+"kind": "partial",
+"alternatives": [
+" مالك يوم الدين اياك نعبد واياك"
+],
+"dt": 62
+},
+{
+"kind": "partial",
+"alternatives": [
+" مالك يوم الدين اياك نعبد واياك"
+],
+"dt": 52
+},
+{
+"kind": "final",
+"alternatives": [
+" مالك يوم الدين اياك نعبد واياك نست",
+" مالك يوم الدين اياك نعبد واياك نستعين"
+],
+"dt": 708
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 1159
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 119
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 145
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 247
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 76
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 47
+},
+{
+"kind": "partial",
+"alternatives": [
+" اهدنا"
+],
+"dt": 206
+},
+{
+"kind": "partial",
+"alternatives": [
+" اهدنا"
+],
+"dt": 247
+},
+{
+"kind": "partial",
+"alternatives": [
+" اهدنا الصراط"
+],
+"dt": 192
+},
+{
+"kind": "partial",
+"alternatives": [
+" اهدنا الصراط المستقيم"
+],
+"dt": 648
+},
+{
+"kind": "partial",
+"alternatives": [
+" اهدنا الصراط المستقيم"
+],
+"dt": 1386
+},
+{
+"kind": "partial",
+"alternatives": [
+" اهدنا الصراط المستقيم"
+],
+"dt": 191
+},
+{
+"kind": "partial",
+"alternatives": [
+" اهدنا الصراط المستقيم"
+],
+"dt": 137
+},
+{
+"kind": "partial",
+"alternatives": [
+" اهدنا الصراط المستقيم"
+],
+"dt": 180
+},
+{
+"kind": "partial",
+"alternatives": [
+" اهدنا الصراط المستقيم صراط"
+],
+"dt": 368
+},
+{
+"kind": "partial",
+"alternatives": [
+" اهدنا الصراط المستقيم صراط الذين"
+],
+"dt": 225
+},
+{
+"kind": "partial",
+"alternatives": [
+" اهدنا الصراط المستقيم صراط الذين"
+],
+"dt": 225
+},
+{
+"kind": "partial",
+"alternatives": [
+" اهدنا الصراط المستقيم صراط الذين"
+],
+"dt": 271
+},
+{
+"kind": "partial",
+"alternatives": [
+" اهدنا الصراط المستقيم صراط الذين"
+],
+"dt": 252
+},
+{
+"kind": "partial",
+"alternatives": [
+" اهدنا الصراط المستقيم صراط الذين انعمت"
+],
+"dt": 257
+},
+{
+"kind": "partial",
+"alternatives": [
+" اهدنا الصراط المستقيم صراط الذين انعمت عليهم"
+],
+"dt": 330
+},
+{
+"kind": "partial",
+"alternatives": [
+" اهدنا الصراط المستقيم صراط الذين انعمت عليهم"
+],
+"dt": 652
+},
+{
+"kind": "partial",
+"alternatives": [
+" اهدنا الصراط المستقيم صراط الذين انعمت عليهم"
+],
+"dt": 563
+},
+{
+"kind": "partial",
+"alternatives": [
+" اهدنا الصراط المستقيم صراط الذين انعمت عليهم غير"
+],
+"dt": 51
+},
+{
+"kind": "partial",
+"alternatives": [
+" اهدنا الصراط المستقيم صراط الذين انعمت عليهم غير"
+],
+"dt": 74
+},
+{
+"kind": "partial",
+"alternatives": [
+" اهدنا الصراط المستقيم صراط الذين انعمت عليهم غير"
+],
+"dt": 82
+},
+{
+"kind": "partial",
+"alternatives": [
+" اهدنا الصراط المستقيم صراط الذين انعمت عليهم غير"
+],
+"dt": 499
+},
+{
+"kind": "partial",
+"alternatives": [
+" اهدنا الصراط المستقيم صراط الذين انعمت عليهم غير المغضوب"
+],
+"dt": 115
+},
+{
+"kind": "partial",
+"alternatives": [
+" اهدنا الصراط المستقيم صراط الذين انعمت عليهم غير المغضوب عليهم"
+],
+"dt": 514
+},
+{
+"kind": "partial",
+"alternatives": [
+" اهدنا الصراط المستقيم صراط الذين انعمت عليهم غير المغضوب عليهم"
+],
+"dt": 130
+},
+{
+"kind": "partial",
+"alternatives": [
+" اهدنا الصراط المستقيم صراط الذين انعمت عليهم غير المغضوب عليهم ولا"
+],
+"dt": 644
+},
+{
+"kind": "final",
+"alternatives": [
+" اهدنا الصراط المستقيم صراط الذين انعمت عليهم غير المغضوب عليهم ولا"
+],
+"dt": 621
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 232
+},
+{
+"kind": "partial",
+"alternatives": [
+" الض"
+],
+"dt": 483
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 579
+},
+{
+"kind": "final",
+"alternatives": [
+" الض",
+" الضالي",
+" الضالين"
+],
+"dt": 198
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 1977
+},
+{
+"kind": "final",
+"alternatives": [
+"ن",
+"ن امين"
+],
+"dt": 506
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 75
+},
+{
+"kind": "final",
+"alternatives": [
+" امين"
+],
+"dt": 1
+},
+{
+"kind": "segment",
+"dt": 44
+}
+]
+}

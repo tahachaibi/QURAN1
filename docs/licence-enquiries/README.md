@@ -8,6 +8,29 @@ public.
 Send all three now. Replies from institutions take weeks, and none of the other
 work is blocked while you wait.
 
+## Status
+
+| # | Asset | Sent | Answer |
+|---|---|---|---|
+| 1 | KFGQPC font | email, 2026-09-26 | waiting |
+| 2a | Hadith dataset (GitHub issue) | not yet | — |
+| 2b | Hadith translations (sunnah.com) | email, 2026-09-26 | waiting |
+| 3 | QUL layout | not yet: check the resource page first | — |
+
+Follow up once, politely, if nothing has come back by 2026-10-24 (four weeks).
+
+**What the dataset itself says (checked 2026-09-26).** `AhmedBaset/hadith-json`
+has no LICENSE file, and its README says only that the data was scraped from
+sunnah.com. It names no translator or publisher. The English shipped in this
+app matches, word for word, the translations sunnah.com publishes: Muhammad
+Muhsin Khan's for Bukhari (hadith 1 opens "Narrated 'Umar bin Al-Khattab: I
+heard Allah's Messenger (ﷺ) saying, 'The reward of deeds depends upon the
+intentions…'") and Abdul Hamid Siddiqui's for Muslim (the "b." for "ibn" is
+his). Both are published translations with their own publishers. The dataset
+author cannot grant rights in them, so the sunnah.com letter (2b) is the one
+that can actually settle this. The GitHub issue (2a) still costs nothing, and
+it leaves a public record of having asked.
+
 ## I could not verify the email addresses
 
 This is worth saying plainly rather than burying: the machine these drafts were

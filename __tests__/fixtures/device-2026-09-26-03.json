@@ -1,0 +1,1899 @@
+{
+"name": "device-2026-09-26-03",
+"startCursor": 88,
+"events": [
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 232
+},
+{
+"kind": "partial",
+"alternatives": [
+"ومن"
+],
+"dt": 248
+},
+{
+"kind": "partial",
+"alternatives": [
+"ومن"
+],
+"dt": 173
+},
+{
+"kind": "partial",
+"alternatives": [
+"ومن الناس"
+],
+"dt": 152
+},
+{
+"kind": "partial",
+"alternatives": [
+"ومن الناس"
+],
+"dt": 261
+},
+{
+"kind": "partial",
+"alternatives": [
+"ومن الناس من"
+],
+"dt": 192
+},
+{
+"kind": "partial",
+"alternatives": [
+"ومن الناس من"
+],
+"dt": 141
+},
+{
+"kind": "partial",
+"alternatives": [
+"ومن الناس من"
+],
+"dt": 369
+},
+{
+"kind": "partial",
+"alternatives": [
+"ومن الناس من يقولها"
+],
+"dt": 250
+},
+{
+"kind": "partial",
+"alternatives": [
+"ومن الناس من يقولها"
+],
+"dt": 184
+},
+{
+"kind": "partial",
+"alternatives": [
+"ومن الناس من يقولها منا"
+],
+"dt": 327
+},
+{
+"kind": "partial",
+"alternatives": [
+"ومن الناس من يقولها منا بالله"
+],
+"dt": 262
+},
+{
+"kind": "partial",
+"alternatives": [
+"ومن الناس من يقولها منا بالله"
+],
+"dt": 105
+},
+{
+"kind": "partial",
+"alternatives": [
+"ومن الناس من يقولها منا بالله"
+],
+"dt": 157
+},
+{
+"kind": "partial",
+"alternatives": [
+"ومن الناس من يقولها منا بالله"
+],
+"dt": 192
+},
+{
+"kind": "partial",
+"alternatives": [
+"ومن الناس من يقولها منا بالله"
+],
+"dt": 237
+},
+{
+"kind": "partial",
+"alternatives": [
+"ومن الناس من يقولها منا بالله وباليوم"
+],
+"dt": 311
+},
+{
+"kind": "partial",
+"alternatives": [
+"ومن الناس من يقولها منا بالله وباليوم الاخر"
+],
+"dt": 332
+},
+{
+"kind": "partial",
+"alternatives": [
+"ومن الناس من يقولها منا بالله وباليوم الاخر"
+],
+"dt": 761
+},
+{
+"kind": "final",
+"alternatives": [
+"ومن الناس من يقولها منا بالله وباليوم الاخر وما"
+],
+"dt": 178
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 2062
+},
+{
+"kind": "partial",
+"alternatives": [
+" هم"
+],
+"dt": 597
+},
+{
+"kind": "partial",
+"alternatives": [
+" هم"
+],
+"dt": 98
+},
+{
+"kind": "partial",
+"alternatives": [
+" هم"
+],
+"dt": 97
+},
+{
+"kind": "partial",
+"alternatives": [
+" هم"
+],
+"dt": 98
+},
+{
+"kind": "partial",
+"alternatives": [
+" هم"
+],
+"dt": 103
+},
+{
+"kind": "partial",
+"alternatives": [
+" هم"
+],
+"dt": 247
+},
+{
+"kind": "partial",
+"alternatives": [
+" هم يخادعون"
+],
+"dt": 379
+},
+{
+"kind": "partial",
+"alternatives": [
+" هم يخادعون الله"
+],
+"dt": 198
+},
+{
+"kind": "partial",
+"alternatives": [
+" هم يخادعون الله"
+],
+"dt": 196
+},
+{
+"kind": "partial",
+"alternatives": [
+" هم يخادعون الله"
+],
+"dt": 206
+},
+{
+"kind": "partial",
+"alternatives": [
+" هم يخادعون الله"
+],
+"dt": 370
+},
+{
+"kind": "partial",
+"alternatives": [
+" هم يخادعون الله"
+],
+"dt": 122
+},
+{
+"kind": "partial",
+"alternatives": [
+" هم يخادعون الله والذين"
+],
+"dt": 100
+},
+{
+"kind": "partial",
+"alternatives": [
+" هم يخادعون الله والذين"
+],
+"dt": 277
+},
+{
+"kind": "partial",
+"alternatives": [
+" هم يخادعون الله والذين امنوا"
+],
+"dt": 251
+},
+{
+"kind": "partial",
+"alternatives": [
+" هم يخادعون الله والذين امنوا"
+],
+"dt": 280
+},
+{
+"kind": "partial",
+"alternatives": [
+" هم يخادعون الله والذين امنوا وما"
+],
+"dt": 101
+},
+{
+"kind": "partial",
+"alternatives": [
+" هم يخادعون الله والذين امنوا وما"
+],
+"dt": 177
+},
+{
+"kind": "partial",
+"alternatives": [
+" هم يخادعون الله والذين امنوا وما"
+],
+"dt": 101
+},
+{
+"kind": "partial",
+"alternatives": [
+" هم يخادعون الله والذين امنوا وما"
+],
+"dt": 454
+},
+{
+"kind": "partial",
+"alternatives": [
+" هم يخادعون الله والذين امنوا وما يخادعون"
+],
+"dt": 155
+},
+{
+"kind": "partial",
+"alternatives": [
+" هم يخادعون الله والذين امنوا وما يخادعون الا"
+],
+"dt": 388
+},
+{
+"kind": "partial",
+"alternatives": [
+" هم يخادعون الله والذين امنوا وما يخادعون الا"
+],
+"dt": 560
+},
+{
+"kind": "partial",
+"alternatives": [
+" هم يخادعون الله والذين امنوا وما يخادعون الا"
+],
+"dt": 176
+},
+{
+"kind": "partial",
+"alternatives": [
+" هم يخادعون الله والذين امنوا وما يخادعون الا"
+],
+"dt": 145
+},
+{
+"kind": "partial",
+"alternatives": [
+" هم يخادعون الله والذين امنوا وما يخادعون الا"
+],
+"dt": 162
+},
+{
+"kind": "partial",
+"alternatives": [
+" هم يخادعون الله والذين امنوا وما يخادعون الا انفسهم"
+],
+"dt": 565
+},
+{
+"kind": "partial",
+"alternatives": [
+" هم يخادعون الله والذين امنوا وما يخادعون الا انفسهم"
+],
+"dt": 450
+},
+{
+"kind": "partial",
+"alternatives": [
+" هم يخادعون الله والذين امنوا وما يخادعون الا انفسهم وما"
+],
+"dt": 193
+},
+{
+"kind": "partial",
+"alternatives": [
+" هم يخادعون الله والذين امنوا وما يخادعون الا انفسهم وما"
+],
+"dt": 194
+},
+{
+"kind": "final",
+"alternatives": [
+" هم يخادعون الله والذين امنوا وما يخادعون الا انفسهم وما يشع",
+" هم يخادعون الله والذين امنوا وما يخادعون الا انفسهم وما يشعرون"
+],
+"dt": 375
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 1485
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 274
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 196
+},
+{
+"kind": "partial",
+"alternatives": [
+" في"
+],
+"dt": 235
+},
+{
+"kind": "partial",
+"alternatives": [
+" في"
+],
+"dt": 204
+},
+{
+"kind": "partial",
+"alternatives": [
+" في قلوبهم"
+],
+"dt": 110
+},
+{
+"kind": "partial",
+"alternatives": [
+" في قلوبهم"
+],
+"dt": 441
+},
+{
+"kind": "partial",
+"alternatives": [
+" في قلوبهم مرض"
+],
+"dt": 206
+},
+{
+"kind": "partial",
+"alternatives": [
+" في قلوبهم مرض"
+],
+"dt": 105
+},
+{
+"kind": "partial",
+"alternatives": [
+" في قلوبهم مرض"
+],
+"dt": 103
+},
+{
+"kind": "partial",
+"alternatives": [
+" في قلوبهم مرض"
+],
+"dt": 105
+},
+{
+"kind": "partial",
+"alternatives": [
+" في قلوبهم مرض"
+],
+"dt": 136
+},
+{
+"kind": "partial",
+"alternatives": [
+" في قلوبهم مرض فزادهم"
+],
+"dt": 373
+},
+{
+"kind": "partial",
+"alternatives": [
+" في قلوبهم مرض فزادهم الله"
+],
+"dt": 189
+},
+{
+"kind": "partial",
+"alternatives": [
+" في قلوبهم مرض فزادهم الله"
+],
+"dt": 106
+},
+{
+"kind": "partial",
+"alternatives": [
+" في قلوبهم مرض فزادهم الله"
+],
+"dt": 105
+},
+{
+"kind": "partial",
+"alternatives": [
+" في قلوبهم مرض فزادهم الله"
+],
+"dt": 105
+},
+{
+"kind": "partial",
+"alternatives": [
+" في قلوبهم مرض فزادهم الله"
+],
+"dt": 142
+},
+{
+"kind": "partial",
+"alternatives": [
+" في قلوبهم مرض فزادهم الله مرض"
+],
+"dt": 310
+},
+{
+"kind": "partial",
+"alternatives": [
+" في قلوبهم مرض فزادهم الله"
+],
+"dt": 393
+},
+{
+"kind": "partial",
+"alternatives": [
+" في قلوبهم مرض فزادهم الله مرضا"
+],
+"dt": 624
+},
+{
+"kind": "partial",
+"alternatives": [
+" في قلوبهم مرض فزادهم الله مرضا"
+],
+"dt": 790
+},
+{
+"kind": "partial",
+"alternatives": [
+" في قلوبهم مرض فزادهم الله مرضا"
+],
+"dt": 106
+},
+{
+"kind": "partial",
+"alternatives": [
+" في قلوبهم مرض فزادهم الله مرضا"
+],
+"dt": 106
+},
+{
+"kind": "partial",
+"alternatives": [
+" في قلوبهم مرض فزادهم الله مرضا"
+],
+"dt": 154
+},
+{
+"kind": "partial",
+"alternatives": [
+" في قلوبهم مرض فزادهم الله مرضا"
+],
+"dt": 248
+},
+{
+"kind": "partial",
+"alternatives": [
+" في قلوبهم مرض فزادهم الله مرضا ولهم"
+],
+"dt": 142
+},
+{
+"kind": "partial",
+"alternatives": [
+" في قلوبهم مرض فزادهم الله مرضا ولهم"
+],
+"dt": 107
+},
+{
+"kind": "partial",
+"alternatives": [
+" في قلوبهم مرض فزادهم الله مرضا ولهم عذاب"
+],
+"dt": 305
+},
+{
+"kind": "final",
+"alternatives": [
+" في قلوبهم مرض فزادهم الله مرضا ولهم عذاب اليم",
+" في قلوبهم مرض فزادهم الله مرضا ولهم عذاب الي"
+],
+"dt": 343
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 793
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 181
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 382
+},
+{
+"kind": "partial",
+"alternatives": [
+" بما"
+],
+"dt": 186
+},
+{
+"kind": "partial",
+"alternatives": [
+" بما"
+],
+"dt": 396
+},
+{
+"kind": "partial",
+"alternatives": [
+" بما كانوا"
+],
+"dt": 597
+},
+{
+"kind": "partial",
+"alternatives": [
+" بما كانوا"
+],
+"dt": 126
+},
+{
+"kind": "partial",
+"alternatives": [
+" بما كانوا"
+],
+"dt": 118
+},
+{
+"kind": "partial",
+"alternatives": [
+" بما كانوا يكذب"
+],
+"dt": 544
+},
+{
+"kind": "final",
+"alternatives": [
+" بما كانوا يكذب",
+" بما كانوا يكذبون"
+],
+"dt": 434
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 432
+},
+{
+"kind": "final",
+"alternatives": [
+"ون"
+],
+"dt": 57
+},
+{
+"kind": "segment",
+"dt": 128
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 5072
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 381
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 236
+},
+{
+"kind": "partial",
+"alternatives": [
+"نحن"
+],
+"dt": 113
+},
+{
+"kind": "partial",
+"alternatives": [
+"نحن مصلح"
+],
+"dt": 486
+},
+{
+"kind": "partial",
+"alternatives": [
+"نحن"
+],
+"dt": 290
+},
+{
+"kind": "partial",
+"alternatives": [
+"نحن مصلحون"
+],
+"dt": 498
+},
+{
+"kind": "partial",
+"alternatives": [
+"نحن مصلحون"
+],
+"dt": 599
+},
+{
+"kind": "partial",
+"alternatives": [
+"نحن مصلحون"
+],
+"dt": 224
+},
+{
+"kind": "partial",
+"alternatives": [
+"نحن مصلحون"
+],
+"dt": 112
+},
+{
+"kind": "partial",
+"alternatives": [
+"نحن مصلحون واذا"
+],
+"dt": 238
+},
+{
+"kind": "partial",
+"alternatives": [
+"نحن مصلحون واذا قيل"
+],
+"dt": 335
+},
+{
+"kind": "partial",
+"alternatives": [
+"نحن مصلحون واذا قيل"
+],
+"dt": 188
+},
+{
+"kind": "partial",
+"alternatives": [
+"نحن مصلحون واذا قيل لهم"
+],
+"dt": 114
+},
+{
+"kind": "partial",
+"alternatives": [
+"نحن مصلحون واذا قيل لهم"
+],
+"dt": 112
+},
+{
+"kind": "partial",
+"alternatives": [
+"نحن مصلحون واذا قيل لهم"
+],
+"dt": 111
+},
+{
+"kind": "partial",
+"alternatives": [
+"نحن مصلحون واذا قيل لهم لا"
+],
+"dt": 111
+},
+{
+"kind": "partial",
+"alternatives": [
+"نحن مصلحون واذا قيل لهم لا"
+],
+"dt": 121
+},
+{
+"kind": "partial",
+"alternatives": [
+"نحن مصلحون واذا قيل لهم لا"
+],
+"dt": 140
+},
+{
+"kind": "partial",
+"alternatives": [
+"نحن مصلحون واذا قيل لهم لا تفسدوا"
+],
+"dt": 245
+},
+{
+"kind": "partial",
+"alternatives": [
+"نحن مصلحون واذا قيل لهم لا تفسدوا في"
+],
+"dt": 123
+},
+{
+"kind": "partial",
+"alternatives": [
+"نحن مصلحون واذا قيل لهم لا تفسدوا في الارض"
+],
+"dt": 205
+},
+{
+"kind": "partial",
+"alternatives": [
+"نحن مصلحون واذا قيل لهم لا تفسدوا في الارض قال"
+],
+"dt": 623
+},
+{
+"kind": "partial",
+"alternatives": [
+"نحن مصلحون واذا قيل لهم لا تفسدوا في الارض"
+],
+"dt": 202
+},
+{
+"kind": "partial",
+"alternatives": [
+"نحن مصلحون واذا قيل لهم لا تفسدوا في الارض قالوا"
+],
+"dt": 760
+},
+{
+"kind": "final",
+"alternatives": [
+"نحن مصلحون واذا قيل لهم لا تفسدوا في الارض قالوا"
+],
+"dt": 115
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 134
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 321
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 142
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 378
+},
+{
+"kind": "partial",
+"alternatives": [
+" انما"
+],
+"dt": 63
+},
+{
+"kind": "partial",
+"alternatives": [
+" انما نحن"
+],
+"dt": 292
+},
+{
+"kind": "partial",
+"alternatives": [
+" انما نحن"
+],
+"dt": 119
+},
+{
+"kind": "partial",
+"alternatives": [
+" انما نحن"
+],
+"dt": 111
+},
+{
+"kind": "partial",
+"alternatives": [
+" انما نحن"
+],
+"dt": 115
+},
+{
+"kind": "final",
+"alternatives": [
+" انما نحن مصلحون",
+" انما نحن مصلح"
+],
+"dt": 828
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 1414
+},
+{
+"kind": "final",
+"alternatives": [
+" الا"
+],
+"dt": 880
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 460
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 321
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 148
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 63
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 58
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 264
+},
+{
+"kind": "partial",
+"alternatives": [
+" انهم"
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+" انهم المفسدون"
+],
+"dt": 513
+},
+{
+"kind": "partial",
+"alternatives": [
+" انهم المفسدون"
+],
+"dt": 259
+},
+{
+"kind": "partial",
+"alternatives": [
+" انهم المفسدون ولكن"
+],
+"dt": 422
+},
+{
+"kind": "partial",
+"alternatives": [
+" انهم المفسدون ولكن"
+],
+"dt": 381
+},
+{
+"kind": "partial",
+"alternatives": [
+" انهم المفسدون ولكن"
+],
+"dt": 332
+},
+{
+"kind": "partial",
+"alternatives": [
+" انهم المفسدون ولكن"
+],
+"dt": 203
+},
+{
+"kind": "partial",
+"alternatives": [
+" انهم المفسدون ولكن لا"
+],
+"dt": 113
+},
+{
+"kind": "partial",
+"alternatives": [
+" انهم المفسدون ولكن لا"
+],
+"dt": 116
+},
+{
+"kind": "partial",
+"alternatives": [
+" انهم المفسدون ولكن لا"
+],
+"dt": 322
+},
+{
+"kind": "final",
+"alternatives": [
+" انهم المفسدون ولكن لا يشع",
+" انهم المفسدون ولكن لا يشعرون"
+],
+"dt": 331
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 1415
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 391
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+" واذا"
+],
+"dt": 201
+},
+{
+"kind": "partial",
+"alternatives": [
+" واذا"
+],
+"dt": 324
+},
+{
+"kind": "partial",
+"alternatives": [
+" واذا"
+],
+"dt": 111
+},
+{
+"kind": "partial",
+"alternatives": [
+" واذا"
+],
+"dt": 111
+},
+{
+"kind": "partial",
+"alternatives": [
+" واذا"
+],
+"dt": 111
+},
+{
+"kind": "partial",
+"alternatives": [
+" واذا قيل"
+],
+"dt": 111
+},
+{
+"kind": "partial",
+"alternatives": [
+" واذا قيل"
+],
+"dt": 112
+},
+{
+"kind": "partial",
+"alternatives": [
+" واذا قيل"
+],
+"dt": 118
+},
+{
+"kind": "partial",
+"alternatives": [
+" واذا قيل"
+],
+"dt": 113
+},
+{
+"kind": "partial",
+"alternatives": [
+" واذا قيل لهما"
+],
+"dt": 111
+},
+{
+"kind": "partial",
+"alternatives": [
+" واذا قيل لهما"
+],
+"dt": 162
+},
+{
+"kind": "partial",
+"alternatives": [
+" واذا قيل لهما امنوا"
+],
+"dt": 112
+},
+{
+"kind": "partial",
+"alternatives": [
+" واذا قيل لهما امنوا"
+],
+"dt": 114
+},
+{
+"kind": "partial",
+"alternatives": [
+" واذا قيل لهما امنوا"
+],
+"dt": 152
+},
+{
+"kind": "partial",
+"alternatives": [
+" واذا قيل لهما امنوا كما"
+],
+"dt": 589
+},
+{
+"kind": "partial",
+"alternatives": [
+" واذا قيل لهما امنوا كما"
+],
+"dt": 514
+},
+{
+"kind": "final",
+"alternatives": [
+" واذا قيل لهما امنوا كما ام",
+" واذا قيل لهما امنوا كما امن",
+" واذا قيل لهما امنوا كما امنوا"
+],
+"dt": 561
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 462
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 144
+},
+{
+"kind": "partial",
+"alternatives": [
+"ن"
+],
+"dt": 420
+},
+{
+"kind": "partial",
+"alternatives": [
+"ن الناس"
+],
+"dt": 189
+},
+{
+"kind": "partial",
+"alternatives": [
+"ن الناس"
+],
+"dt": 230
+},
+{
+"kind": "partial",
+"alternatives": [
+"ن الناس"
+],
+"dt": 112
+},
+{
+"kind": "partial",
+"alternatives": [
+"ن الناس"
+],
+"dt": 111
+},
+{
+"kind": "partial",
+"alternatives": [
+"ن الناس"
+],
+"dt": 112
+},
+{
+"kind": "partial",
+"alternatives": [
+"ن الناس قالوا"
+],
+"dt": 586
+},
+{
+"kind": "partial",
+"alternatives": [
+"ن الناس قالوا"
+],
+"dt": 292
+},
+{
+"kind": "partial",
+"alternatives": [
+"ن الناس قالوا"
+],
+"dt": 113
+},
+{
+"kind": "partial",
+"alternatives": [
+"ن الناس قالوا"
+],
+"dt": 110
+},
+{
+"kind": "partial",
+"alternatives": [
+"ن الناس قالوا وانوا"
+],
+"dt": 449
+},
+{
+"kind": "partial",
+"alternatives": [
+"ن الناس قالوا وانوا من"
+],
+"dt": 211
+},
+{
+"kind": "partial",
+"alternatives": [
+"ن الناس قالوا وانوا من"
+],
+"dt": 774
+},
+{
+"kind": "partial",
+"alternatives": [
+"ن الناس قالوا وانوا من قال"
+],
+"dt": 416
+},
+{
+"kind": "partial",
+"alternatives": [
+"ن الناس قالوا وانوا من"
+],
+"dt": 214
+},
+{
+"kind": "partial",
+"alternatives": [
+"ن الناس قالوا وانوا من"
+],
+"dt": 442
+},
+{
+"kind": "partial",
+"alternatives": [
+"ن الناس قالوا وانوا من قالوا"
+],
+"dt": 131
+},
+{
+"kind": "partial",
+"alternatives": [
+"ن الناس قالوا وانوا من قالوا"
+],
+"dt": 127
+},
+{
+"kind": "partial",
+"alternatives": [
+"ن الناس قالوا وانوا من قالوا"
+],
+"dt": 124
+},
+{
+"kind": "partial",
+"alternatives": [
+"ن الناس قالوا وانوا من قالوا هلؤمن"
+],
+"dt": 443
+},
+{
+"kind": "partial",
+"alternatives": [
+"ن الناس قالوا وانوا من قالوا هلؤمن"
+],
+"dt": 204
+},
+{
+"kind": "partial",
+"alternatives": [
+"ن الناس قالوا وانوا من قالوا هلؤمن كما"
+],
+"dt": 627
+},
+{
+"kind": "partial",
+"alternatives": [
+"ن الناس قالوا وانوا من قالوا هلؤمن كما"
+],
+"dt": 305
+},
+{
+"kind": "partial",
+"alternatives": [
+"ن الناس قالوا وانوا من قالوا هلؤمن كما"
+],
+"dt": 126
+},
+{
+"kind": "partial",
+"alternatives": [
+"ن الناس قالوا وانوا من قالوا هلؤمن كما"
+],
+"dt": 141
+},
+{
+"kind": "partial",
+"alternatives": [
+"ن الناس قالوا وانوا من قالوا هلؤمن كما امن"
+],
+"dt": 312
+},
+{
+"kind": "partial",
+"alternatives": [
+"ن الناس قالوا وانوا من قالوا هلؤمن كما امن الس"
+],
+"dt": 320
+},
+{
+"kind": "partial",
+"alternatives": [
+"ن الناس قالوا وانوا من قالوا هلؤمن كما امن"
+],
+"dt": 538
+},
+{
+"kind": "partial",
+"alternatives": [
+"ن الناس قالوا وانوا من قالوا هلؤمن كما امن"
+],
+"dt": 460
+},
+{
+"kind": "partial",
+"alternatives": [
+"ن الناس قالوا وانوا من قالوا هلؤمن كما امن السفهاء"
+],
+"dt": 681
+},
+{
+"kind": "partial",
+"alternatives": [
+"ن الناس قالوا وانوا من قالوا هلؤمن كما امن السفهاء"
+],
+"dt": 1029
+},
+{
+"kind": "partial",
+"alternatives": [
+"ن الناس قالوا وانوا من قالوا هلؤمن كما امن السفهاء الا"
+],
+"dt": 639
+},
+{
+"kind": "final",
+"alternatives": [
+"ن الناس قالوا وانوا من قالوا هلؤمن كما امن السفه الا",
+"ن الناس قالوا وانوا من قالوا هلؤمن كما امن السفهاء الا"
+],
+"dt": 380
+},
+{
+"kind": "segment",
+"dt": 129
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 8177
+},
+{
+"kind": "partial",
+"alternatives": [
+"الا"
+],
+"dt": 570
+},
+{
+"kind": "partial",
+"alternatives": [
+"الا"
+],
+"dt": 253
+},
+{
+"kind": "partial",
+"alternatives": [
+"الا"
+],
+"dt": 598
+},
+{
+"kind": "partial",
+"alternatives": [
+"الا انهم"
+],
+"dt": 134
+},
+{
+"kind": "partial",
+"alternatives": [
+"الا انهم"
+],
+"dt": 123
+},
+{
+"kind": "partial",
+"alternatives": [
+"الا انهم صفاء"
+],
+"dt": 786
+},
+{
+"kind": "partial",
+"alternatives": [
+"الا انهم صفاء ولكن"
+],
+"dt": 401
+},
+{
+"kind": "partial",
+"alternatives": [
+"الا انهم صفاء ولكن"
+],
+"dt": 469
+},
+{
+"kind": "partial",
+"alternatives": [
+"الا انهم صفاء ولكن"
+],
+"dt": 345
+},
+{
+"kind": "partial",
+"alternatives": [
+"الا انهم صفاء ولكن"
+],
+"dt": 161
+},
+{
+"kind": "partial",
+"alternatives": [
+"الا انهم صفاء ولكن لا"
+],
+"dt": 134
+},
+{
+"kind": "final",
+"alternatives": [
+"الا انهم صفاء ولكن لا يع",
+"الا انهم صفاء ولكن لا يعلم"
+],
+"dt": 186
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 7361
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 346
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 131
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا"
+],
+"dt": 214
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا"
+],
+"dt": 332
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا"
+],
+"dt": 238
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين"
+],
+"dt": 165
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين"
+],
+"dt": 262
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين"
+],
+"dt": 137
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين"
+],
+"dt": 286
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا"
+],
+"dt": 136
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا"
+],
+"dt": 135
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا"
+],
+"dt": 130
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا"
+],
+"dt": 178
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا"
+],
+"dt": 570
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا"
+],
+"dt": 138
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا ام"
+],
+"dt": 566
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا"
+],
+"dt": 451
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا امنا"
+],
+"dt": 591
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا امنا"
+],
+"dt": 1360
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا امنا"
+],
+"dt": 342
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا امنا"
+],
+"dt": 157
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا امنا واذا"
+],
+"dt": 129
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا امنا واذا"
+],
+"dt": 136
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا امنا واذا"
+],
+"dt": 176
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا امنا واذا خلوا"
+],
+"dt": 138
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا امنا واذا خلوا"
+],
+"dt": 136
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا امنا واذا خلوا الى"
+],
+"dt": 163
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا امنا واذا خلوا الى"
+],
+"dt": 392
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا امنا واذا خلوا الى"
+],
+"dt": 240
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا امنا واذا خلوا الى شياطينهم"
+],
+"dt": 399
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا امنا واذا خلوا الى شياطينهم"
+],
+"dt": 180
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا امنا واذا خلوا الى شياطينهم قالوا"
+],
+"dt": 586
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا امنا واذا خلوا الى شياطينهم قالوا"
+],
+"dt": 859
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا امنا واذا خلوا الى شياطينهم قالوا"
+],
+"dt": 430
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا امنا واذا خلوا الى شياطينهم قالوا ان"
+],
+"dt": 191
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا امنا واذا خلوا الى شياطينهم قالوا ان"
+],
+"dt": 146
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا امنا واذا خلوا الى شياطينهم قالوا ان معكم"
+],
+"dt": 562
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا امنا واذا خلوا الى شياطينهم قالوا ان معكم ان"
+],
+"dt": 575
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا امنا واذا خلوا الى شياطينهم قالوا ان معكم"
+],
+"dt": 381
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا امنا واذا خلوا الى شياطينهم قالوا ان معكم"
+],
+"dt": 178
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا امنا واذا خلوا الى شياطينهم قالوا ان معكم انما"
+],
+"dt": 386
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا امنا واذا خلوا الى شياطينهم قالوا ان معكم انما"
+],
+"dt": 213
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا امنا واذا خلوا الى شياطينهم قالوا ان معكم انما"
+],
+"dt": 142
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا امنا واذا خلوا الى شياطينهم قالوا ان معكم انما نحن"
+],
+"dt": 143
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا امنا واذا خلوا الى شياطينهم قالوا ان معكم انما نحن"
+],
+"dt": 151
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا امنا واذا خلوا الى شياطينهم قالوا ان معكم انما نحن"
+],
+"dt": 140
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا امنا واذا خلوا الى شياطينهم قالوا ان معكم انما نحن"
+],
+"dt": 146
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا امنا واذا خلوا الى شياطينهم قالوا ان معكم انما نحن"
+],
+"dt": 145
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذا لقوا الذين امنوا قالوا امنا واذا خلوا الى شياطينهم قالوا ان معكم انما نحن"
+],
+"dt": 141
+}
+]
+}

@@ -1,0 +1,2091 @@
+{
+"name": "device-2026-09-26-06",
+"startCursor": 360,
+"events": [
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 311
+},
+{
+"kind": "partial",
+"alternatives": [
+"ان"
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+"ان الله"
+],
+"dt": 307
+},
+{
+"kind": "partial",
+"alternatives": [
+"ان الله"
+],
+"dt": 306
+},
+{
+"kind": "partial",
+"alternatives": [
+"ان الله"
+],
+"dt": 319
+},
+{
+"kind": "partial",
+"alternatives": [
+"ان الله لا"
+],
+"dt": 309
+},
+{
+"kind": "partial",
+"alternatives": [
+"ان الله لا يستح"
+],
+"dt": 305
+},
+{
+"kind": "partial",
+"alternatives": [
+"ان الله لا"
+],
+"dt": 307
+},
+{
+"kind": "partial",
+"alternatives": [
+"ان الله لا يستحي"
+],
+"dt": 307
+},
+{
+"kind": "partial",
+"alternatives": [
+"ان الله لا يستحي"
+],
+"dt": 306
+},
+{
+"kind": "partial",
+"alternatives": [
+"ان الله لا يستحي"
+],
+"dt": 316
+},
+{
+"kind": "partial",
+"alternatives": [
+"ان الله لا يستحي ان"
+],
+"dt": 896
+},
+{
+"kind": "partial",
+"alternatives": [
+"ان الله لا يستحي ان"
+],
+"dt": 308
+},
+{
+"kind": "partial",
+"alternatives": [
+"ان الله لا يستحي ان يضرب"
+],
+"dt": 304
+},
+{
+"kind": "partial",
+"alternatives": [
+"ان الله لا يستحي ان يضرب مثلا"
+],
+"dt": 312
+},
+{
+"kind": "partial",
+"alternatives": [
+"ان الله لا يستحي ان يضرب مثلا"
+],
+"dt": 316
+},
+{
+"kind": "partial",
+"alternatives": [
+"ان الله لا يستحي ان يضرب مثلا"
+],
+"dt": 300
+},
+{
+"kind": "partial",
+"alternatives": [
+"ان الله لا يستحي ان يضرب مثلا"
+],
+"dt": 298
+},
+{
+"kind": "partial",
+"alternatives": [
+"ان الله لا يستحي ان يضرب مثلا ما"
+],
+"dt": 301
+},
+{
+"kind": "partial",
+"alternatives": [
+"ان الله لا يستحي ان يضرب مثلا ما بعوضه"
+],
+"dt": 315
+},
+{
+"kind": "partial",
+"alternatives": [
+"ان الله لا يستحي ان يضرب مثلا ما بعوضه"
+],
+"dt": 314
+},
+{
+"kind": "partial",
+"alternatives": [
+"ان الله لا يستحي ان يضرب مثلا ما بعوضه"
+],
+"dt": 304
+},
+{
+"kind": "partial",
+"alternatives": [
+"ان الله لا يستحي ان يضرب مثلا ما بعوضه"
+],
+"dt": 304
+},
+{
+"kind": "partial",
+"alternatives": [
+"ان الله لا يستحي ان يضرب مثلا ما بعوضه فما"
+],
+"dt": 302
+},
+{
+"kind": "final",
+"alternatives": [
+"ان الله لا يستحي ان يضرب مثلا ما بعوضه فما فوق",
+"ان الله لا يستحي ان يضرب مثلا ما بعوضه فما فوقها"
+],
+"dt": 307
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 322
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها"
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها"
+],
+"dt": 309
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها"
+],
+"dt": 302
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها"
+],
+"dt": 299
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها"
+],
+"dt": 303
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها"
+],
+"dt": 306
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها"
+],
+"dt": 305
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما"
+],
+"dt": 308
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين"
+],
+"dt": 304
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين"
+],
+"dt": 302
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين"
+],
+"dt": 304
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين"
+],
+"dt": 312
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين"
+],
+"dt": 306
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين"
+],
+"dt": 304
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين امنوا"
+],
+"dt": 303
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين امنوا"
+],
+"dt": 318
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين امنوا فيعلمون"
+],
+"dt": 311
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين امنوا فيعلمون"
+],
+"dt": 313
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين امنوا فيعلمون"
+],
+"dt": 304
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين امنوا فيعلمون انه"
+],
+"dt": 308
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين امنوا فيعلمون انه"
+],
+"dt": 310
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين امنوا فيعلمون انه الحق"
+],
+"dt": 301
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين امنوا فيعلمون انه الحق"
+],
+"dt": 320
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين امنوا فيعلمون انه الحق"
+],
+"dt": 305
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين امنوا فيعلمون انه الحق من"
+],
+"dt": 302
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين امنوا فيعلمون انه الحق من ربهم"
+],
+"dt": 312
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين امنوا فيعلمون انه الحق من ربهم"
+],
+"dt": 309
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين امنوا فيعلمون انه الحق من ربهم"
+],
+"dt": 301
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين امنوا فيعلمون انه الحق من ربهم"
+],
+"dt": 313
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين امنوا فيعلمون انه الحق من ربهم واما"
+],
+"dt": 301
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين امنوا فيعلمون انه الحق من ربهم واما"
+],
+"dt": 311
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين امنوا فيعلمون انه الحق من ربهم واما الذين"
+],
+"dt": 300
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين امنوا فيعلمون انه الحق من ربهم واما الذين"
+],
+"dt": 308
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين امنوا فيعلمون انه الحق من ربهم واما الذين"
+],
+"dt": 302
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين امنوا فيعلمون انه الحق من ربهم واما الذين كفروا"
+],
+"dt": 304
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين امنوا فيعلمون انه الحق من ربهم واما الذين كفروا"
+],
+"dt": 312
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين امنوا فيعلمون انه الحق من ربهم واما الذين كفروا"
+],
+"dt": 302
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين امنوا فيعلمون انه الحق من ربهم واما الذين كفروا فيقولون"
+],
+"dt": 302
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين امنوا فيعلمون انه الحق من ربهم واما الذين كفروا فيقولون"
+],
+"dt": 312
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين امنوا فيعلمون انه الحق من ربهم واما الذين كفروا فيقولون ماذا"
+],
+"dt": 308
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين امنوا فيعلمون انه الحق من ربهم واما الذين كفروا فيقولون ماذا"
+],
+"dt": 310
+},
+{
+"kind": "partial",
+"alternatives": [
+"ها فاما الذين امنوا فيعلمون انه الحق من ربهم واما الذين كفروا فيقولون ماذا"
+],
+"dt": 309
+},
+{
+"kind": "final",
+"alternatives": [
+"ها فاما الذين امنوا فيعلمون انه الحق من ربهم واما الذين كفروا فيقولون ماذا اراد",
+"ها فاما الذين امنوا فيعلمون انه الحق من ربهم واما الذين كفروا فيقولون ماذا ارا"
+],
+"dt": 302
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 308
+},
+{
+"kind": "partial",
+"alternatives": [
+" الله"
+],
+"dt": 1
+},
+{
+"kind": "partial",
+"alternatives": [
+" الله"
+],
+"dt": 313
+},
+{
+"kind": "partial",
+"alternatives": [
+" الله"
+],
+"dt": 306
+},
+{
+"kind": "partial",
+"alternatives": [
+" الله هذا"
+],
+"dt": 302
+},
+{
+"kind": "partial",
+"alternatives": [
+" الله هذا مثلا"
+],
+"dt": 307
+},
+{
+"kind": "partial",
+"alternatives": [
+" الله هذا مثلا"
+],
+"dt": 731
+},
+{
+"kind": "partial",
+"alternatives": [
+" الله هذا مثلا"
+],
+"dt": 673
+},
+{
+"kind": "partial",
+"alternatives": [
+" الله هذا مثلا"
+],
+"dt": 306
+},
+{
+"kind": "partial",
+"alternatives": [
+" الله هذا مثلا يضل"
+],
+"dt": 300
+},
+{
+"kind": "partial",
+"alternatives": [
+" الله هذا مثلا يضل به"
+],
+"dt": 313
+},
+{
+"kind": "partial",
+"alternatives": [
+" الله هذا مثلا يضل به كثيرا"
+],
+"dt": 306
+},
+{
+"kind": "partial",
+"alternatives": [
+" الله هذا مثلا يضل به كثيرا"
+],
+"dt": 312
+},
+{
+"kind": "partial",
+"alternatives": [
+" الله هذا مثلا يضل به كثيرا"
+],
+"dt": 308
+},
+{
+"kind": "partial",
+"alternatives": [
+" الله هذا مثلا يضل به كثيرا"
+],
+"dt": 307
+},
+{
+"kind": "partial",
+"alternatives": [
+" الله هذا مثلا يضل به كثيرا ويهدي"
+],
+"dt": 302
+},
+{
+"kind": "partial",
+"alternatives": [
+" الله هذا مثلا يضل به كثيرا ويهدي"
+],
+"dt": 305
+},
+{
+"kind": "partial",
+"alternatives": [
+" الله هذا مثلا يضل به كثيرا ويهدي به"
+],
+"dt": 300
+},
+{
+"kind": "partial",
+"alternatives": [
+" الله هذا مثلا يضل به كثيرا ويهدي به كثيرا"
+],
+"dt": 309
+},
+{
+"kind": "final",
+"alternatives": [
+" الله هذا مثلا يضل به كثيرا ويهدي به كثيرا",
+" الله هذا مثلا يضل به كثيرا ويهذي به كثيرا"
+],
+"dt": 612
+},
+{
+"kind": "segment",
+"dt": 305
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 1710
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 23
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 388
+},
+{
+"kind": "partial",
+"alternatives": [
+"يضل"
+],
+"dt": 188
+},
+{
+"kind": "partial",
+"alternatives": [
+"يضل"
+],
+"dt": 690
+},
+{
+"kind": "partial",
+"alternatives": [
+"يضل به"
+],
+"dt": 304
+},
+{
+"kind": "partial",
+"alternatives": [
+"يضل به كثيرا"
+],
+"dt": 302
+},
+{
+"kind": "partial",
+"alternatives": [
+"يضل به كثيرا"
+],
+"dt": 304
+},
+{
+"kind": "partial",
+"alternatives": [
+"يضل به كثيرا"
+],
+"dt": 308
+},
+{
+"kind": "partial",
+"alternatives": [
+"يضل به كثيرا"
+],
+"dt": 316
+},
+{
+"kind": "partial",
+"alternatives": [
+"يضل به كثيرا ويهدي"
+],
+"dt": 308
+},
+{
+"kind": "partial",
+"alternatives": [
+"يضل به كثيرا ويهدي"
+],
+"dt": 309
+},
+{
+"kind": "partial",
+"alternatives": [
+"يضل به كثيرا ويهدي به"
+],
+"dt": 309
+},
+{
+"kind": "final",
+"alternatives": [
+"يضل به كثيرا ويهدي به كثيرا"
+],
+"dt": 309
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 1166
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 1
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 509
+},
+{
+"kind": "partial",
+"alternatives": [
+" ويضل"
+],
+"dt": 42
+},
+{
+"kind": "partial",
+"alternatives": [
+" ويضل به"
+],
+"dt": 335
+},
+{
+"kind": "partial",
+"alternatives": [
+" ويضل به"
+],
+"dt": 1163
+},
+{
+"kind": "partial",
+"alternatives": [
+" ويضل به"
+],
+"dt": 311
+},
+{
+"kind": "partial",
+"alternatives": [
+" ويضل به"
+],
+"dt": 313
+},
+{
+"kind": "partial",
+"alternatives": [
+" ويضل به الا"
+],
+"dt": 308
+},
+{
+"kind": "partial",
+"alternatives": [
+" ويضل به الا"
+],
+"dt": 303
+},
+{
+"kind": "partial",
+"alternatives": [
+" ويضل به الا"
+],
+"dt": 303
+},
+{
+"kind": "partial",
+"alternatives": [
+" ويضل به الا الفاسقين"
+],
+"dt": 299
+},
+{
+"kind": "final",
+"alternatives": [
+" ويضل به الا الفاسقين",
+" ويضل به الا الفاسق"
+],
+"dt": 321
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 730
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 409
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 96
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 40
+},
+{
+"kind": "partial",
+"alternatives": [
+" الا"
+],
+"dt": 353
+},
+{
+"kind": "partial",
+"alternatives": [
+" الا"
+],
+"dt": 308
+},
+{
+"kind": "partial",
+"alternatives": [
+" الا الفاسقين"
+],
+"dt": 312
+},
+{
+"kind": "partial",
+"alternatives": [
+" الا الفاسقين الذين"
+],
+"dt": 312
+},
+{
+"kind": "partial",
+"alternatives": [
+" الا الفاسقين الذين"
+],
+"dt": 305
+},
+{
+"kind": "partial",
+"alternatives": [
+" الا الفاسقين الذين"
+],
+"dt": 301
+},
+{
+"kind": "partial",
+"alternatives": [
+" الا الفاسقين الذين"
+],
+"dt": 301
+},
+{
+"kind": "partial",
+"alternatives": [
+" الا الفاسقين الذين"
+],
+"dt": 300
+},
+{
+"kind": "partial",
+"alternatives": [
+" الا الفاسقين الذين ينقضون"
+],
+"dt": 310
+},
+{
+"kind": "partial",
+"alternatives": [
+" الا الفاسقين الذين ينقضون"
+],
+"dt": 312
+},
+{
+"kind": "partial",
+"alternatives": [
+" الا الفاسقين الذين ينقضون عهد"
+],
+"dt": 306
+},
+{
+"kind": "partial",
+"alternatives": [
+" الا الفاسقين الذين ينقضون عهد"
+],
+"dt": 310
+},
+{
+"kind": "partial",
+"alternatives": [
+" الا الفاسقين الذين ينقضون عهد الله"
+],
+"dt": 301
+},
+{
+"kind": "partial",
+"alternatives": [
+" الا الفاسقين الذين ينقضون عهد الله"
+],
+"dt": 313
+},
+{
+"kind": "partial",
+"alternatives": [
+" الا الفاسقين الذين ينقضون عهد الله من"
+],
+"dt": 313
+},
+{
+"kind": "partial",
+"alternatives": [
+" الا الفاسقين الذين ينقضون عهد الله من"
+],
+"dt": 314
+},
+{
+"kind": "partial",
+"alternatives": [
+" الا الفاسقين الذين ينقضون عهد الله من بعد"
+],
+"dt": 304
+},
+{
+"kind": "partial",
+"alternatives": [
+" الا الفاسقين الذين ينقضون عهد الله من بعد"
+],
+"dt": 312
+},
+{
+"kind": "partial",
+"alternatives": [
+" الا الفاسقين الذين ينقضون عهد الله من بعد"
+],
+"dt": 305
+},
+{
+"kind": "partial",
+"alternatives": [
+" الا الفاسقين الذين ينقضون عهد الله من بعد ميثاقه"
+],
+"dt": 313
+},
+{
+"kind": "partial",
+"alternatives": [
+" الا الفاسقين الذين ينقضون عهد الله من بعد ميثاقه"
+],
+"dt": 315
+},
+{
+"kind": "partial",
+"alternatives": [
+" الا الفاسقين الذين ينقضون عهد الله من بعد ميثاقه"
+],
+"dt": 304
+},
+{
+"kind": "partial",
+"alternatives": [
+" الا الفاسقين الذين ينقضون عهد الله من بعد ميثاقه ويقطعون"
+],
+"dt": 304
+},
+{
+"kind": "partial",
+"alternatives": [
+" الا الفاسقين الذين ينقضون عهد الله من بعد ميثاقه ويقطعون"
+],
+"dt": 311
+},
+{
+"kind": "partial",
+"alternatives": [
+" الا الفاسقين الذين ينقضون عهد الله من بعد ميثاقه ويقطعون"
+],
+"dt": 302
+},
+{
+"kind": "partial",
+"alternatives": [
+" الا الفاسقين الذين ينقضون عهد الله من بعد ميثاقه ويقطعون"
+],
+"dt": 311
+},
+{
+"kind": "partial",
+"alternatives": [
+" الا الفاسقين الذين ينقضون عهد الله من بعد ميثاقه ويقطعون"
+],
+"dt": 307
+},
+{
+"kind": "partial",
+"alternatives": [
+" الا الفاسقين الذين ينقضون عهد الله من بعد ميثاقه ويقطعون ما"
+],
+"dt": 310
+},
+{
+"kind": "partial",
+"alternatives": [
+" الا الفاسقين الذين ينقضون عهد الله من بعد ميثاقه ويقطعون ما امر"
+],
+"dt": 312
+},
+{
+"kind": "partial",
+"alternatives": [
+" الا الفاسقين الذين ينقضون عهد الله من بعد ميثاقه ويقطعون ما امر"
+],
+"dt": 310
+},
+{
+"kind": "final",
+"alternatives": [
+" الا الفاسقين الذين ينقضون عهد الله من بعد ميثاقه ويقطعون ما امر الله به",
+" الا الفاسقين الذين ينقضون عهد الله من بعد ميثاقه ويقطعون ما امر الله"
+],
+"dt": 302
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 316
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 1
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 158
+},
+{
+"kind": "partial",
+"alternatives": [
+" صله"
+],
+"dt": 304
+},
+{
+"kind": "partial",
+"alternatives": [
+" صله"
+],
+"dt": 647
+},
+{
+"kind": "partial",
+"alternatives": [
+" صله"
+],
+"dt": 301
+},
+{
+"kind": "partial",
+"alternatives": [
+" صله ويفسدون"
+],
+"dt": 306
+},
+{
+"kind": "final",
+"alternatives": [
+" صله ويفسدون في الارض"
+],
+"dt": 312
+},
+{
+"kind": "final",
+"alternatives": [
+""
+],
+"dt": 2128
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 1
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 26
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 60
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 471
+},
+{
+"kind": "partial",
+"alternatives": [
+" اولئك"
+],
+"dt": 461
+},
+{
+"kind": "partial",
+"alternatives": [
+" اولئك"
+],
+"dt": 303
+},
+{
+"kind": "partial",
+"alternatives": [
+" اولئك"
+],
+"dt": 307
+},
+{
+"kind": "partial",
+"alternatives": [
+" اولئك"
+],
+"dt": 304
+},
+{
+"kind": "partial",
+"alternatives": [
+" اولئك هم"
+],
+"dt": 297
+},
+{
+"kind": "partial",
+"alternatives": [
+" اولئك هم الخاسرون"
+],
+"dt": 306
+},
+{
+"kind": "final",
+"alternatives": [
+" اولئك هم الخاسرون"
+],
+"dt": 304
+},
+{
+"kind": "segment",
+"dt": 601
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 2128
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 600
+},
+{
+"kind": "partial",
+"alternatives": [
+"كيف"
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+"كيف"
+],
+"dt": 311
+},
+{
+"kind": "partial",
+"alternatives": [
+"كيف"
+],
+"dt": 310
+},
+{
+"kind": "partial",
+"alternatives": [
+"كيف تك"
+],
+"dt": 303
+},
+{
+"kind": "partial",
+"alternatives": [
+"كيف"
+],
+"dt": 304
+},
+{
+"kind": "partial",
+"alternatives": [
+"كيف"
+],
+"dt": 308
+},
+{
+"kind": "partial",
+"alternatives": [
+"كيف تكفرون"
+],
+"dt": 310
+},
+{
+"kind": "partial",
+"alternatives": [
+"كيف تكفرون بالله"
+],
+"dt": 313
+},
+{
+"kind": "partial",
+"alternatives": [
+"كيف تكفرون بالله"
+],
+"dt": 308
+},
+{
+"kind": "partial",
+"alternatives": [
+"كيف تكفرون بالله"
+],
+"dt": 308
+},
+{
+"kind": "partial",
+"alternatives": [
+"كيف تكفرون بالله وكنتم"
+],
+"dt": 303
+},
+{
+"kind": "partial",
+"alternatives": [
+"كيف تكفرون بالله وكنتم"
+],
+"dt": 311
+},
+{
+"kind": "partial",
+"alternatives": [
+"كيف تكفرون بالله وكنتم"
+],
+"dt": 314
+},
+{
+"kind": "partial",
+"alternatives": [
+"كيف تكفرون بالله وكنتم اموات"
+],
+"dt": 315
+},
+{
+"kind": "partial",
+"alternatives": [
+"كيف تكفرون بالله وكنتم"
+],
+"dt": 338
+},
+{
+"kind": "partial",
+"alternatives": [
+"كيف تكفرون بالله وكنتم"
+],
+"dt": 313
+},
+{
+"kind": "partial",
+"alternatives": [
+"كيف تكفرون بالله وكنتم"
+],
+"dt": 305
+},
+{
+"kind": "partial",
+"alternatives": [
+"كيف تكفرون بالله وكنتم امواتا"
+],
+"dt": 304
+},
+{
+"kind": "partial",
+"alternatives": [
+"كيف تكفرون بالله وكنتم امواتا"
+],
+"dt": 322
+},
+{
+"kind": "final",
+"alternatives": [
+"كيف تكفرون بالله وكنتم امواتا فاحياكم"
+],
+"dt": 307
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 1638
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم"
+],
+"dt": 509
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم"
+],
+"dt": 309
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم"
+],
+"dt": 305
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم"
+],
+"dt": 305
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم"
+],
+"dt": 303
+},
+{
+"kind": "final",
+"alternatives": [
+" ثم يميتكم",
+" ثم يميتكم ثم"
+],
+"dt": 302
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 323
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم"
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم"
+],
+"dt": 315
+},
+{
+"kind": "final",
+"alternatives": [
+" ثم يحييكم",
+" ثم يحيي"
+],
+"dt": 305
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 538
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم"
+],
+"dt": 607
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم"
+],
+"dt": 312
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم"
+],
+"dt": 310
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم"
+],
+"dt": 306
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه"
+],
+"dt": 302
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه"
+],
+"dt": 305
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون"
+],
+"dt": 301
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون"
+],
+"dt": 1157
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون"
+],
+"dt": 306
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو"
+],
+"dt": 303
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو"
+],
+"dt": 310
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي"
+],
+"dt": 307
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي"
+],
+"dt": 318
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق"
+],
+"dt": 307
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق"
+],
+"dt": 309
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق لكم"
+],
+"dt": 301
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق لكم"
+],
+"dt": 312
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق لكم"
+],
+"dt": 310
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق لكم ما"
+],
+"dt": 306
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق لكم ما في"
+],
+"dt": 311
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق لكم ما في الارض"
+],
+"dt": 314
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق لكم ما في الارض"
+],
+"dt": 311
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق لكم ما في الارض جميعا"
+],
+"dt": 309
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق لكم ما في الارض جميعا"
+],
+"dt": 323
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق لكم ما في الارض جميعا ثم"
+],
+"dt": 307
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق لكم ما في الارض جميعا ثم است"
+],
+"dt": 312
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق لكم ما في الارض جميعا ثم"
+],
+"dt": 311
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق لكم ما في الارض جميعا ثم"
+],
+"dt": 311
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق لكم ما في الارض جميعا ثم استوى"
+],
+"dt": 317
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق لكم ما في الارض جميعا ثم استوى الى"
+],
+"dt": 316
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق لكم ما في الارض جميعا ثم استوى الى"
+],
+"dt": 314
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق لكم ما في الارض جميعا ثم استوى الى"
+],
+"dt": 308
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق لكم ما في الارض جميعا ثم استوى الى"
+],
+"dt": 303
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق لكم ما في الارض جميعا ثم استوى الى السماء"
+],
+"dt": 303
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق لكم ما في الارض جميعا ثم استوى الى السماء"
+],
+"dt": 324
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق لكم ما في الارض جميعا ثم استوى الى السماء"
+],
+"dt": 310
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق لكم ما في الارض جميعا ثم استوى الى السماء"
+],
+"dt": 304
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق لكم ما في الارض جميعا ثم استوى الى السماء فسواه"
+],
+"dt": 305
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق لكم ما في الارض جميعا ثم استوى الى السماء"
+],
+"dt": 313
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق لكم ما في الارض جميعا ثم استوى الى السماء"
+],
+"dt": 323
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق لكم ما في الارض جميعا ثم استوى الى السماء"
+],
+"dt": 311
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق لكم ما في الارض جميعا ثم استوى الى السماء فسواهن"
+],
+"dt": 305
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق لكم ما في الارض جميعا ثم استوى الى السماء فسواهن"
+],
+"dt": 316
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق لكم ما في الارض جميعا ثم استوى الى السماء فسواهن"
+],
+"dt": 300
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق لكم ما في الارض جميعا ثم استوى الى السماء فسواهن سبع"
+],
+"dt": 305
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق لكم ما في الارض جميعا ثم استوى الى السماء فسواهن سبع س"
+],
+"dt": 316
+},
+{
+"kind": "partial",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق لكم ما في الارض جميعا ثم استوى الى السماء فسواهن سبع"
+],
+"dt": 317
+},
+{
+"kind": "final",
+"alternatives": [
+" ثم اليه ترجعون هو الذي خلق لكم ما في الارض جميعا ثم استوى الى السماء فسواهن سبع سماوات"
+],
+"dt": 318
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 312
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 1
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+" وهو"
+],
+"dt": 1
+},
+{
+"kind": "partial",
+"alternatives": [
+" وهو"
+],
+"dt": 301
+},
+{
+"kind": "partial",
+"alternatives": [
+" وهو بكل"
+],
+"dt": 312
+},
+{
+"kind": "partial",
+"alternatives": [
+" وهو بكل شيء"
+],
+"dt": 315
+},
+{
+"kind": "partial",
+"alternatives": [
+" وهو بكل شيء"
+],
+"dt": 605
+},
+{
+"kind": "partial",
+"alternatives": [
+" وهو بكل شيء علي"
+],
+"dt": 612
+},
+{
+"kind": "final",
+"alternatives": [
+" وهو بكل شيء علي",
+" وهو بكل شيء عليم"
+],
+"dt": 1065
+},
+{
+"kind": "segment",
+"dt": 319
+},
+{
+"kind": "final",
+"alternatives": [
+""
+],
+"dt": 11969
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 3582
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 350
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 360
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذ"
+],
+"dt": 1
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذ"
+],
+"dt": 365
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذ قال"
+],
+"dt": 353
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذ قال"
+],
+"dt": 350
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذ قال ربك"
+],
+"dt": 350
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذ قال ربك للم"
+],
+"dt": 721
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذ قال ربك"
+],
+"dt": 392
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذ قال ربك"
+],
+"dt": 352
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذ قال ربك"
+],
+"dt": 352
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذ قال ربك للملائكه"
+],
+"dt": 351
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذ قال ربك للملائكه"
+],
+"dt": 403
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذ قال ربك للملائكه"
+],
+"dt": 361
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذ قال ربك للملائكه"
+],
+"dt": 354
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذ قال ربك للملائكه اني"
+],
+"dt": 349
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذ قال ربك للملائكه اني"
+],
+"dt": 357
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذ قال ربك للملائكه اني"
+],
+"dt": 349
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذ قال ربك للملائكه اني جاعل"
+],
+"dt": 365
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذ قال ربك للملائكه اني جاعل في"
+],
+"dt": 360
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذ قال ربك للملائكه اني جاعل في"
+],
+"dt": 358
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذ قال ربك للملائكه اني جاعل في الارض"
+],
+"dt": 359
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذ قال ربك للملائكه اني جاعل في الارض"
+],
+"dt": 355
+},
+{
+"kind": "partial",
+"alternatives": [
+"واذ قال ربك للملائكه اني جاعل في الارض خليفه"
+],
+"dt": 356
+}
+]
+}

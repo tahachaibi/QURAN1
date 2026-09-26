@@ -1,0 +1,1730 @@
+{
+"name": "device-2026-09-26-04",
+"startCursor": 180,
+"events": [
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 146
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 456
+},
+{
+"kind": "partial",
+"alternatives": [
+"اولئك"
+],
+"dt": 86
+},
+{
+"kind": "partial",
+"alternatives": [
+"اولئك"
+],
+"dt": 161
+},
+{
+"kind": "partial",
+"alternatives": [
+"اولئك الذين"
+],
+"dt": 177
+},
+{
+"kind": "partial",
+"alternatives": [
+"اولئك الذين"
+],
+"dt": 380
+},
+{
+"kind": "partial",
+"alternatives": [
+"اولئك الذين"
+],
+"dt": 145
+},
+{
+"kind": "partial",
+"alternatives": [
+"اولئك الذين اشتروا"
+],
+"dt": 288
+},
+{
+"kind": "partial",
+"alternatives": [
+"اولئك الذين اشتروا"
+],
+"dt": 144
+},
+{
+"kind": "partial",
+"alternatives": [
+"اولئك الذين اشتروا"
+],
+"dt": 144
+},
+{
+"kind": "partial",
+"alternatives": [
+"اولئك الذين اشتروا"
+],
+"dt": 144
+},
+{
+"kind": "partial",
+"alternatives": [
+"اولئك الذين اشتروا الضلاله"
+],
+"dt": 145
+},
+{
+"kind": "partial",
+"alternatives": [
+"اولئك الذين اشتروا الضلاله"
+],
+"dt": 146
+},
+{
+"kind": "partial",
+"alternatives": [
+"اولئك الذين اشتروا الضلاله"
+],
+"dt": 141
+},
+{
+"kind": "partial",
+"alternatives": [
+"اولئك الذين اشتروا الضلاله"
+],
+"dt": 143
+},
+{
+"kind": "partial",
+"alternatives": [
+"اولئك الذين اشتروا الضلاله بالهدى"
+],
+"dt": 144
+},
+{
+"kind": "partial",
+"alternatives": [
+"اولئك الذين اشتروا الضلاله بالهدى"
+],
+"dt": 160
+},
+{
+"kind": "partial",
+"alternatives": [
+"اولئك الذين اشتروا الضلاله بالهدى"
+],
+"dt": 143
+},
+{
+"kind": "partial",
+"alternatives": [
+"اولئك الذين اشتروا الضلاله بالهدى فما"
+],
+"dt": 139
+},
+{
+"kind": "partial",
+"alternatives": [
+"اولئك الذين اشتروا الضلاله بالهدى فما"
+],
+"dt": 160
+},
+{
+"kind": "partial",
+"alternatives": [
+"اولئك الذين اشتروا الضلاله بالهدى فما"
+],
+"dt": 265
+},
+{
+"kind": "partial",
+"alternatives": [
+"اولئك الذين اشتروا الضلاله بالهدى فما ربحت"
+],
+"dt": 161
+},
+{
+"kind": "partial",
+"alternatives": [
+"اولئك الذين اشتروا الضلاله بالهدى فما ربحت"
+],
+"dt": 162
+},
+{
+"kind": "partial",
+"alternatives": [
+"اولئك الذين اشتروا الضلاله بالهدى فما ربحت تجارتهم"
+],
+"dt": 471
+},
+{
+"kind": "partial",
+"alternatives": [
+"اولئك الذين اشتروا الضلاله بالهدى فما ربحت تجارتهم"
+],
+"dt": 467
+},
+{
+"kind": "partial",
+"alternatives": [
+"اولئك الذين اشتروا الضلاله بالهدى فما ربحت تجارتهم"
+],
+"dt": 444
+},
+{
+"kind": "partial",
+"alternatives": [
+"اولئك الذين اشتروا الضلاله بالهدى فما ربحت تجارتهم وما"
+],
+"dt": 164
+},
+{
+"kind": "final",
+"alternatives": [
+"اولئك الذين اشتروا الضلاله بالهدى فما ربحت تجارتهم وما كان",
+"اولئك الذين اشتروا الضلاله بالهدى فما ربحت تجارتهم وما كانوا"
+],
+"dt": 321
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 414
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 455
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+"وا"
+],
+"dt": 115
+},
+{
+"kind": "partial",
+"alternatives": [
+"وا مهت"
+],
+"dt": 329
+},
+{
+"kind": "final",
+"alternatives": [
+"وا مهت",
+"وا مهتدين"
+],
+"dt": 260
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 1101
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين"
+],
+"dt": 216
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين"
+],
+"dt": 210
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين"
+],
+"dt": 649
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين"
+],
+"dt": 215
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين"
+],
+"dt": 214
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين"
+],
+"dt": 211
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين مثلهم"
+],
+"dt": 211
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين مثلهم"
+],
+"dt": 215
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين مثلهم كمثل"
+],
+"dt": 213
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين مثلهم كمثل"
+],
+"dt": 209
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين مثلهم كمثل"
+],
+"dt": 217
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين مثلهم كمثل الذي"
+],
+"dt": 213
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين مثلهم كمثل الذي"
+],
+"dt": 215
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين مثلهم كمثل الذي"
+],
+"dt": 557
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين مثلهم كمثل الذي"
+],
+"dt": 226
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين مثلهم كمثل الذي استوقد"
+],
+"dt": 223
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين مثلهم كمثل الذي استوقد نارا"
+],
+"dt": 214
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين مثلهم كمثل الذي استوقد نارا"
+],
+"dt": 215
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين مثلهم كمثل الذي استوقد نارا"
+],
+"dt": 210
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين مثلهم كمثل الذي استوقد نارا فلم"
+],
+"dt": 215
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين مثلهم كمثل الذي استوقد نارا"
+],
+"dt": 215
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين مثلهم كمثل الذي استوقد نارا فلما"
+],
+"dt": 221
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين مثلهم كمثل الذي استوقد نارا فلما"
+],
+"dt": 611
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين مثلهم كمثل الذي استوقد نارا فلما"
+],
+"dt": 503
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين مثلهم كمثل الذي استوقد نارا فلما"
+],
+"dt": 210
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين مثلهم كمثل الذي استوقد نارا فلما"
+],
+"dt": 208
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين مثلهم كمثل الذي استوقد نارا فلما"
+],
+"dt": 216
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين مثلهم كمثل الذي استوقد نارا فلما"
+],
+"dt": 215
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين مثلهم كمثل الذي استوقد نارا فلما اضاءت"
+],
+"dt": 208
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين مثلهم كمثل الذي استوقد نارا فلما اضاءت ما"
+],
+"dt": 213
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين مثلهم كمثل الذي استوقد نارا فلما اضاءت ما"
+],
+"dt": 213
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين مثلهم كمثل الذي استوقد نارا فلما اضاءت ما حوله"
+],
+"dt": 211
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين مثلهم كمثل الذي استوقد نارا فلما اضاءت ما حوله"
+],
+"dt": 219
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين مثلهم كمثل الذي استوقد نارا فلما اضاءت ما حوله ذهب"
+],
+"dt": 211
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين مثلهم كمثل الذي استوقد نارا فلما اضاءت ما حوله ذهب الله"
+],
+"dt": 216
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين مثلهم كمثل الذي استوقد نارا فلما اضاءت ما حوله ذهب الله"
+],
+"dt": 215
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين مثلهم كمثل الذي استوقد نارا فلما اضاءت ما حوله ذهب الله"
+],
+"dt": 214
+},
+{
+"kind": "partial",
+"alternatives": [
+"دين مثلهم كمثل الذي استوقد نارا فلما اضاءت ما حوله ذهب الله"
+],
+"dt": 212
+},
+{
+"kind": "final",
+"alternatives": [
+"دين مثلهم كمثل الذي استوقد نارا فلما اضاءت ما حوله ذهب الله بنورهم",
+"دين مثلهم كمثل الذي استوقد نارا فلما اضاءت ما حوله ذهب الله بنوره"
+],
+"dt": 277
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 666
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 117
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 320
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 141
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 340
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 134
+},
+{
+"kind": "partial",
+"alternatives": [
+" وتركهم"
+],
+"dt": 25
+},
+{
+"kind": "partial",
+"alternatives": [
+" وتركهم"
+],
+"dt": 268
+},
+{
+"kind": "partial",
+"alternatives": [
+" وتركهم في"
+],
+"dt": 208
+},
+{
+"kind": "partial",
+"alternatives": [
+" وتركهم في"
+],
+"dt": 216
+},
+{
+"kind": "partial",
+"alternatives": [
+" وتركهم في ظلمات"
+],
+"dt": 213
+},
+{
+"kind": "partial",
+"alternatives": [
+" وتركهم في ظلمات الله"
+],
+"dt": 214
+},
+{
+"kind": "partial",
+"alternatives": [
+" وتركهم في ظلمات الله"
+],
+"dt": 489
+},
+{
+"kind": "partial",
+"alternatives": [
+" وتركهم في ظلمات الله"
+],
+"dt": 211
+},
+{
+"kind": "partial",
+"alternatives": [
+" وتركهم في ظلمات الله"
+],
+"dt": 207
+},
+{
+"kind": "partial",
+"alternatives": [
+" وتركهم في ظلمات الله"
+],
+"dt": 213
+},
+{
+"kind": "final",
+"alternatives": [
+" وتركهم في ظلمات الله يبص",
+" وتركهم في ظلمات الله يبصرون"
+],
+"dt": 212
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 959
+},
+{
+"kind": "partial",
+"alternatives": [
+"رون"
+],
+"dt": 509
+},
+{
+"kind": "partial",
+"alternatives": [
+"رون"
+],
+"dt": 330
+},
+{
+"kind": "partial",
+"alternatives": [
+"رون"
+],
+"dt": 245
+},
+{
+"kind": "partial",
+"alternatives": [
+"رون صم"
+],
+"dt": 384
+},
+{
+"kind": "partial",
+"alternatives": [
+"رون صم"
+],
+"dt": 321
+},
+{
+"kind": "partial",
+"alternatives": [
+"رون صم بكم"
+],
+"dt": 573
+},
+{
+"kind": "partial",
+"alternatives": [
+"رون صم بكم"
+],
+"dt": 244
+},
+{
+"kind": "partial",
+"alternatives": [
+"رون صم بكم"
+],
+"dt": 240
+},
+{
+"kind": "partial",
+"alternatives": [
+"رون صم بكم"
+],
+"dt": 247
+},
+{
+"kind": "partial",
+"alternatives": [
+"رون صم بكم عمي"
+],
+"dt": 246
+},
+{
+"kind": "partial",
+"alternatives": [
+"رون صم بكم عمي"
+],
+"dt": 241
+},
+{
+"kind": "partial",
+"alternatives": [
+"رون صم بكم عمي"
+],
+"dt": 242
+},
+{
+"kind": "partial",
+"alternatives": [
+"رون صم بكم عمي"
+],
+"dt": 244
+},
+{
+"kind": "partial",
+"alternatives": [
+"رون صم بكم عمي"
+],
+"dt": 241
+},
+{
+"kind": "partial",
+"alternatives": [
+"رون صم بكم عمي"
+],
+"dt": 246
+},
+{
+"kind": "partial",
+"alternatives": [
+"رون صم بكم عمي"
+],
+"dt": 250
+},
+{
+"kind": "partial",
+"alternatives": [
+"رون صم بكم عمي"
+],
+"dt": 241
+},
+{
+"kind": "partial",
+"alternatives": [
+"رون صم بكم عمي فهم لا"
+],
+"dt": 242
+},
+{
+"kind": "partial",
+"alternatives": [
+"رون صم بكم عمي فهم لا"
+],
+"dt": 483
+},
+{
+"kind": "final",
+"alternatives": [
+"رون صم بكم عمي فهم لا يرجع",
+"رون صم بكم عمي فهم لا يرجعون"
+],
+"dt": 240
+},
+{
+"kind": "segment",
+"dt": 257
+},
+{
+"kind": "final",
+"alternatives": [
+""
+],
+"dt": 726
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 1584
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 623
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 339
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 384
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 245
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 314
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء"
+],
+"dt": 252
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء"
+],
+"dt": 272
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء"
+],
+"dt": 182
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في"
+],
+"dt": 185
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في"
+],
+"dt": 184
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات"
+],
+"dt": 419
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات"
+],
+"dt": 304
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات"
+],
+"dt": 477
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد"
+],
+"dt": 251
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد"
+],
+"dt": 248
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد"
+],
+"dt": 238
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا"
+],
+"dt": 242
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا"
+],
+"dt": 247
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا"
+],
+"dt": 238
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا"
+],
+"dt": 252
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون"
+],
+"dt": 242
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون"
+],
+"dt": 245
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون"
+],
+"dt": 242
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم"
+],
+"dt": 641
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم"
+],
+"dt": 497
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في"
+],
+"dt": 241
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في"
+],
+"dt": 640
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في"
+],
+"dt": 525
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في"
+],
+"dt": 242
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في"
+],
+"dt": 245
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في اذانهم"
+],
+"dt": 244
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في اذانهم من"
+],
+"dt": 247
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في اذانهم من"
+],
+"dt": 251
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في اذانهم من"
+],
+"dt": 238
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في اذانهم من"
+],
+"dt": 246
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في اذانهم من الصواعق"
+],
+"dt": 250
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في اذانهم من الصواعق حذر"
+],
+"dt": 245
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في اذانهم من الصواعق حذر"
+],
+"dt": 388
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في اذانهم من الصواعق حذر الموت"
+],
+"dt": 666
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في اذانهم من الصواعق حذر الموت"
+],
+"dt": 641
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في اذانهم من الصواعق حذر الموت"
+],
+"dt": 569
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في اذانهم من الصواعق حذر الموت والله"
+],
+"dt": 237
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في اذانهم من الصواعق حذر الموت والله"
+],
+"dt": 246
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في اذانهم من الصواعق حذر الموت والله محيط"
+],
+"dt": 242
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في اذانهم من الصواعق حذر الموت والله"
+],
+"dt": 249
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في اذانهم من الصواعق حذر الموت والله"
+],
+"dt": 265
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في اذانهم من الصواعق حذر الموت والله محيطهم"
+],
+"dt": 243
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في اذانهم من الصواعق حذر الموت والله محيطهم"
+],
+"dt": 247
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في اذانهم من الصواعق حذر الموت والله محيطهم بالكافرين"
+],
+"dt": 363
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في اذانهم من الصواعق حذر الموت والله محيطهم بالكافرين"
+],
+"dt": 1525
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في اذانهم من الصواعق حذر الموت والله محيطهم بالكافرين"
+],
+"dt": 242
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في اذانهم من الصواعق حذر الموت والله محيطهم بالكافرين"
+],
+"dt": 242
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في اذانهم من الصواعق حذر الموت والله محيطهم بالكافرين"
+],
+"dt": 241
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في اذانهم من الصواعق حذر الموت والله محيطهم بالكافرين"
+],
+"dt": 240
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في اذانهم من الصواعق حذر الموت والله محيطهم بالكافرين يكاد"
+],
+"dt": 237
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في اذانهم من الصواعق حذر الموت والله محيطهم بالكافرين يكاد"
+],
+"dt": 257
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في اذانهم من الصواعق حذر الموت والله محيطهم بالكافرين يكاد"
+],
+"dt": 243
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في اذانهم من الصواعق حذر الموت والله محيطهم بالكافرين يكاد"
+],
+"dt": 240
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في اذانهم من الصواعق حذر الموت والله محيطهم بالكافرين يكاد المرء"
+],
+"dt": 243
+},
+{
+"kind": "partial",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في اذانهم من الصواعق حذر الموت والله محيطهم بالكافرين يكاد المرء"
+],
+"dt": 247
+},
+{
+"kind": "final",
+"alternatives": [
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في اذانهم من الصواعق حذر الموت والله محيطهم بالكافرين يكاد المرء يختفى",
+"من السماء في ظلمات ورعد وبرقا يجعلون اصابعهم في اذانهم من الصواعق حذر الموت والله محيطهم بالكافرين يكاد المرء يخطفها"
+],
+"dt": 242
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 496
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 179
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 589
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 1748
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 1
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 103
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 519
+},
+{
+"kind": "partial",
+"alternatives": [
+" لهم"
+],
+"dt": 60
+},
+{
+"kind": "partial",
+"alternatives": [
+" لهم"
+],
+"dt": 553
+},
+{
+"kind": "partial",
+"alternatives": [
+" لهم مشوا"
+],
+"dt": 239
+},
+{
+"kind": "partial",
+"alternatives": [
+" لهم مشوا"
+],
+"dt": 668
+},
+{
+"kind": "final",
+"alternatives": [
+" لهم مشوا",
+" لهم مشوا فيه"
+],
+"dt": 507
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 1036
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 467
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 563
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 0
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 485
+},
+{
+"kind": "partial",
+"alternatives": [
+" واذا"
+],
+"dt": 25
+},
+{
+"kind": "partial",
+"alternatives": [
+" واذا"
+],
+"dt": 251
+},
+{
+"kind": "partial",
+"alternatives": [
+" واذا"
+],
+"dt": 247
+},
+{
+"kind": "partial",
+"alternatives": [
+" واذا اظلم"
+],
+"dt": 245
+},
+{
+"kind": "partial",
+"alternatives": [
+" واذا اظلم عليهم"
+],
+"dt": 290
+},
+{
+"kind": "partial",
+"alternatives": [
+" واذا اظلم عليهم"
+],
+"dt": 247
+},
+{
+"kind": "partial",
+"alternatives": [
+" واذا اظلم عليهم"
+],
+"dt": 240
+},
+{
+"kind": "partial",
+"alternatives": [
+" واذا اظلم عليهم"
+],
+"dt": 249
+},
+{
+"kind": "partial",
+"alternatives": [
+" واذا اظلم عليهم"
+],
+"dt": 248
+},
+{
+"kind": "partial",
+"alternatives": [
+" واذا اظلم عليهم"
+],
+"dt": 247
+},
+{
+"kind": "partial",
+"alternatives": [
+" واذا اظلم عليهم قام"
+],
+"dt": 242
+},
+{
+"kind": "partial",
+"alternatives": [
+" واذا اظلم عليهم"
+],
+"dt": 242
+},
+{
+"kind": "partial",
+"alternatives": [
+" واذا اظلم عليهم قاموا"
+],
+"dt": 250
+},
+{
+"kind": "final",
+"alternatives": [
+" واذا اظلم عليهم قاموا"
+],
+"dt": 492
+},
+{
+"kind": "segment",
+"dt": 238
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 1516
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 506
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 501
+},
+{
+"kind": "partial",
+"alternatives": [
+""
+],
+"dt": 123
+},
+{
+"kind": "partial",
+"alternatives": [
+"ولو"
+],
+"dt": 437
+},
+{
+"kind": "partial",
+"alternatives": [
+"ولو"
+],
+"dt": 239
+},
+{
+"kind": "partial",
+"alternatives": [
+"ولو شاء"
+],
+"dt": 245
+},
+{
+"kind": "partial",
+"alternatives": [
+"ولو شاء"
+],
+"dt": 251
+},
+{
+"kind": "partial",
+"alternatives": [
+"ولو شاء"
+],
+"dt": 246
+},
+{
+"kind": "partial",
+"alternatives": [
+"ولو شاء الله"
+],
+"dt": 242
+},
+{
+"kind": "partial",
+"alternatives": [
+"ولو شاء الله"
+],
+"dt": 246
+},
+{
+"kind": "partial",
+"alternatives": [
+"ولو شاء الله لذهب"
+],
+"dt": 242
+},
+{
+"kind": "partial",
+"alternatives": [
+"ولو شاء الله لذهب"
+],
+"dt": 238
+},
+{
+"kind": "partial",
+"alternatives": [
+"ولو شاء الله لذهب"
+],
+"dt": 248
+},
+{
+"kind": "partial",
+"alternatives": [
+"ولو شاء الله لذهب بسمعهم"
+],
+"dt": 248
+},
+{
+"kind": "partial",
+"alternatives": [
+"ولو شاء الله لذهب بسمعهم"
+],
+"dt": 243
+},
+{
+"kind": "partial",
+"alternatives": [
+"ولو شاء الله لذهب بسمعهم"
+],
+"dt": 241
+},
+{
+"kind": "partial",
+"alternatives": [
+"ولو شاء الله لذهب بسمعهم"
+],
+"dt": 240
+},
+{
+"kind": "partial",
+"alternatives": [
+"ولو شاء الله لذهب بسمعهم"
+],
+"dt": 239
+},
+{
+"kind": "partial",
+"alternatives": [
+"ولو شاء الله لذهب بسمعهم"
+],
+"dt": 244
+},
+{
+"kind": "partial",
+"alternatives": [
+"ولو شاء الله لذهب بسمعهم وابصارهم"
+],
+"dt": 247
+},
+{
+"kind": "partial",
+"alternatives": [
+"ولو شاء الله لذهب بسمعهم وابصارهم"
+],
+"dt": 1157
+},
+{
+"kind": "partial",
+"alternatives": [
+"ولو شاء الله لذهب بسمعهم وابصارهم"
+],
+"dt": 549
+},
+{
+"kind": "partial",
+"alternatives": [
+"ولو شاء الله لذهب بسمعهم وابصارهم ان"
+],
+"dt": 249
+},
+{
+"kind": "partial",
+"alternatives": [
+"ولو شاء الله لذهب بسمعهم وابصارهم ان الله"
+],
+"dt": 253
+},
+{
+"kind": "partial",
+"alternatives": [
+"ولو شاء الله لذهب بسمعهم وابصارهم ان الله"
+],
+"dt": 250
+},
+{
+"kind": "partial",
+"alternatives": [
+"ولو شاء الله لذهب بسمعهم وابصارهم ان الله"
+],
+"dt": 240
+},
+{
+"kind": "partial",
+"alternatives": [
+"ولو شاء الله لذهب بسمعهم وابصارهم ان الله على"
+],
+"dt": 241
+},
+{
+"kind": "partial",
+"alternatives": [
+"ولو شاء الله لذهب بسمعهم وابصارهم ان الله على"
+],
+"dt": 247
+},
+{
+"kind": "partial",
+"alternatives": [
+"ولو شاء الله لذهب بسمعهم وابصارهم ان الله على كل"
+],
+"dt": 248
+},
+{
+"kind": "partial",
+"alternatives": [
+"ولو شاء الله لذهب بسمعهم وابصارهم ان الله على كل شيء"
+],
+"dt": 252
+},
+{
+"kind": "partial",
+"alternatives": [
+"ولو شاء الله لذهب بسمعهم وابصارهم ان الله على كل شيء"
+],
+"dt": 568
+},
+{
+"kind": "partial",
+"alternatives": [
+"ولو شاء الله لذهب بسمعهم وابصارهم ان الله على كل شيء قدير"
+],
+"dt": 681
+},
+{
+"kind": "final",
+"alternatives": [
+"ولو شاء الله لذهب بسمعهم وابصارهم ان الله على كل شيء قدير",
+"ولو شاء الله لذهب بسمعهم وابصارهم ان الله على كل شيء ق"
+],
+"dt": 557
+},
+{
+"kind": "final",
+"alternatives": [
+""
+],
+"dt": 716
+}
+]
+}

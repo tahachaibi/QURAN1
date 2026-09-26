@@ -21,23 +21,23 @@ to earn one-star reviews in the market you most want. Two honest options:
 
 ## العنوان — Title (30 max)
 
-**الأساسي — 22 حرفًا**
+**الأساسي — 30 حرفًا**
 
 ```
-ورد القرآن: حفظ وتلاوة
+Quran Habit: حفظ وتلاوة القرآن
 ```
 
 بدائل:
 
 | الصيغة | الأحرف | الكلمة المستهدفة |
 |---|---|---|
-| `ورد القرآن: حفظ وتلاوة` | 22 | حفظ القرآن |
-| `ورد القرآن – مصحف وحفظ` | 22 | مصحف |
-| `Quran Habit: حفظ القرآن` | 23 | brand + حفظ القرآن |
+| `Quran Habit: حفظ وتلاوة القرآن` | 30 | حفظ القرآن + تلاوة |
+| `Quran Habit: حفظ القرآن` | 23 | حفظ القرآن |
+| `Quran Habit – مصحف وحفظ` | 23 | مصحف |
 
-The third keeps one global brand string; use it if you would rather not run two
-brand names. Note that Arabic is far more compact per character than English, so
-the 30-character ceiling is much less painful here.
+One brand everywhere, decided 2026-09-26: the name on the Play listing is the
+name under the icon on the home screen, in every language. The Arabic words
+after the colon are there for search, not as a second name.
 
 ## الوصف القصير — Short description (80 max)
 
@@ -59,7 +59,7 @@ the 30-character ceiling is much less painful here.
 ## الوصف الكامل — Full description (4000 max)
 
 ```
-ورد القرآن يستمع إليك وأنت تتلو، ويتابع موضعك في المصحف كلمة كلمة.
+Quran Habit يستمع إليك وأنت تتلو، ويتابع موضعك في المصحف كلمة كلمة.
 
 افتح أي سورة وابدأ التلاوة. يتحرك التظليل مع صوتك على الصفحة المطبوعة، وحين تبلغ آخر سطر تُقلب الصفحة وحدها. ولست مضطرًا لإخباره أين أنت: ابدأ من وسط سورة أخرى، بالبسملة أو بدونها، فيجدك خلال ثانية تقريبًا.
 

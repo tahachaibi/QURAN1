@@ -8,12 +8,11 @@
    for, and once money is involved Play's 48-hour self-service refund window ends
    at a human inbox — yours.
 
-2. **One brand, not two.** `store/listing/ar.md` publishes the title
-   **ورد القرآن**, while `app.json` names the app **Quran Habit** with no
-   localized name. An Arabic-locale user would find one name on Play and a
-   different one on their home screen, which splits every review, every search
-   and every word-of-mouth mention in half. Pick one, then either add a localized
-   `app_name` to the Android build or change the listing title.
+2. ~~**One brand, not two.**~~ **Decided 2026-09-26: "Quran Habit"** in every
+   language. The Arabic listing title is now `Quran Habit: حفظ وتلاوة القرآن`,
+   and the Arabic landing page uses the same name. The Arabic words after the
+   colon are there for search; they are not a second name. The old
+   Arabic-only name is gone from the listings and the site.
 
 3. **Where the site lives.** Every canonical URL, `hreflang` and Open Graph tag
    under `store/web/` hard-codes `tahachaibi.github.io`, taken from this repo's
@@ -65,6 +64,11 @@ next to the other generators-and-verifiers, so an edit that overflows a Play
 field fails in CI rather than in Play Console.
 
 ## Publishing the landing page
+
+**Live since 2026-09-26** at https://tahachaibi.github.io/QURAN1/. The privacy
+policy for the Play Console form is
+https://tahachaibi.github.io/QURAN1/privacy.html. The workflow below is
+`.github/workflows/pages.yml`, and it redeploys on every change under `store/web/`.
 
 GitHub Pages, from this repo, with `store/web` as the source — Settings → Pages
 → Deploy from a branch → `/store/web` is not a selectable folder (Pages offers
@@ -142,45 +146,78 @@ those outright. CI now builds a signed **App Bundle** as well, but only once fou
 secrets exist — without them it still builds the sideloadable APK, so nothing
 breaks in the meantime.
 
-### 1. Create the key (once, on your own machine — not in CI)
+### 1. Create the key (once, on your own computer, never in CI)
 
-```bash
-keytool -genkeypair -v \
-  -keystore upload.jks \
-  -alias quran-habit-upload \
-  -keyalg RSA -keysize 4096 -validity 10000 \
-  -storetype JKS
+You need `keytool`, which comes with Java. If `keytool -help` says "not
+recognized", install **Eclipse Temurin JDK 17** from adoptium.net (Windows `.msi`,
+tick "Set JAVA_HOME" and "Add to PATH"), then open a **new** terminal.
+
+Windows (PowerShell), in a folder you will remember, e.g. `Documents\keys`:
+
+```powershell
+keytool -genkeypair -v -keystore upload.jks -alias quran-habit-upload -keyalg RSA -keysize 4096 -validity 10000
 ```
 
-It asks for a password and for a name and location. The name is what Play shows
-as the certificate owner; your own name is fine.
+macOS / Linux: the same command works as-is.
+
+It asks for a keystore password (typed twice, invisible while you type), then
+your name, organisational unit, organisation, city, region and two-letter
+country code. Play shows these as the certificate owner, and your own name is
+fine for all of them. Answer `yes` to confirm. The file is PKCS12, the modern
+default, so **the key password is the same as the keystore password**, and the
+tool will not ask for a second one.
+
+Check it worked:
+
+```powershell
+keytool -list -keystore upload.jks
+```
+
+It should show one entry, `quran-habit-upload`, of type `PrivateKeyEntry`.
 
 ### 2. Back it up somewhere you will still have in five years
 
-**This is the step people regret.** With Play App Signing enrolled, a lost upload
-key can be reset by Google — but a lost key *before* enrolment, or a lost
-password, can mean losing the ability to update your own app. Keep `upload.jks`
-and its passwords somewhere that survives losing this laptop.
+**This is the step people regret.** Once Play App Signing is enrolled, Google
+can reset a lost upload key. But a key lost *before* enrolment, or a
+forgotten password, can mean you can never update your own app again. Keep
+`upload.jks` and its password in at least two places that survive losing this
+laptop. For example: a password manager with the file attached, plus a USB
+stick, or your own cloud drive.
 
-Never in this repository. `.gitignore` now covers `*.jks`, `*.keystore` and
-`keystore.properties`, because a key committed even once is in the history
+Never in this repository. `.gitignore` covers `*.jks`, `*.keystore` and
+`keystore.properties`, because a key committed even once stays in the history
 forever and can sign anything claiming to be this app.
 
 ### 3. Add four repository secrets
 
-GitHub → Settings → Secrets and variables → Actions → New repository secret.
+First turn the file into one line of text:
+
+```powershell
+# Windows: copies it to the clipboard
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("$PWD\upload.jks")) | Set-Clipboard
+```
+```bash
+# macOS
+base64 -i upload.jks | pbcopy
+# Linux
+base64 -w0 upload.jks
+```
+
+Then GitHub → the repository → Settings → Secrets and variables → Actions →
+New repository secret, four times:
 
 | Secret | Value |
 |---|---|
-| `UPLOAD_KEYSTORE_BASE64` | `base64 -w0 upload.jks` (one line, no newlines) |
-| `UPLOAD_KEYSTORE_PASSWORD` | the `-storepass` you chose |
+| `UPLOAD_KEYSTORE_BASE64` | paste the clipboard (one long line) |
+| `UPLOAD_KEYSTORE_PASSWORD` | the password you chose |
 | `UPLOAD_KEY_ALIAS` | `quran-habit-upload` |
-| `UPLOAD_KEY_PASSWORD` | the key password (often the same as the store password) |
+| `UPLOAD_KEY_PASSWORD` | the same password again |
 
-The next push produces `quran-habit-<sha>.aab` in the artifact zip alongside the
-APK. CI verifies with `jarsigner` that the bundle is **not** signed with the
-debug certificate before it ships, because the alternative is finding out from
-Play after the release notes are written.
+The next push produces `quran-habit-<sha>.aab` in the artifact zip next to the
+APK. Before that bundle ships, CI uses `keytool` to check that the secrets open
+the keystore, and uses `jarsigner` to check that the bundle is **not** signed
+with the debug certificate. Otherwise you would find out from Play, after the
+release notes were already written.
 
 ### 4. Enrol in Play App Signing
 
