@@ -50,6 +50,15 @@ jobs:
             exit 1
           fi
 
+      - name: The committed icons are the ones the generator draws
+        # Compares PIXELS, not bytes, and is deliberately NOT part of `npm run
+        # gen`. Regenerating the PNGs in CI and diffing them would be a trap:
+        # zlib's deflate output is not guaranteed stable across Node versions,
+        # so the day CI's Node differs from a contributor's, the bytes stop
+        # matching, CI says "regenerate and commit", they do, and it fails again
+        # on the next push. Identical images, unfixable loop.
+        run: npm run gen:icons-check
+
       - name: Mushaf layout maps onto the word array with zero drift
         run: npm run gen:layout-check
 

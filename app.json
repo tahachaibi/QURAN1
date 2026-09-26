@@ -25,6 +25,7 @@
         "android.permission.VIBRATE"
       ],
       "adaptiveIcon": {
+        "foregroundImage": "./src/assets/brand/adaptive-icon.png",
         "backgroundColor": "#1B4332"
       },
       "softwareKeyboardLayoutMode": "pan",
@@ -73,12 +74,14 @@
           "defaultChannel": "prayer-warning",
           "sounds": [
             "src/assets/audio/adhan.mp3"
-          ]
+          ],
+          "icon": "./src/assets/brand/notification-icon.png"
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "icon": "./src/assets/brand/icon.png"
   }
 }

@@ -27,7 +27,10 @@
     "gen:adhkar-text": "node scripts/gen-adhkar-text.mjs",
     "gen:hizb": "node scripts/gen-hizb.mjs",
     "gen:tone": "node scripts/gen-test-tone.mjs",
-    "gen:verify-audio": "node scripts/verify-audio.mjs"
+    "gen:verify-audio": "node scripts/verify-audio.mjs",
+    "gen:icons": "node scripts/gen-icons.mjs",
+    "ios": "expo run:ios",
+    "gen:icons-check": "node scripts/gen-icons.mjs --check"
   },
   "dependencies": {
     "@expo-google-fonts/amiri": "^0.2.3",
