@@ -2,11 +2,10 @@
 
 ## Before any of this is published — four things only you can decide
 
-1. **A support email.** Play requires one in Console, and everything here that
-   needs an address says `SUPPORT_EMAIL_PLACEHOLDER`. Grep for it and replace it.
-   GitHub issues were the old answer and are not usable by the people this app is
-   for, and once money is involved Play's 48-hour self-service refund window ends
-   at a human inbox — yours.
+1. ~~**A support email.**~~ **Decided 2026-09-26: `tasmee.app@gmail.com`.** It is on
+   the privacy page, and it goes in Play Console → Store settings → Contact
+   details. Play shows it publicly on the listing. Once money is involved, Play's
+   48-hour self-service refund window ends at this inbox, so check it.
 
 2. ~~**One brand, not two.**~~ **Decided 2026-09-26: "Quran Habit"** in every
    language. The Arabic listing title is now `Quran Habit: حفظ وتلاوة القرآن`,
