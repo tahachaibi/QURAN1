@@ -18,7 +18,8 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { Animated, AppState, type AppStateStatus } from 'react-native';
+import { Animated, AppState, Linking, type AppStateStatus } from 'react-native';
+import { Audio } from 'expo-av';
 import * as Haptics from 'expo-haptics';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 
@@ -69,6 +70,9 @@ import {
 import type { ReplayFixture } from '../engine/replay';
 
 export type ReadMode = 'follow' | 'hidden';
+
+/** What the OS currently says about the microphone. */
+export type MicPermission = 'unknown' | 'granted' | 'denied' | 'blocked';
 
 export interface AyahRange {
   from: number;
@@ -174,6 +178,18 @@ export interface RecitationContextValue {
    * an empty coach.
    */
   commitSelfReport: (kind: SelfReportKind, fromWord: number, toWord: number) => Promise<number>;
+
+  /**
+   * Whether this app may use the microphone, as far as it knows.
+   *
+   * 'blocked' is the one that matters: Android stops showing the dialog after a
+   * second refusal, so asking again does nothing and only the system settings
+   * screen can fix it. A UI that keeps offering "Allow" in that state is lying
+   * to the user, which is why this is three values and not a boolean.
+   */
+  micPermission: MicPermission;
+  /** Open this app's system settings page, the only route out of 'blocked'. */
+  openAppSettings: () => void;
 
   /**
    * Register a function that stops Listen-tab playback. Called when the mic
@@ -698,6 +714,52 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
     playbackStopper.current = stop;
   }, []);
 
+  /**
+   * Ask for the microphone at the moment somebody reaches for it.
+   *
+   * It used to be asked for exactly once, on the last card of onboarding, and
+   * `setOnboarded()` ran whether or not it was granted. So anybody who tapped
+   * "Don't allow" — or who later revoked it, or whose permission Android
+   * auto-revoked for an unused app, which it does by default — arrived at the
+   * mushaf with a microphone button that opened the recogniser, failed inside
+   * the Kotlin, and reported "Could not create a SpeechRecognizer". True, and
+   * useless: the one thing that would fix it is a system settings screen the
+   * app never offered to open.
+   *
+   * The granted answer is cached in a ref so the ordinary path stays
+   * immediate — a permission round trip before every session would put a tick
+   * between tapping the mic and the mic opening, and §5.7 is about exactly that
+   * kind of tick. The cache is dropped whenever the recogniser reports a
+   * permission failure, which is what makes a revocation recoverable without
+   * re-asking on every start.
+   */
+  const micGranted = useRef(false);
+  const [micPermission, setMicPermission] = useState<MicPermission>('unknown');
+
+  const ensureMic = useCallback(async (): Promise<boolean> => {
+    if (micGranted.current) return true;
+    const existing = await Audio.getPermissionsAsync();
+    if (existing.granted) {
+      micGranted.current = true;
+      setMicPermission('granted');
+      return true;
+    }
+    // canAskAgain false means the dialog will not appear; asking anyway would
+    // resolve instantly as denied and look like the button did nothing.
+    if (!existing.canAskAgain) {
+      setMicPermission('blocked');
+      return false;
+    }
+    const asked = await Audio.requestPermissionsAsync();
+    micGranted.current = asked.granted;
+    setMicPermission(asked.granted ? 'granted' : asked.canAskAgain ? 'denied' : 'blocked');
+    return asked.granted;
+  }, []);
+
+  const openAppSettings = useCallback(() => {
+    void Linking.openSettings().catch(() => undefined);
+  }, []);
+
   const start = useCallback(
     (fromWord?: number) => {
       // Reciting and listening at once would feed the reciter's own audio back
@@ -711,9 +773,23 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       setSilenceTimedOut(false);
       setHints(new Map());
       dispatch({ type: 'start', at: Date.now(), cursor });
-      recognizer.start();
+      /**
+       * The session starts either way, and only the microphone waits on the
+       * permission. That ordering is deliberate: the cursor, the page and the
+       * hint state are what the screen renders, and making them wait on an
+       * async answer would make tapping the mic feel like nothing happened.
+       * If permission is refused the session is simply a silent one, and the
+       * chip on the mushaf explains why.
+       */
+      if (micGranted.current) {
+        recognizer.start();
+        return;
+      }
+      void ensureMic().then((ok) => {
+        if (ok) recognizer.start();
+      });
     },
-    [dispatch, recognizer, session.cursor],
+    [dispatch, ensureMic, recognizer, session.cursor],
   );
 
   const buildSummary = useCallback(
@@ -874,6 +950,33 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
 
   const awayFromPlace = session.status !== 'idle' && viewedPage !== pageOf(session.livePos);
 
+  /**
+   * A permission failure from the recogniser drops the cached "granted".
+   *
+   * Android revokes the microphone while the app is still installed in two
+   * ordinary ways: the user does it in settings, and the system does it by
+   * itself for apps that have not been opened in a while — which is the
+   * DEFAULT for anything targeting a recent API. Without this the ref would
+   * read granted forever and every later tap would fail the same silent way.
+   * Clearing it means the next tap asks properly instead.
+   *
+   * The codes are the ones the Kotlin actually emits, read from
+   * RecitationRecognizer.kt rather than guessed: INSUFFICIENT_PERMISSIONS is
+   * the mapped SpeechRecognizer constant, and create-failed is what it reports
+   * when the recogniser cannot even be constructed, which is what a revoked
+   * microphone looks like from there. Both arrive in `name`; `code` is an int.
+   */
+  useEffect(() => {
+    // `name`, not `code`: the Kotlin puts the string in name and an int in
+    // code (-1 for its own failures, the SpeechRecognizer constant otherwise).
+    const name = recognizer.lastError?.name;
+    if (name !== 'INSUFFICIENT_PERMISSIONS' && name !== 'create-failed') return;
+    micGranted.current = false;
+    void Audio.getPermissionsAsync().then((p) => {
+      setMicPermission(p.granted ? 'granted' : p.canAskAgain ? 'denied' : 'blocked');
+    });
+  }, [recognizer.lastError]);
+
   const value = useMemo<RecitationContextValue>(
     () => ({
       session,
@@ -908,6 +1011,8 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       captureFixture: () => capture.current,
       practiseRange,
       commitSelfReport,
+      micPermission,
+      openAppSettings,
       registerPlaybackStopper,
     }),
     [
@@ -934,6 +1039,8 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       silenceTimedOut,
       practiseRange,
       commitSelfReport,
+      micPermission,
+      openAppSettings,
       registerPlaybackStopper,
     ],
   );

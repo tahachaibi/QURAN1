@@ -92,6 +92,8 @@ export default function SurahScreen() {
     silenceTimedOut,
     captureFixture,
     partialGapMs,
+    micPermission,
+    openAppSettings,
     setRange,
     range,
     practiseRange,
@@ -439,6 +441,36 @@ export default function SurahScreen() {
             palette={palette}
             onPress={() => setTranscriptOpen(true)}
             accessibilityHint="The microphone is open but the recognizer has not returned any words yet"
+          />
+        ) : null}
+
+        {/*
+          The microphone was refused, and this is the only place the user finds
+          out. Before this the button opened the recogniser, the Kotlin failed,
+          and the message named a settings screen the app never offered to open.
+
+          Two states, not one: 'denied' can still be asked for, so tapping the
+          mic again is the fix and the chip just says so. 'blocked' cannot —
+          Android stops showing the dialog after a second refusal — so the chip
+          opens the system settings page instead, because offering "Allow" there
+          would be a button that does nothing.
+        */}
+        {micPermission === 'denied' || micPermission === 'blocked' ? (
+          <Chip
+            label={
+              micPermission === 'blocked'
+                ? 'Microphone blocked — open settings'
+                : 'Microphone needed to follow along'
+            }
+            icon="mic-off-outline"
+            tone="accent"
+            palette={palette}
+            onPress={micPermission === 'blocked' ? openAppSettings : () => start()}
+            accessibilityHint={
+              micPermission === 'blocked'
+                ? 'Opens this app\u2019s permissions in Android settings, the only way to turn the microphone back on'
+                : 'Asks for microphone access again so following along can listen'
+            }
           />
         ) : null}
 

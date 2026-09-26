@@ -47,6 +47,21 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   },
 }));
 
+/**
+ * The microphone permission, granted.
+ *
+ * `start()` asks the OS before it opens the recogniser — see the mic-permission
+ * tests for why. These tests are about what reaches storage when a session is
+ * abandoned, so the permission is simply present; making them exercise the
+ * denial path as well would be two subjects in one file.
+ */
+jest.mock('expo-av', () => ({
+  Audio: {
+    getPermissionsAsync: () => Promise.resolve({ granted: true, canAskAgain: true }),
+    requestPermissionsAsync: () => Promise.resolve({ granted: true, canAskAgain: true }),
+  },
+}));
+
 jest.mock('expo-haptics', () => ({
   impactAsync: () => Promise.resolve(),
   notificationAsync: () => Promise.resolve(),
