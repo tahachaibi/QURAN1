@@ -56,6 +56,11 @@ type Tab = 'listen' | 'read';
 
 /** The header auto-hides this long after listening starts (§6.4). */
 const HEADER_HIDE_MS = 2000;
+/**
+ * Height of the status strip under the page. One chip or one line of heard
+ * text; see the strip itself for why it is fixed rather than sized to content.
+ */
+const STATUS_STRIP_HEIGHT = 44;
 
 export default function SurahScreen() {
   const params = useLocalSearchParams<{ id?: string; ayah?: string; tab?: string }>();
@@ -337,11 +342,70 @@ export default function SurahScreen() {
         )}
       </Pressable>
 
+      {/*
+        The status strip: reserved space OUTSIDE the page, for the two things
+        that are on screen nearly all the time.
+
+        Both used to float over the mushaf in the absolute overlay below, and
+        both covered its last line — reported from a real phone with a
+        screenshot of "هُمُ ٱلْمُفْلِحُونَ" hidden behind them. The heard
+        text is there for the whole of a recitation, and the "I read page"
+        action is there whenever the microphone is off, so between them the
+        bottom line of every page was covered almost all the time.
+
+        FIXED height, and rendered even when empty. That is the point: the page
+        is fitted to the box it is given, so a strip that appeared only while
+        reciting would re-fit the page — and change its type size — every time
+        the microphone started or stopped. Constant space, constant page. The
+        cost is that the page is a little shorter for good, which is the right
+        price for never covering a word of it.
+
+        Read view only. In Listen the heard text is a transcript of the
+        microphone, which has nothing to do with playing a reciter; it sat on
+        the reciter card there and garbled its label.
+      */}
+      {tab === 'read' ? (
+        <View style={[styles.statusStrip, { backgroundColor: palette.background }]}>
+          {listening ? (
+            <HeardPill
+              text={session.lastHeard}
+              expanded={false}
+              onToggle={() => setTranscriptOpen(true)}
+              transcript={session.sessionHeard.slice(-40)}
+              palette={palette}
+              reduceMotion={reduceMotion}
+            />
+          ) : selfReportNote !== null ? (
+            <Chip
+              label={selfReportNote}
+              icon="checkmark-circle-outline"
+              palette={palette}
+              onPress={() => setSelfReportNote(null)}
+            />
+          ) : (
+            // Offered only when the microphone is off. While somebody is
+            // reciting, the recogniser is already the evidence and a second,
+            // weaker way to claim the same page would only compete with it.
+            <Chip
+              label={
+                range !== null
+                  ? `${selfReportKind === 'revised' ? 'I revised' : 'I read'} ${rangeLabel(range.from, range.to)} — add it`
+                  : `${selfReportKind === 'revised' ? 'I revised' : 'I read'} page ${viewedPage} — add it`
+              }
+              icon="book-outline"
+              palette={palette}
+              onPress={onSelfReport}
+              accessibilityHint="Adds these ayahs to your revision schedule without the microphone, marked as read rather than verified"
+            />
+          )}
+        </View>
+      ) : null}
+
       {/* floating affordances, all inside the bottom third */}
       {/* Recitation notices belong to the Read view. In Listen they sat on top of
           the reciter row, which is what made them feel like they never left. */}
       <View
-        style={[styles.floating, { bottom: bottomPad + 96 }]}
+        style={[styles.floating, { bottom: bottomPad + 96 + (tab === 'read' ? STATUS_STRIP_HEIGHT : 0) }]}
         pointerEvents="box-none"
       >
        {tab === 'read' ? (
@@ -391,31 +455,6 @@ export default function SurahScreen() {
           <Chip label="Now tap the last word of the range" icon="hand-left-outline" palette={palette} onPress={() => setSelecting(null)} />
         ) : null}
 
-        {selfReportNote !== null ? (
-          <Chip
-            label={selfReportNote}
-            icon="checkmark-circle-outline"
-            palette={palette}
-            onPress={() => setSelfReportNote(null)}
-          />
-        ) : null}
-
-        {/* Offered only when the microphone is off. While somebody is reciting,
-            the recogniser is already the evidence and a second, weaker way to
-            claim the same page would only compete with it. */}
-        {!listening && selfReportNote === null ? (
-          <Chip
-            label={
-              range !== null
-                ? `${selfReportKind === 'revised' ? 'I revised' : 'I read'} ${rangeLabel(range.from, range.to)} — add it`
-                : `${selfReportKind === 'revised' ? 'I revised' : 'I read'} page ${viewedPage} — add it`
-            }
-            icon="book-outline"
-            palette={palette}
-            onPress={onSelfReport}
-            accessibilityHint="Adds these ayahs to your revision schedule without the microphone, marked as read rather than verified"
-          />
-        ) : null}
 
         {recognizer.status === 'unavailable' ? (
           <OfflineBadge palette={palette} label="Recitation needs the dev-client build" />
@@ -501,14 +540,19 @@ export default function SurahScreen() {
         </>
        ) : null}
 
-        <HeardPill
-          text={session.lastHeard}
-          expanded={transcriptOpen}
-          onToggle={() => setTranscriptOpen((v) => !v)}
-          transcript={session.sessionHeard.slice(-40)}
-          palette={palette}
-          reduceMotion={reduceMotion}
-        />
+        {/* Only the EXPANDED transcript floats, and only because it was asked
+            for: somebody tapped the line below to read what was heard. The
+            collapsed line lives in the status strip, off the page. */}
+        {tab === 'read' && transcriptOpen ? (
+          <HeardPill
+            text={session.lastHeard}
+            expanded
+            onToggle={() => setTranscriptOpen(false)}
+            transcript={session.sessionHeard.slice(-40)}
+            palette={palette}
+            reduceMotion={reduceMotion}
+          />
+        ) : null}
 
         {prefs.showDebugOverlay ? (
           <DebugOverlay
@@ -664,6 +708,11 @@ const styles = StyleSheet.create({
   headerArabic: { fontFamily: 'Amiri_700Bold', fontSize: 22 },
   headerLatin: { fontSize: 11, marginTop: 1 },
   deck: { flex: 1 },
+  statusStrip: {
+    height: STATUS_STRIP_HEIGHT,
+    justifyContent: 'center',
+    paddingHorizontal: space.md,
+  },
   floating: {
     position: 'absolute',
     left: space.md,
