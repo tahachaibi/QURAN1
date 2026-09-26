@@ -137,21 +137,10 @@ export interface RecitationContextValue {
   seekTo: (word: number) => void;
   dismissMistake: (word: number) => void;
 
-  elapsedMs: number;
   summary: SessionSummary | null;
   dismissSummary: () => void;
   logSummaryToTracker: () => Promise<void>;
 
-  /**
-   * Milliseconds between the last two partials the recognizer emitted.
-   *
-   * The engine costs about a millisecond per partial, so this number IS the
-   * responsiveness of following — it is how often Android is willing to tell us
-   * what it heard, and nothing in this app can make it smaller. Measured so the
-   * question "why does it feel slow" has an answer instead of a theory. Only
-   * updated while the debug overlay is on; it must not cost a render otherwise.
-   */
-  partialGapMs: number;
 
   /** why the session paused, for the one-tap resume affordance (§4) */
   interruption: string | null;
@@ -200,6 +189,31 @@ export interface RecitationContextValue {
 }
 
 const RecitationContext = createContext<RecitationContextValue | null>(null);
+
+/**
+ * Debug-only readings, in their OWN context.
+ *
+ * `partialGapMs` changes on every partial while the debug overlay is on. In
+ * the shared context above that re-rendered every screen in the app three
+ * times a second — and the overlay is exactly what somebody turns on when they
+ * are trying to find out why the app feels slow, so the instrument was making
+ * the thing it measured worse. Only the overlay reads this.
+ */
+export interface RecitationDebugValue {
+  /**
+   * Milliseconds between the last two partials the recognizer emitted.
+   *
+   * The engine costs under a millisecond per partial (measured on real device
+   * sessions: 0.24-0.84 ms), so this number IS the responsiveness of following
+   * — it is how often Android is willing to say what it heard, and nothing in
+   * this app can make it smaller.
+   */
+  partialGapMs: number;
+}
+
+const RecitationDebugContext = createContext<RecitationDebugValue>({ partialGapMs: 0 });
+
+export const useRecitationDebug = (): RecitationDebugValue => useContext(RecitationDebugContext);
 
 /** Haptics fire per completed AYAH, never per word — per-word is maddening. */
 const HAPTIC_PER_AYAH = true;
@@ -279,7 +293,6 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
   const [summary, setSummary] = useState<SessionSummary | null>(null);
   const [interruption, setInterruption] = useState<string | null>(null);
   const [silenceTimedOut, setSilenceTimedOut] = useState(false);
-  const [elapsedMs, setElapsedMs] = useState(0);
   const hifzDeck = useRef<HifzDeck>({});
   /**
    * The deck loads asynchronously. Grading against an empty deck because the
@@ -647,15 +660,9 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
     lastMistakeCount.current = mistakeCount;
   }, [mistakeCount, prefs.haptics]);
 
-  // --- live timer ---
-  useEffect(() => {
-    if (session.status !== 'listening') {
-      setElapsedMs(elapsedOf(session, Date.now()));
-      return undefined;
-    }
-    const id = setInterval(() => setElapsedMs(elapsedOf(session, Date.now())), 500);
-    return () => clearInterval(id);
-  }, [session]);
+  // The live timer used to be here. It ticked the SHARED context twice a second
+  // and re-rendered every screen in the app to move one number; it now lives
+  // in StatsColumn (src/components/controls.tsx), the only thing that shows it.
 
   // --- persist resume position per surah (§6.7) ---
   // Recorded on every cursor change, WRITTEN on the flush timer. See
@@ -1000,11 +1007,9 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       resetStats: () => dispatch({ type: 'resetStats', at: Date.now() }),
       seekTo,
       dismissMistake,
-      elapsedMs,
       summary,
       dismissSummary: () => setSummary(null),
       logSummaryToTracker,
-      partialGapMs,
       interruption,
       clearInterruption: () => setInterruption(null),
       silenceTimedOut,
@@ -1031,10 +1036,8 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       dispatch,
       seekTo,
       dismissMistake,
-      elapsedMs,
       summary,
       logSummaryToTracker,
-      partialGapMs,
       interruption,
       silenceTimedOut,
       practiseRange,
@@ -1045,7 +1048,13 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
     ],
   );
 
-  return <RecitationContext.Provider value={value}>{children}</RecitationContext.Provider>;
+  const debug = useMemo<RecitationDebugValue>(() => ({ partialGapMs }), [partialGapMs]);
+
+  return (
+    <RecitationContext.Provider value={value}>
+      <RecitationDebugContext.Provider value={debug}>{children}</RecitationDebugContext.Provider>
+    </RecitationContext.Provider>
+  );
 }
 
 export function useRecitation(): RecitationContextValue {

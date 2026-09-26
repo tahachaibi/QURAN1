@@ -45,7 +45,7 @@ import {
   OfflineBadge,
   StatsColumn,
 } from '../../src/components/controls';
-import { useRecitation, type ReadMode } from '../../src/context/RecitationProvider';
+import { useRecitation, useRecitationDebug, type ReadMode } from '../../src/context/RecitationProvider';
 import type { SelfReportKind } from '../../src/engine/hifz';
 import { useTheme } from '../../src/theme/ThemeProvider';
 import { radius, space } from '../../src/theme/theme';
@@ -64,6 +64,9 @@ export default function SurahScreen() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const recitation = useRecitation();
+  // Debug-only and per-partial, so it is read from its own context; see
+  // useRecitationDebug for why it is not in the shared one.
+  const { partialGapMs } = useRecitationDebug();
 
   const {
     session,
@@ -83,7 +86,6 @@ export default function SurahScreen() {
     resetStats,
     seekTo,
     dismissMistake,
-    elapsedMs,
     summary,
     dismissSummary,
     logSummaryToTracker,
@@ -91,7 +93,6 @@ export default function SurahScreen() {
     clearInterruption,
     silenceTimedOut,
     captureFixture,
-    partialGapMs,
     micPermission,
     openAppSettings,
     setRange,
@@ -527,7 +528,9 @@ export default function SurahScreen() {
         ]}
       >
         <StatsColumn
-          elapsedMs={elapsedMs}
+          listening={session.status === 'listening'}
+          startedAt={session.startedAt}
+          baseMs={session.elapsedMs}
           mistakeCount={session.mistakes.length}
           onReset={resetStats}
           onOpenMistakes={() => setMistakesOpen(true)}

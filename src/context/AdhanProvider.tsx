@@ -19,6 +19,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -319,8 +320,24 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
   /** Never leave audio running behind a closed app. */
   useEffect(() => () => void stopAdhan(), []);
 
+  /**
+   * Memoised, and it has to be.
+   *
+   * This provider reads the live recitation session (it holds the adhan back
+   * while the microphone is open), so it re-renders on every partial the
+   * recogniser emits — about three a second while somebody is reciting. As an
+   * inline object literal its value was therefore a NEW object three times a
+   * second, and every useAdhan() consumer re-rendered with it: the banner, the
+   * prayer tab, the adhan screen. None of their inputs had changed. The
+   * recitation was simply being paid for twice.
+   */
+  const value = useMemo<AdhanContextValue>(
+    () => ({ prayer, dismiss, previewEntry, previewingId, stopPreview, scheduleError }),
+    [prayer, dismiss, previewEntry, previewingId, stopPreview, scheduleError],
+  );
+
   return (
-    <AdhanContext.Provider value={{ prayer, dismiss, previewEntry, previewingId, stopPreview, scheduleError }}>
+    <AdhanContext.Provider value={value}>
       {children}
     </AdhanContext.Provider>
   );

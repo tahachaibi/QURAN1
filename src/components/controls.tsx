@@ -4,7 +4,7 @@
  * phone. Nothing competes with the text: while listening the header hides and
  * the page goes full-bleed.
  */
-import { memo, useEffect, useRef } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -178,20 +178,57 @@ export const MicButton = memo(function MicButton({
 // ---------------------------------------------------------------------------
 
 export interface StatsColumnProps {
-  elapsedMs: number;
+  /** true while the clock should run */
+  listening: boolean;
+  /** when the current run began, epoch ms — session.startedAt */
+  startedAt: number;
+  /** time already banked before this run — session.elapsedMs */
+  baseMs: number;
   mistakeCount: number;
   onReset: () => void;
   onOpenMistakes: () => void;
   palette: Palette;
 }
 
+/**
+ * The session clock, ticking HERE and nowhere else.
+ *
+ * It used to tick inside RecitationProvider: a 500 ms interval set
+ * `elapsedMs`, which was part of the one context every screen reads, so twice
+ * a second the context value changed and every consumer re-rendered — the
+ * mushaf, the tracker with its 126-cell grid and session list, settings, the
+ * Quran tab, and the adhan provider, which wraps the whole navigator. All of
+ * that to move one number that only this component displays.
+ *
+ * It also got worse with use, which is how it was reported: screens stay
+ * mounted once visited, so every screen you had opened joined the storm. "The
+ * app becomes slow when I recite several times" was the literal symptom.
+ *
+ * The props are the three primitives the time is computed from, not the
+ * computed time, so the memo above holds between partials and only this
+ * component's own tick re-renders it.
+ */
+function useLiveElapsed(listening: boolean, startedAt: number, baseMs: number): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!listening) return undefined;
+    setNow(Date.now());
+    const id = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(id);
+  }, [listening, startedAt]);
+  return listening ? baseMs + Math.max(0, now - startedAt) : baseMs;
+}
+
 export const StatsColumn = memo(function StatsColumn({
-  elapsedMs,
+  listening,
+  startedAt,
+  baseMs,
   mistakeCount,
   onReset,
   onOpenMistakes,
   palette,
 }: StatsColumnProps) {
+  const elapsedMs = useLiveElapsed(listening, startedAt, baseMs);
   return (
     <View style={styles.stats}>
       <View style={styles.statsRow}>
