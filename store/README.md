@@ -131,3 +131,67 @@ Neither is copywriting, and both outrank everything in this directory:
    recitation follow-along has never run on a device. Ratings are a ranking
    input; a core mechanic that fails on the first reviewer's phone cannot be
    fixed by a better description.
+
+---
+
+## Making the build uploadable: the upload keystore
+
+Every APK this repo has ever produced is signed with the **debug** key, because
+Expo's Android template wires `release -> signingConfigs.debug`. Play refuses
+those outright. CI now builds a signed **App Bundle** as well, but only once four
+secrets exist — without them it still builds the sideloadable APK, so nothing
+breaks in the meantime.
+
+### 1. Create the key (once, on your own machine — not in CI)
+
+```bash
+keytool -genkeypair -v \
+  -keystore upload.jks \
+  -alias quran-habit-upload \
+  -keyalg RSA -keysize 4096 -validity 10000 \
+  -storetype JKS
+```
+
+It asks for a password and for a name and location. The name is what Play shows
+as the certificate owner; your own name is fine.
+
+### 2. Back it up somewhere you will still have in five years
+
+**This is the step people regret.** With Play App Signing enrolled, a lost upload
+key can be reset by Google — but a lost key *before* enrolment, or a lost
+password, can mean losing the ability to update your own app. Keep `upload.jks`
+and its passwords somewhere that survives losing this laptop. Not only in this
+repo, which must never contain it: `.gitignore` does not list `*.jks`, so check
+`git status` before every commit until you have moved it somewhere safe.
+
+### 3. Add four repository secrets
+
+GitHub → Settings → Secrets and variables → Actions → New repository secret.
+
+| Secret | Value |
+|---|---|
+| `UPLOAD_KEYSTORE_BASE64` | `base64 -w0 upload.jks` (one line, no newlines) |
+| `UPLOAD_KEYSTORE_PASSWORD` | the `-storepass` you chose |
+| `UPLOAD_KEY_ALIAS` | `quran-habit-upload` |
+| `UPLOAD_KEY_PASSWORD` | the key password (often the same as the store password) |
+
+The next push produces `quran-habit-<sha>.aab` in the artifact zip alongside the
+APK. CI verifies with `jarsigner` that the bundle is **not** signed with the
+debug certificate before it ships, because the alternative is finding out from
+Play after the release notes are written.
+
+### 4. Enrol in Play App Signing
+
+Do this when you create the app in Console. Google then holds the *app signing*
+key and yours is only the *upload* key, which is the arrangement that makes a
+lost key recoverable.
+
+### What is deliberately NOT enabled: R8
+
+`enableProguardInReleaseBuilds` stays false. R8 strips and renames code, and this
+app has two things that make that risky in a way no test here would catch: a
+Kotlin native module reached through Expo's autolinking by name, and Expo modules
+that resolve by reflection. The App Bundle already gives the large win — Play
+delivers only the ABI and density each phone needs, rather than the universal APK
+CI also builds. Turning R8 on is a separate change that needs a real device to
+verify, and it should not ride along with the release plumbing.
