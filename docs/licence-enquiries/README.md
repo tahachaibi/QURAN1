@@ -15,7 +15,7 @@ work is blocked while you wait.
 | 1 | KFGQPC font | email, 2026-09-26 | waiting |
 | 2a | Hadith dataset (GitHub issue) | not yet | — |
 | 2b | Hadith translations (sunnah.com) | email, 2026-09-26 | waiting |
-| 3 | QUL layout | resource page checked 2026-09-26, no licence stated: open the GitHub issue | — |
+| 3 | QUL layout | GitHub issue on TarteelAI/quranic-universal-library, 2026-09-26 (the resource page states no licence) | waiting |
 
 **What QUL says (checked 2026-09-26).** Neither the "KFGQPC V2 layout (1421H
 print)" page nor its related resources state a licence. The related resources
