@@ -254,22 +254,32 @@ const targets = [
   ['src/assets/brand/notification-icon.png', 96, 96, { background: null, ink: WHITE, scale: 0.34, ring: false }],
   // Play's store icon: 512x512, 32-bit PNG, no transparency.
   ['store/assets/play-icon-512.png', 512, 512, { background: GREEN, ink: GOLD, scale: 0.3 }],
+  /**
+   * The site's own icons. store/web/index.html already links both, and a link
+   * to an icon that is not there is a 404 on every page load and a blank tab.
+   * The ring is dropped at favicon size for the same reason as the
+   * notification icon: at 32px it closes into a smudge.
+   */
+  ['store/web/apple-touch-icon.png', 180, 180, { background: GREEN, ink: GOLD, scale: 0.3 }],
+  ['store/web/favicon.png', 48, 48, { background: GREEN, ink: GOLD, scale: 0.34, ring: false }],
 ];
 
 for (const [path, w, h, opts] of targets) write(path, w, h, drawMark(w, h, opts));
 
 /**
- * The feature graphic, 1024x500, which Play shows above the listing.
+ * The banner pair: Play's feature graphic and the Open Graph card.
  *
  * Geometry only, and deliberately so: there is no font rasteriser in this
  * toolchain, so any wordmark would have to be hand-plotted polygons, which
  * would look exactly as bad as that sounds. A purely geometric banner is a
  * legitimate feature graphic; the app name can be set over it later by anyone
  * with a design tool, and until then this is honest rather than amateur.
+ *
+ * The og card is not optional decoration — store/web/index.html already points
+ * at og-cover.png, and an Open Graph tag whose image 404s gives every share of
+ * the link a broken preview, which is worse than having no tag at all.
  */
-{
-  const W = 1024;
-  const H = 500;
+function banner(W, H, relative) {
   const rgba = Buffer.alloc(W * H * 4);
   const R = H * 0.34;
   const h = R * Math.SQRT1_2;
@@ -290,7 +300,7 @@ for (const [path, w, h, opts] of targets) write(path, w, h, drawMark(w, h, opts)
       const cover = hits / (SAMPLES * SAMPLES);
       // A gentle horizontal lift towards the mark, so the banner is not a flat
       // rectangle of one colour.
-      const lift = 0.10 * (px / W) ** 2;
+      const lift = 0.1 * (px / W) ** 2;
       const at = (py * W + px) * 4;
       for (let c = 0; c < 3; c++) {
         const bg = GREEN[c] + (255 - GREEN[c]) * lift * 0.22;
@@ -299,8 +309,13 @@ for (const [path, w, h, opts] of targets) write(path, w, h, drawMark(w, h, opts)
       rgba[at + 3] = 255;
     }
   }
-  write('store/assets/feature-graphic-1024x500.png', W, H, rgba);
+  write(relative, W, H, rgba);
 }
+
+banner(1024, 500, 'store/assets/feature-graphic-1024x500.png');
+banner(1200, 630, 'store/web/og-cover.png');
+
+
 
 if (CHECK) {
   if (mismatched > 0) {

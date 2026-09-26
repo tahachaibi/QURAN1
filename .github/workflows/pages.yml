@@ -1,0 +1,98 @@
+name: pages
+
+# Publishes store/web/ to GitHub Pages.
+#
+# This exists because Play requires a privacy policy at a PUBLIC URL before it
+# will accept a listing, and store/web/privacy.html was written and then sat in
+# the repository where nobody could read it. Pages costs nothing, needs no
+# domain, and serves it at exactly the address every canonical and hreflang tag
+# in those files already points at: https://tahachaibi.github.io/QURAN1/
+#
+# ONE MANUAL STEP, once: repository Settings -> Pages -> Build and deployment ->
+# Source -> "GitHub Actions". Until that is switched on this workflow will fail
+# at the configure step with a message saying exactly that, which is the least
+# confusing way for it to fail.
+
+on:
+  push:
+    branches: ['main', 'master', 'claude/quran-habit-android-jr6hwv']
+    paths: ['store/web/**', '.github/workflows/pages.yml']
+  workflow_dispatch:
+
+# Read the repo, write a Pages deployment, and prove the deployment came from
+# this workflow. No other token scope is needed and none is granted.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time, and never cancel one half-done: an interrupted
+# deploy can leave the live site serving a partial upload.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Every link the site makes to itself must resolve
+        # A privacy policy that 404s is worse than none, and an og:image that
+        # 404s gives every share of the link a broken preview. Both are the kind
+        # of thing nobody notices until somebody else does.
+        run: |
+          cd store/web
+          missing=0
+          for f in index.html privacy.html ar/index.html sitemap.xml robots.txt og-cover.png; do
+            test -f "$f" || { echo "::error::store/web/$f is missing"; missing=1; }
+          done
+          # Local hrefs and srcs, each resolved against the directory of the
+          # file it appears in. Resolving everything against store/web instead
+          # reports ../privacy.html from ar/index.html as broken when it is
+          # perfectly correct, which is the kind of false alarm that gets a
+          # check deleted.
+          for page in index.html privacy.html ar/index.html; do
+            base=$(dirname "$page")
+            grep -ohE '(href|src)="[^"#]+"' "$page" \
+              | sed -E 's/.*="([^"]+)"/\1/' \
+              | grep -vE '^(https?:|mailto:|data:|//)' \
+              | sort -u \
+              | while read -r target; do
+                  clean="${target%%\?*}"
+                  case "$clean" in
+                    # An absolute path is served from the Pages root, which is
+                    # this directory — and the repo-name prefix is part of the
+                    # published URL, not of the tree.
+                    /QURAN1/*) resolved=".${clean#/QURAN1}" ;;
+                    /*) resolved=".${clean}" ;;
+                    *) resolved="$base/$clean" ;;
+                  esac
+                  if [ ! -e "$resolved" ] && [ ! -e "${resolved%/}/index.html" ]; then
+                    echo "::error::$page links to $target, which does not exist"
+                    exit 1
+                  fi
+                done
+          done
+          test "$missing" = 0
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: store/web
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Say where the privacy policy now lives
+        run: |
+          echo "### Site published" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Privacy policy URL for the Play Console listing:" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`${{ steps.deployment.outputs.page_url }}privacy.html\`" >> "$GITHUB_STEP_SUMMARY"
