@@ -27,7 +27,7 @@ const STEPS: Step[] = [
     icon: 'book-outline',
     title: 'The page follows your voice',
     body:
-      'Open any surah and recite. Quran Habit tracks where you are on the mushaf page — word by word — and turns the page when you do.',
+      'Open any surah and recite. Tasmee Hifz tracks where you are on the mushaf page — word by word — and turns the page when you do.',
     cta: 'Next',
   },
   {
@@ -41,7 +41,7 @@ const STEPS: Step[] = [
     icon: 'mic-outline',
     title: 'Try it on Al-Fatiha',
     body:
-      'Quran Habit needs the microphone to follow along. Your recitation is processed on the device by Android’s own recognizer and is never uploaded.',
+      'Tasmee Hifz needs the microphone to follow along. Your recitation is processed on the device by Android’s own recognizer and is never uploaded.',
     cta: 'Allow microphone and try',
   },
 ];
@@ -76,7 +76,7 @@ export default function Onboarding() {
         {denied ? (
           <Text style={[styles.denied, { color: palette.error }]}>
             Microphone access was denied, so follow-along cannot listen. You can still read and listen to
-            recitations. To turn it on later: Settings → Apps → Quran Habit → Permissions → Microphone.
+            recitations. To turn it on later: Settings → Apps → Tasmee Hifz → Permissions → Microphone.
           </Text>
         ) : null}
       </View>

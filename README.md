@@ -1,4 +1,4 @@
-# Quran Habit
+# Tasmee Hifz
 
 An Android-first Islamic habit companion whose centrepiece is a recitation
 follow-along that tracks your voice through the Quran.
@@ -116,7 +116,7 @@ The app needs a native module, so **Expo Go cannot run it.**
 
 `.github/workflows/android.yml` builds a self-contained, installable APK on
 every push — **no Expo account, no EAS, no Metro tunnel.** Open the Actions tab,
-pick the latest green run, and download the `quran-habit-apk` artifact.
+pick the latest green run, and download the `tasmee-hifz-apk` artifact.
 
 That workflow is also the only place the Kotlin module gets compiled, which is
 why it runs `:expo-arabic-speech:compileReleaseKotlin` on its own before the app

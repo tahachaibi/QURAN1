@@ -68,10 +68,11 @@ ads" and stays, which is the retention signal that actually moves ranking.
 | App title (30) | highest | brand + one head keyword |
 | Short description (80) | high | the differentiating mechanic in a human sentence |
 | Full description (4000) | moderate, and fully indexed | everything else, once or twice, in prose |
-| Developer name | low but real | consider "Quran Habit" as the developer name too |
-| Package name `com.quranhabit.app` | indexed, unchangeable after publish | already correct — do not change it |
-| In-app product names | indexed | name the subscription something searchable, e.g. "Quran Habit Coach" |
+| Developer name | low but real | consider "Tasmee Hifz" as the developer name too |
+| Package name `com.tasmeehifz.app` | indexed, unchangeable after publish | set 2026-09-26 with the rename, before any publish — never change it again |
+| In-app product names | indexed | name the subscription something searchable, e.g. "Tasmee Hifz Coach" |
 | Ratings & reviews text | indexed | you cannot write it, but reviews mentioning "memorization" help |
 
-`com.quranhabit.app` is set in `app.json` and **cannot be changed after the
-first publish, ever**. It is already a keyword-bearing id. Good.
+`com.tasmeehifz.app` is set in `app.json` and **cannot be changed after the
+first publish, ever**. It replaced `com.quranhabit.app` on 2026-09-26, when the
+app was renamed. That was the last moment a change was free.

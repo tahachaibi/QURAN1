@@ -33,8 +33,10 @@ import { ALL_KEYS, MISTAKE_LOG_CAP, type LoggedSession, type ProgressMap } from 
 // ---------------------------------------------------------------------------
 
 /**
- * Stamped on every file so a reader can tell a Quran Habit backup from some
- * other app's JSON before it does anything with it. Never change this string.
+ * Stamped on every file so a reader can tell a Tasmee Hifz backup from some
+ * other app's JSON before it does anything with it. Never change this string:
+ * it predates the rename to Tasmee Hifz, and every backup anybody has already
+ * saved carries it. A new value would make those files unreadable.
  */
 export const BACKUP_FORMAT = 'quran-habit-backup';
 
@@ -98,7 +100,7 @@ export function backupFilename(now: number): string {
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
-  return `quran-habit-backup-${yyyy}-${mm}-${dd}.json`;
+  return `tasmee-hifz-backup-${yyyy}-${mm}-${dd}.json`;
 }
 
 /** Plain JSON, and nothing cleverer. See the portability note at the top. */
@@ -366,7 +368,7 @@ export function parseBackup(text: string): BackupParse {
 
   if (!isObject(root)) return fail('not-an-object', 'This file does not look like a backup.');
   if (root.format !== BACKUP_FORMAT) {
-    return fail('not-a-backup', 'This file was not made by Quran Habit.');
+    return fail('not-a-backup', 'This file was not made by Tasmee Hifz.');
   }
 
   const warnings: BackupWarning[] = [];
@@ -385,7 +387,7 @@ export function parseBackup(text: string): BackupParse {
     // Deliberate refusal. See SCHEMA_VERSION.
     return fail(
       'schema-too-new',
-      'This backup was made by a newer version of Quran Habit. Update the app, then restore it.',
+      'This backup was made by a newer version of Tasmee Hifz. Update the app, then restore it.',
     );
   }
 

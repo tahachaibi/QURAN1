@@ -55,7 +55,7 @@ if [ -z "$URL" ]; then
 fi
 
 echo "› tunnel: $URL"
-echo "› open this in the dev client on the phone:  ${URL/https:\/\//exp+quranhabit:\/\/expo-development-client\/?url=https://}"
+echo "› open this in the dev client on the phone:  ${URL/https:\/\//exp+tasmee-hifz:\/\/expo-development-client\/?url=https://}"
 
 export EXPO_PACKAGER_PROXY_URL="$URL"
 export REACT_NATIVE_PACKAGER_HOSTNAME="${URL#https://}"

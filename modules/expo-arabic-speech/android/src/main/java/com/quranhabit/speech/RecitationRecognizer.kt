@@ -667,7 +667,7 @@ class RecitationRecognizer(
     /** Error messages must name the actual fix (spec §11). */
     fun errorAdvice(code: Int): String = when (code) {
       SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS ->
-        "Microphone permission was denied. Grant it in Settings > Apps > Quran Habit > Permissions > Microphone."
+        "Microphone permission was denied. Grant it in Settings > Apps > Tasmee Hifz > Permissions > Microphone."
       SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED ->
         "This recognizer has no Arabic model. Try a different locale in Settings (ar-EG, ar-MA), or install Arabic under " +
           "Settings > System > Languages & input > Voice input > Google > Offline speech recognition."

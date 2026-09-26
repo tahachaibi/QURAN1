@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "Quran Habit",
-    "slug": "quran-habit",
+    "name": "Tasmee Hifz",
+    "slug": "tasmee-hifz",
     "version": "1.0.0",
-    "scheme": "quranhabit",
+    "scheme": "tasmeehifz",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": false,
@@ -11,7 +11,7 @@
       "**/*"
     ],
     "android": {
-      "package": "com.quranhabit.app",
+      "package": "com.tasmeehifz.app",
       "versionCode": 1,
       "permissions": [
         "android.permission.RECORD_AUDIO",
@@ -58,13 +58,13 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Quran Habit uses your location once to calculate accurate prayer times. It is never stored or sent anywhere else."
+          "locationWhenInUsePermission": "Tasmee Hifz uses your location once to calculate accurate prayer times. It is never stored or sent anywhere else."
         }
       ],
       [
         "expo-av",
         {
-          "microphonePermission": "Quran Habit listens while you recite so it can follow along on the page. On phones with an Arabic speech pack installed it is recognised entirely on your device; otherwise Android sends it to its own speech service to transcribe. Nothing is recorded, kept or uploaded by Quran Habit."
+          "microphonePermission": "Tasmee Hifz listens while you recite so it can follow along on the page. On phones with an Arabic speech pack installed it is recognised entirely on your device; otherwise Android sends it to its own speech service to transcribe. Nothing is recorded, kept or uploaded by Tasmee Hifz."
         }
       ],
       [

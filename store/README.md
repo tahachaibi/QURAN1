@@ -7,11 +7,19 @@
    details. Play shows it publicly on the listing. Once money is involved, Play's
    48-hour self-service refund window ends at this inbox, so check it.
 
-2. ~~**One brand, not two.**~~ **Decided 2026-09-26: "Quran Habit"** in every
-   language. The Arabic listing title is now `Quran Habit: حفظ وتلاوة القرآن`,
-   and the Arabic landing page uses the same name. The Arabic words after the
-   colon are there for search; they are not a second name. The old
-   Arabic-only name is gone from the listings and the site.
+2. ~~**One brand, not two.**~~ **Decided 2026-09-26: "Tasmee Hifz"** (تسميع الحفظ)
+   in every language, with package id `com.tasmeehifz.app`. "Quran Habit" was
+   dropped because the phrase is already in several apps' titles. Plain "Tasmee"
+   was dropped because Eqra Tech's *Tasmee* (`com.eqra.android.tasmee`, since
+   2016) does the same job, and an identical name would invite an impersonation
+   report. تسميع itself is an ordinary word that several apps use, so the qualifier
+   is what makes the name ours. Titles: `Tasmee Hifz: Quran Memorizer` (en) and
+   `Tasmee Hifz: حفظ وتلاوة القرآن` (ar).
+
+   Kept on purpose: storage keys, the backup file's `format` string, the Kotlin
+   module's `com.quranhabit.speech` package and the upload key's alias. None of
+   them is shown to anybody. Renaming the first two would lose data, and
+   renaming the other two would buy nothing.
 
 3. **Where the site lives.** Every canonical URL, `hreflang` and Open Graph tag
    under `store/web/` hard-codes `tahachaibi.github.io`, taken from this repo's
@@ -106,7 +114,7 @@ URL hard-coded in the pages. Three things to know about that URL:
 1. **`robots.txt` at a project-page path is ignored.** Crawlers read it only
    from the host root, which belongs to the account's user-pages repo. The file
    is included for the day a custom domain exists; see its own comment.
-2. **A custom domain is worth buying.** `quranhabit.app` or similar ranks better
+2. **A custom domain is worth buying.** `tasmeehifz.app` or similar ranks better
    than a `github.io` subpath for the branded query, gives you a working
    `robots.txt`, and lets the Play listing point at a domain you control. If you
    buy one, find-and-replace `https://tahachaibi.github.io/QURAN1` in
@@ -238,7 +246,7 @@ New repository secret, four times:
 | `UPLOAD_KEY_ALIAS` | `quran-habit-upload` |
 | `UPLOAD_KEY_PASSWORD` | the same password again |
 
-The next push produces `quran-habit-<sha>.aab` in the artifact zip next to the
+The next push produces `tasmee-hifz-<sha>.aab` in the artifact zip next to the
 APK. Before that bundle ships, CI uses `keytool` to check that the secrets open
 the keystore, and uses `jarsigner` to check that the bundle is **not** signed
 with the debug certificate. Otherwise you would find out from Play, after the

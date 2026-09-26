@@ -83,7 +83,7 @@ export async function shareBackup(now: number): Promise<WriteResult> {
   try {
     await Sharing.shareAsync(uri, {
       mimeType: BACKUP_MIME,
-      dialogTitle: 'Save your Quran Habit backup',
+      dialogTitle: 'Save your Tasmee Hifz backup',
       UTI: 'public.json',
     });
   } catch (e) {

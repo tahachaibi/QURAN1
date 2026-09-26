@@ -282,7 +282,7 @@ export default function Settings() {
       </Section>
 
       <Text style={[styles.footer, { color: palette.textMuted }]}>
-        Quran Habit keeps everything on your device. There is no account, no analytics and no backend. Only
+        Tasmee Hifz keeps everything on your device. There is no account, no analytics and no backend. Only
         prayer times and optional audio playback reach the network.
       </Text>
     </ScrollView>
@@ -341,7 +341,7 @@ function useBackup() {
      * somebody restore, see an unchanged streak, and conclude it failed.
      */
     setNote(
-      `Restored ${restored.length} ${restored.length === 1 ? 'item' : 'items'}. Close and reopen Quran Habit to see all of it.`,
+      `Restored ${restored.length} ${restored.length === 1 ? 'item' : 'items'}. Close and reopen Tasmee Hifz to see all of it.`,
     );
   }, [pending]);
 
@@ -359,12 +359,12 @@ function explainProblem(parse: Extract<BackupParse, { ok: false }>): string {
     case 'empty':
       return 'That file is empty. The copy may have failed — try sharing the backup to yourself again.';
     case 'not-json':
-      return 'That file is not a Quran Habit backup — it is not even JSON. A photo or a truncated download looks like this.';
+      return 'That file is not a Tasmee Hifz backup — it is not even JSON. A photo or a truncated download looks like this.';
     case 'not-an-object':
     case 'not-a-backup':
       return 'That is a JSON file, but not one of ours.';
     case 'schema-too-new':
-      return 'That backup was written by a newer version of Quran Habit, and this build cannot be sure what its contents mean. Update the app and try again.';
+      return 'That backup was written by a newer version of Tasmee Hifz, and this build cannot be sure what its contents mean. Update the app and try again.';
     case 'nothing-to-restore':
       return 'That is one of our backups, but there is nothing in it this version can restore.';
     default:

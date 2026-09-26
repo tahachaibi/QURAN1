@@ -50,7 +50,7 @@ watch vitals after launch.
 
 - **Buying installs.** Incentivised or bot installs are detected, do not retain,
   and risk suspension of the developer account. In this category a suspension is
-  unrecoverable: the package name `com.quranhabit.app` can never be reused.
+  unrecoverable: the package name `com.tasmeehifz.app` can never be reused.
 - **Keyword stuffing the description.** A repeated-keyword block is both a spam
   signal and a conversion loss.
 - **Review exchange schemes / asking for 5 stars.** Against Play policy, and the
@@ -69,7 +69,7 @@ be said about the shape of it:
 
 | Phase | What is realistic |
 |---|---|
-| Week 0 | Indexing after publish takes hours to a few days. You will rank for your own brand name ("Quran Habit") almost immediately, and for nothing else. |
+| Week 0 | Indexing after publish takes hours to a few days. You will rank for your own brand name ("Tasmee Hifz") almost immediately, and for nothing else. |
 | Weeks 1–4 | Long-tail queries only: "app that listens to your recitation", "quran hidden mode memorize". These have low volume, which is exactly why a new app can appear on them. |
 | Months 2–6 | Mid-tail becomes possible *if* retention and rating hold: "quran memorization app", "hifz app", "تسميع القرآن". This is where install velocity and 4.5+ ratings do the work, not copy. |
 | Head terms: `quran`, `قرآن`, `prayer times` | Realistically years, or never, against apps with 50M+ installs and a decade of rating history. Plan the business on not ranking for these. |

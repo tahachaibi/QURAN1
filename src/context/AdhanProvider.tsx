@@ -227,7 +227,7 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
       if (cancelled) return;
       if (!granted) {
         setScheduleError(
-          'Notifications are turned off for Quran Habit, so there is no call to prayer. Turn them on in Settings > Apps > Quran Habit > Notifications.',
+          'Notifications are turned off for Tasmee Hifz, so there is no call to prayer. Turn them on in Settings > Apps > Tasmee Hifz > Notifications.',
         );
         return;
       }

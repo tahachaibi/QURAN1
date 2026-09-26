@@ -14,16 +14,19 @@ oversells a Quran app is written by someone who trusted it.
 **Primary — 28 characters**
 
 ```
-Quran Habit: Memorize & Read
+Tasmee Hifz: Quran Memorizer
 ```
 
 Two A/B alternatives, same brand slot, different head keyword:
 
 | Variant | Chars | Head keyword it bids for |
 |---|---|---|
-| `Quran Habit: Memorize & Read` | 28 | memorize quran |
-| `Quran Habit: Hifz Companion` | 27 | hifz |
-| `Quran Habit — Recite & Learn` | 28 | quran recitation |
+| `Tasmee Hifz: Quran Memorizer` | 28 | quran memorization |
+| `Tasmee Hifz: Memorize Quran` | 27 | memorize quran |
+| `Tasmee Hifz — Quran Recitation` | 30 | quran recitation |
+
+The brand no longer contains the word "Quran", so every variant carries it
+after the colon. Without it the title bids for nothing anybody types.
 
 The title is the single strongest indexed field on Play, so the brand word goes
 first (people who hear about the app must find it by name) and exactly one
@@ -57,7 +60,7 @@ the same sentence `app/onboarding.tsx` opens with ("The page follows your voice"
 ## Full description (4000 max)
 
 ```
-Quran Habit listens while you recite and follows you through the mushaf, word by word.
+Tasmee Hifz listens while you recite and follows you through the mushaf, word by word.
 
 Open any surah and start reciting. The highlight moves with your voice across the printed page, and when you reach the last line, the page turns. You never have to tell it where you are: begin in the middle of another surah, with or without the basmala, and it finds you in about a second.
 
@@ -102,7 +105,7 @@ Every part of this app is free. No ads, no sign-up. Worship does not belong behi
 PRIVACY
 No account. No ads. No analytics, no tracking, no advertising ID.
 The Quran, the hadith, the adhkar and the recitation matching all work in airplane mode. Prayer times are the exception: they are fetched for your approximate location, so that one screen needs a connection.
-Your voice goes to Android's own speech recognition — on the device when the Arabic pack is installed, otherwise through Android's service. Quran Habit never records or uploads it.
+Your voice goes to Android's own speech recognition — on the device when the Arabic pack is installed, otherwise through Android's service. Tasmee Hifz never records or uploads it.
 
 HONEST LIMITS, BEFORE YOU INSTALL
 • Android only for now.

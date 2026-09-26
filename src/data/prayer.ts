@@ -165,7 +165,7 @@ export async function fetchPrayerTimes(options: PrayerOptions = {}): Promise<Pra
   }
   if (coords === null) {
     throw new Error(
-      'Prayer times need your location once. Grant location access in Settings > Apps > Quran Habit > Permissions > Location.',
+      'Prayer times need your location once. Grant location access in Settings > Apps > Tasmee Hifz > Permissions > Location.',
     );
   }
 

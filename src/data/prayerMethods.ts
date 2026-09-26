@@ -19,6 +19,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const METHODS_URL = 'https://api.aladhan.com/v1/methods';
+// Storage keys keep the pre-rename prefix: renaming one silently empties it.
 const CACHE_KEY = 'quranhabit.prayerMethods.v1';
 
 /**

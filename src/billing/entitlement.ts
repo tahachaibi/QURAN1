@@ -3,7 +3,7 @@
  * towards the user in every ambiguous case.
  *
  * The hard part of entitlement in THIS app is not the happy path, it is silence.
- * Quran Habit is offline-first and has no backend: there is no server to ask, and
+ * Tasmee Hifz is offline-first and has no backend: there is no server to ask, and
  * Google Play can only be reached when the phone has a connection and Play
  * Services are working. So the app is regularly in a state of "I cannot find out
  * right now", and the whole design question is what it does then.

@@ -15,8 +15,8 @@ builds a self-contained, installable APK on every push.
 1. Open **https://github.com/tahachaibi/QURAN1/actions**
 2. Click the most recent green **android** run on branch
    `claude/quran-habit-android-jr6hwv`
-3. Scroll to **Artifacts** at the bottom → download **`quran-habit-apk`**
-4. Unzip it. Inside is `quran-habit-<sha>.apk`
+3. Scroll to **Artifacts** at the bottom → download **`tasmee-hifz-apk`**
+4. Unzip it. Inside is `tasmee-hifz-<sha>.apk`
 5. Copy it to your phone and tap it. Android will warn about installing from an
    unknown source — allow it for your file manager. (The APK is signed with the
    standard Android debug key, which is why it installs without any account.)
@@ -47,7 +47,7 @@ Tell me these four lines from the debug overlay: **status**, **strategy**,
 in and send me the output:
 
 ```
-adb logcat -d | grep -iE "quranhabit|ArabicSpeech|SpeechRecognizer|ReactNative" | tail -80
+adb logcat -d | grep -iE "tasmeehifz|quranhabit|ArabicSpeech|SpeechRecognizer|ReactNative" | tail -80
 ```
 
 ---
@@ -63,7 +63,7 @@ This is the single most useful thing you can send me, and it is now **four taps*
 2. Tap **Stop** when you're done. The summary card appears.
 3. On that card, tap **Save recitation log**.
 4. Android's share sheet opens with a file called something like
-   `quran-habit-fixture-214-events.json`. Send it to yourself — WhatsApp to your
+   `tasmee-hifz-fixture-214-events.json`. Send it to yourself — WhatsApp to your
    own number, Gmail to yourself, Drive, Keep, anything. Then send me the file.
 
 That's it. If the share sheet does not appear, tell me — that means the export

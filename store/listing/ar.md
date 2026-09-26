@@ -24,20 +24,22 @@ to earn one-star reviews in the market you most want. Two honest options:
 **الأساسي — 30 حرفًا**
 
 ```
-Quran Habit: حفظ وتلاوة القرآن
+Tasmee Hifz: حفظ وتلاوة القرآن
 ```
 
 بدائل:
 
 | الصيغة | الأحرف | الكلمة المستهدفة |
 |---|---|---|
-| `Quran Habit: حفظ وتلاوة القرآن` | 30 | حفظ القرآن + تلاوة |
-| `Quran Habit: حفظ القرآن` | 23 | حفظ القرآن |
-| `Quran Habit – مصحف وحفظ` | 23 | مصحف |
+| `Tasmee Hifz: حفظ وتلاوة القرآن` | 30 | حفظ القرآن + تلاوة |
+| `Tasmee Hifz: حفظ القرآن` | 23 | حفظ القرآن |
+| `Tasmee Hifz – مصحف وحفظ` | 23 | مصحف |
 
-One brand everywhere, decided 2026-09-26: the name on the Play listing is the
-name under the icon on the home screen, in every language. The Arabic words
-after the colon are there for search, not as a second name.
+One brand everywhere, decided 2026-09-26: **Tasmee Hifz**, in Latin letters, in
+every language, so the name on the listing is the name under the icon. It reads
+as تسميع الحفظ, and the landing page gives that as the Arabic form of the same
+name for search. The Arabic words after the colon are there for search too;
+they are not a second name.
 
 ## الوصف القصير — Short description (80 max)
 
@@ -59,7 +61,7 @@ after the colon are there for search, not as a second name.
 ## الوصف الكامل — Full description (4000 max)
 
 ```
-Quran Habit يستمع إليك وأنت تتلو، ويتابع موضعك في المصحف كلمة كلمة.
+Tasmee Hifz يستمع إليك وأنت تتلو، ويتابع موضعك في المصحف كلمة كلمة.
 
 افتح أي سورة وابدأ التلاوة. يتحرك التظليل مع صوتك على الصفحة المطبوعة، وحين تبلغ آخر سطر تُقلب الصفحة وحدها. ولست مضطرًا لإخباره أين أنت: ابدأ من وسط سورة أخرى، بالبسملة أو بدونها، فيجدك خلال ثانية تقريبًا.
 

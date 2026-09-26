@@ -111,7 +111,7 @@ describe('the envelope', () => {
   });
 
   it('names the file by the day it was made', () => {
-    expect(backupFilename(T0)).toBe(`quran-habit-backup-${today(new Date(T0))}.json`);
+    expect(backupFilename(T0)).toBe(`tasmee-hifz-backup-${today(new Date(T0))}.json`);
   });
 
   it('omits a key storage had nothing for, rather than writing an empty one', () => {

@@ -347,7 +347,7 @@ export default function PrayerScreen() {
               {/**
                 * A button, not directions. Android stops showing the permission
                 * dialog once it has been refused twice, so asking again does
-                * nothing and "go to Settings > Apps > Quran Habit >
+                * nothing and "go to Settings > Apps > Tasmee Hifz >
                 * Notifications" is four taps of someone else's navigation. This
                 * opens the app's own settings page directly.
                 */}

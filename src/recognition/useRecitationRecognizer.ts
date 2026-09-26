@@ -326,7 +326,7 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
         wantsToListen.current = false;
         void ArabicSpeech().stop().catch(() => undefined);
         setStatus('paused');
-        callbacks.current.onInterrupted('Quran Habit went to the background');
+        callbacks.current.onInterrupted('Tasmee Hifz went to the background');
       }
     });
     return () => sub.remove();

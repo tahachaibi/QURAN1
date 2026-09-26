@@ -6,7 +6,7 @@ Allow: /
 # project-page path is IGNORED by crawlers: robots.txt is only read from the
 # host root, i.e. https://tahachaibi.github.io/robots.txt, which is owned by the
 # account's user-pages repo, not by this one. So this file is here for the day
-# the site moves to a custom domain (quranhabit.app), where it becomes the real
+# the site moves to a custom domain (tasmeehifz.app), where it becomes the real
 # one. Until then it does nothing, and nothing needs it to: there is no path
 # here we want to block.
 

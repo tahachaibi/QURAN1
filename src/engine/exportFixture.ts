@@ -24,7 +24,7 @@ export async function exportFixture(fixture: ReplayFixture): Promise<ExportResul
   const events = fixture.events.length;
   try {
     const json = JSON.stringify(fixture, null, 1);
-    const name = `quran-habit-fixture-${events}-events.json`;
+    const name = `tasmee-hifz-fixture-${events}-events.json`;
     const dir = FileSystem.documentDirectory ?? FileSystem.cacheDirectory;
     if (dir === null) return { ok: false, detail: 'no writable directory on this device', events };
     const uri = `${dir}${name}`;
