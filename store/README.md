@@ -160,9 +160,11 @@ as the certificate owner; your own name is fine.
 **This is the step people regret.** With Play App Signing enrolled, a lost upload
 key can be reset by Google — but a lost key *before* enrolment, or a lost
 password, can mean losing the ability to update your own app. Keep `upload.jks`
-and its passwords somewhere that survives losing this laptop. Not only in this
-repo, which must never contain it: `.gitignore` does not list `*.jks`, so check
-`git status` before every commit until you have moved it somewhere safe.
+and its passwords somewhere that survives losing this laptop.
+
+Never in this repository. `.gitignore` now covers `*.jks`, `*.keystore` and
+`keystore.properties`, because a key committed even once is in the history
+forever and can sign anything claiming to be this app.
 
 ### 3. Add four repository secrets
 

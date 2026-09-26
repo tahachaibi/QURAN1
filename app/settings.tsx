@@ -6,10 +6,14 @@
  * quality genuinely varies by locale and only the user can tell which sounds
  * best for their recitation (§4).
  */
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { useBilling } from '../src/billing/BillingProvider';
+import { planRestore, type BackupParse, type RestoreSummary } from '../src/data/backup';
+import { formatBytes, pickBackupFile, shareBackup } from '../src/data/backupFile';
+import { exportAll, importAll } from '../src/data/storage';
 import { useRecitation } from '../src/context/RecitationProvider';
 import { useTheme } from '../src/theme/ThemeProvider';
 import { ayahTextSizes, radius, space, type FontStep } from '../src/theme/theme';
@@ -26,6 +30,7 @@ export default function Settings() {
   const { recognizer } = useRecitation();
   const billing = useBilling();
   const router = useRouter();
+  const backup = useBackup();
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
@@ -182,6 +187,90 @@ export default function Settings() {
         </Section>
       ) : null}
 
+      {/*
+        There is no account and no server, so this file is the ONLY thing
+        standing between a lost phone and a lost hifz deck. It is free, and it
+        stays free while MONETISATION_ENABLED is false like everything else —
+        but note that `backup` is on the paid list in gates.ts, so when the
+        switch is eventually flipped this section is what goes behind it. The
+        EXPORT half should not: a person must always be able to get their own
+        data out, whether or not they are paying. That is a decision for the
+        commit that flips the switch, and it is written down here so it is a
+        decision rather than an oversight.
+      */}
+      <Section title="Your data" palette={palette}>
+        <Pressable
+          onPress={backup.doExport}
+          disabled={backup.busy !== null}
+          accessibilityRole="button"
+          accessibilityLabel="Save a backup file"
+          style={styles.toggleRow}
+        >
+          <View style={styles.toggleText}>
+            <Text style={[styles.rowLabel, { color: palette.text }]}>Save a backup</Text>
+            <Text style={[styles.hint, { color: palette.textMuted }]}>
+              Your memorisation schedule, streak, mistakes and reading positions, as one plain JSON file you
+              keep. Nothing is uploaded anywhere — you choose where it goes.
+            </Text>
+          </View>
+          {backup.busy === 'export' ? <ActivityIndicator color={palette.primary} /> : null}
+        </Pressable>
+
+        <Pressable
+          onPress={backup.doPick}
+          disabled={backup.busy !== null}
+          accessibilityRole="button"
+          accessibilityLabel="Restore from a backup file"
+          style={styles.toggleRow}
+        >
+          <View style={styles.toggleText}>
+            <Text style={[styles.rowLabel, { color: palette.text }]}>Restore from a backup</Text>
+            <Text style={[styles.hint, { color: palette.textMuted }]}>
+              Merged with what is already here, never replacing it — you will be told exactly what changes
+              before anything is written.
+            </Text>
+          </View>
+          {backup.busy === 'pick' ? <ActivityIndicator color={palette.primary} /> : null}
+        </Pressable>
+
+        {backup.pending !== null ? (
+          <View style={[styles.confirm, { borderColor: palette.border }]}>
+            <Text style={[styles.rowLabel, { color: palette.text }]}>
+              {backup.pending.summary.losesNothing
+                ? 'Nothing on this phone is lost'
+                : 'Some things on this phone will change'}
+            </Text>
+            {describeLines(backup.pending.summary).map((line) => (
+              <Text key={line} style={[styles.hint, { color: palette.textMuted }]}>
+                {line}
+              </Text>
+            ))}
+            <View style={styles.confirmRow}>
+              <Pressable
+                onPress={backup.cancel}
+                accessibilityRole="button"
+                style={[styles.confirmButton, { borderColor: palette.border }]}
+              >
+                <Text style={[styles.rowLabel, { color: palette.textMuted }]}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={backup.confirm}
+                accessibilityRole="button"
+                style={[styles.confirmButton, { backgroundColor: palette.primary, borderColor: palette.primary }]}
+              >
+                <Text style={[styles.rowLabel, { color: palette.paper }]}>Restore</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
+
+        {backup.note !== '' ? (
+          <Text style={[styles.hint, { color: palette.textMuted, paddingHorizontal: space.md, paddingBottom: space.md }]}>
+            {backup.note}
+          </Text>
+        ) : null}
+      </Section>
+
       <Section title="Diagnostics" palette={palette}>
         <Toggle
           label="Show debug overlay"
@@ -198,6 +287,107 @@ export default function Settings() {
       </Text>
     </ScrollView>
   );
+}
+
+/**
+ * The restore flow, as a hook so the screen stays declarative.
+ *
+ * Two deliberate properties. Picking a file WRITES NOTHING — it parses, plans,
+ * and stops, so the user sees the consequence before agreeing to it. And a
+ * restore that touches somebody's memorisation record is never a side effect of
+ * opening a file.
+ */
+function useBackup() {
+  const [busy, setBusy] = useState<'export' | 'pick' | 'restore' | null>(null);
+  const [note, setNote] = useState('');
+  const [pending, setPending] = useState<{ values: Record<string, string>; summary: RestoreSummary } | null>(null);
+
+  const doExport = useCallback(async () => {
+    setBusy('export');
+    setNote('');
+    const result = await shareBackup(Date.now());
+    setBusy(null);
+    setNote(result.detail !== '' ? result.detail : `Backup ready — ${formatBytes(result.sizeBytes)}.`);
+  }, []);
+
+  const doPick = useCallback(async () => {
+    setBusy('pick');
+    setNote('');
+    setPending(null);
+    const { parse, detail } = await pickBackupFile();
+    setBusy(null);
+    if (parse === null) {
+      // detail is empty when the user simply cancelled, which is not an error
+      setNote(detail);
+      return;
+    }
+    if (!parse.ok) {
+      setNote(explainProblem(parse));
+      return;
+    }
+    const plan = planRestore(await exportAll(), parse.backup.payload);
+    setPending(plan);
+  }, []);
+
+  const confirm = useCallback(async () => {
+    if (pending === null) return;
+    setBusy('restore');
+    const restored = await importAll(pending.values);
+    setBusy(null);
+    setPending(null);
+    /**
+     * The app reads most of this at mount, so a restore does not take effect
+     * everywhere until it is reopened. Saying so is better than letting
+     * somebody restore, see an unchanged streak, and conclude it failed.
+     */
+    setNote(
+      `Restored ${restored.length} ${restored.length === 1 ? 'item' : 'items'}. Close and reopen Quran Habit to see all of it.`,
+    );
+  }, [pending]);
+
+  const cancel = useCallback(() => {
+    setPending(null);
+    setNote('Nothing was changed.');
+  }, []);
+
+  return { busy, note, pending, doExport, doPick, confirm, cancel };
+}
+
+/** Why a file was refused, in words rather than an enum. */
+function explainProblem(parse: Extract<BackupParse, { ok: false }>): string {
+  switch (parse.problem) {
+    case 'empty':
+      return 'That file is empty. The copy may have failed — try sharing the backup to yourself again.';
+    case 'not-json':
+      return 'That file is not a Quran Habit backup — it is not even JSON. A photo or a truncated download looks like this.';
+    case 'not-an-object':
+    case 'not-a-backup':
+      return 'That is a JSON file, but not one of ours.';
+    case 'schema-too-new':
+      return 'That backup was written by a newer version of Quran Habit, and this build cannot be sure what its contents mean. Update the app and try again.';
+    case 'nothing-to-restore':
+      return 'That is one of our backups, but there is nothing in it this version can restore.';
+    default:
+      return parse.detail;
+  }
+}
+
+/** The consequence, in counts, before anything is written. */
+function describeLines(s: RestoreSummary): string[] {
+  const lines: string[] = [];
+  if (s.hifz.added > 0 || s.hifz.recovered > 0) {
+    lines.push(
+      `Memorisation: ${s.hifz.added} ayahs added, ${s.hifz.recovered} updated from the file, ${s.hifz.kept} left as they are.`,
+    );
+  } else {
+    lines.push('Memorisation: nothing in the file is newer than what is here.');
+  }
+  if (s.sessions.merged > 0) lines.push(`Sessions: ${s.sessions.recovered} recovered, ${s.sessions.merged} in total.`);
+  if (s.mistakes.merged > 0) lines.push(`Mistakes: ${s.mistakes.recovered} recovered.`);
+  if (s.progress.recovered > 0) lines.push(`Reading positions: ${s.progress.recovered} moved forward.`);
+  if (s.settingsReplaced) lines.push('Settings will be replaced by the ones in the file.');
+  if (s.skipped.length > 0) lines.push(`${s.skipped.length} thing(s) in the file are deliberately not restored.`);
+  return lines;
 }
 
 // --- small building blocks ---
@@ -302,6 +492,15 @@ function Choices<T extends string | number>({
 }
 
 const styles = StyleSheet.create({
+  confirm: { borderTopWidth: StyleSheet.hairlineWidth, padding: space.md, gap: 6 },
+  confirmRow: { flexDirection: 'row', gap: space.sm, paddingTop: space.sm },
+  confirmButton: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: space.sm,
+    borderRadius: radius.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
   content: { padding: space.md, gap: space.md, paddingBottom: space.xxl },
   section: { gap: space.xs },
   sectionTitle: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 },

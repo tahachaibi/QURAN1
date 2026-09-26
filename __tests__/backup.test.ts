@@ -672,3 +672,53 @@ describe('describeRestore, which the UI must call first', () => {
     );
   });
 });
+
+/**
+ * Reachability.
+ *
+ * This module was committed complete, tested, and wired to NOTHING: 956 lines
+ * and 59 tests that no user could ever reach, because the screen that would
+ * call it was another engineer's file and never got written. All the tests
+ * passed the whole time, which is exactly why they did not catch it — a pure
+ * module is perfectly testable while being perfectly useless.
+ *
+ * So this asserts the one thing the other tests structurally cannot: that
+ * something a person can actually tap leads here.
+ */
+describe('a user can actually reach this', () => {
+  const settings = readFileSync(join(__dirname, '..', 'app', 'settings.tsx'), 'utf8');
+
+  it('is wired to a screen', () => {
+    expect(settings).toContain('data/backupFile');
+    expect(settings).toMatch(/shareBackup/);
+    expect(settings).toMatch(/pickBackupFile/);
+  });
+
+  it('plans the restore before writing it', () => {
+    // planRestore must be reached from the screen, and importAll must not be
+    // called from the same function that picks the file. The gap between them
+    // is the confirmation step, and it is the whole reason restore is not
+    // destructive by accident.
+    expect(settings).toContain('planRestore');
+    expect(settings).toContain('importAll');
+    const pick = settings.slice(settings.indexOf('const doPick'), settings.indexOf('const confirm'));
+    expect(pick).toContain('planRestore');
+    expect(pick).not.toContain('importAll');
+  });
+
+  it('explains every way a file can be refused', () => {
+    // A parse problem the screen does not name falls through to a raw `detail`
+    // string, which is written for a developer, not for somebody who just lost
+    // their phone.
+    for (const problem of [
+      'empty',
+      'not-json',
+      'not-an-object',
+      'not-a-backup',
+      'schema-too-new',
+      'nothing-to-restore',
+    ]) {
+      expect(settings).toContain(`'${problem}'`);
+    }
+  });
+});

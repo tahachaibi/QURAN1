@@ -24,3 +24,10 @@ coverage/
 
 # raw hadith dataset, fetched by docs/hadith.md; only the generated assets are committed
 /hadith-source/
+
+# Signing keys. NEVER in the repository — a committed upload key, even in a
+# deleted commit, is in the history forever and can sign anything claiming to be
+# this app. store/README.md says where it should live instead.
+*.jks
+*.keystore
+keystore.properties
