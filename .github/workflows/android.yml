@@ -88,6 +88,9 @@ jobs:
 
   apk:
     runs-on: ubuntu-latest
+    # write, only so the last step can publish the phone download below
+    permissions:
+      contents: write
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
@@ -362,3 +365,25 @@ jobs:
           path: out/*
           if-no-files-found: error
           retention-days: 30
+
+      - name: Publish the APK at one fixed link a phone can open
+        # An artifact arrives as a zip, needs a GitHub login, and moves to a new
+        # URL on every run. Installing from a phone should be one tap on a link
+        # that never changes:
+        #   https://github.com/<owner>/<repo>/releases/download/test-build/tasmee-hifz.apk
+        # A pre-release, so nobody mistakes it for a store launch. Only from
+        # the development branch, so a pull request can never replace it.
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/claude/quran-habit-android-jr6hwv'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp "out/tasmee-hifz-${GITHUB_SHA::7}.apk" out/tasmee-hifz.apk
+          gh release delete test-build --yes --cleanup-tag 2>/dev/null || true
+          gh release create test-build out/tasmee-hifz.apk \
+            --prerelease --target "$GITHUB_SHA" \
+            --title "Test build ${GITHUB_SHA::7}" \
+            --notes "Latest test build of Tasmee Hifz from commit ${GITHUB_SHA::7}, for installing on a phone. It is not the Play release. Download tasmee-hifz.apk below and open it."
+          url="https://github.com/${GITHUB_REPOSITORY}/releases/download/test-build/tasmee-hifz.apk"
+          echo "Phone download: $url"
+          echo "### Install on a phone" >> "$GITHUB_STEP_SUMMARY"
+          echo "$url" >> "$GITHUB_STEP_SUMMARY"
