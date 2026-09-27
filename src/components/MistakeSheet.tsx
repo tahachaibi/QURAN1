@@ -9,7 +9,8 @@ import { memo, useMemo } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { ayahDisplayWords, ayahByGlobal, globalAyahOf, wordInAyahOf, words } from '../data/quran';
+import { ayahDisplayWords, ayahByGlobal, globalAyahOf, surahInfo, wordInAyahOf, words } from '../data/quran';
+import { describeHint, explainMistake } from '../engine/mistakeExplain';
 import type { Mistake } from '../engine/mistakes';
 import { radius, space, type Palette } from '../theme/theme';
 
@@ -22,6 +23,11 @@ export interface MistakeSheetProps {
   onGoToWord: (word: number) => void;
   onPractise: (word: number) => void;
   onPlayWord: (word: number) => void;
+  /**
+   * A mistake the reader tapped on the page. Its card comes first, outlined,
+   * so tapping a red dot answers "what did I do wrong here" without a hunt.
+   */
+  focusWord?: number | null;
 }
 
 interface AyahGroup {
@@ -39,10 +45,13 @@ export const MistakeSheet = memo(function MistakeSheet({
   onGoToWord,
   onPractise,
   onPlayWord,
+  focusWord = null,
 }: MistakeSheetProps) {
+  const focused = focusWord === null ? undefined : mistakes.find((m) => m.word === focusWord);
   const groups = useMemo<AyahGroup[]>(() => {
     const byAyah = new Map<number, Mistake[]>();
     for (const m of mistakes) {
+      if (m.word === focusWord) continue;
       const g = globalAyahOf(m.word);
       const list = byAyah.get(g);
       if (list === undefined) byAyah.set(g, [m]);
@@ -54,7 +63,7 @@ export const MistakeSheet = memo(function MistakeSheet({
         const ayah = ayahByGlobal(globalAyah);
         return { globalAyah, label: `${ayah.surah}:${ayah.ayah}`, items };
       });
-  }, [mistakes]);
+  }, [mistakes, focusWord]);
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -78,6 +87,20 @@ export const MistakeSheet = memo(function MistakeSheet({
           </Text>
         ) : (
           <ScrollView contentContainerStyle={styles.list}>
+            {focused !== undefined ? (
+              <View style={styles.group}>
+                <Text style={[styles.groupLabel, { color: palette.primary, marginBottom: space.xs }]}>The word you tapped</Text>
+                <MistakeRow
+                  mistake={focused}
+                  focused
+                  palette={palette}
+                  onDismiss={onDismiss}
+                  onGoToWord={onGoToWord}
+                  onPractise={onPractise}
+                  onPlayWord={onPlayWord}
+                />
+              </View>
+            ) : null}
             {groups.map((group) => (
               <View key={group.globalAyah} style={styles.group}>
                 <View style={styles.groupHeader}>
@@ -90,6 +113,7 @@ export const MistakeSheet = memo(function MistakeSheet({
                   <MistakeRow
                     key={mistake.word}
                     mistake={mistake}
+                    focused={false}
                     palette={palette}
                     onDismiss={onDismiss}
                     onGoToWord={onGoToWord}
@@ -108,6 +132,7 @@ export const MistakeSheet = memo(function MistakeSheet({
 
 function MistakeRow({
   mistake,
+  focused,
   palette,
   onDismiss,
   onGoToWord,
@@ -115,6 +140,7 @@ function MistakeRow({
   onPlayWord,
 }: {
   mistake: Mistake;
+  focused: boolean;
   palette: Palette;
   onDismiss: (word: number) => void;
   onGoToWord: (word: number) => void;
@@ -125,52 +151,107 @@ function MistakeRow({
   const display = ayahDisplayWords(ayah);
   const offset = wordInAyahOf(mistake.word);
   const correct = display[offset] ?? words[mistake.word];
-  const before = display.slice(Math.max(0, offset - 2), offset).join(' ');
-  const after = display.slice(offset + 1, offset + 3).join(' ');
+  const explanation = explainMistake(words[mistake.word] ?? '', mistake.heardInstead);
+  const skipped = explanation.kind === 'skipped';
+
+  // Logical reading order: the words before, the word, the words after. The
+  // renderer lays Arabic out right to left by itself. Putting "after" first,
+  // as this used to, showed the ayah backwards around the word.
+  const before = display.slice(Math.max(0, offset - 3), offset).join(' ');
+  const after = display.slice(offset + 1, offset + 4).join(' ');
+  const previous = offset > 0 ? display[offset - 1] : null;
+
+  const badgeColour = skipped ? palette.accent : palette.error;
+  const badgeBackground = skipped ? palette.accentSoft : palette.errorSoft;
 
   return (
     <Pressable
       onPress={() => onGoToWord(mistake.word)}
       onLongPress={() => onPractise(mistake.word)}
       accessibilityRole="button"
-      accessibilityLabel={`Missed word ${correct} in ${ayah.surah}:${ayah.ayah}`}
-      accessibilityHint="Tap to jump to this word on the page, long press to mark it for practice"
-      style={[styles.row, { borderColor: palette.border }]}
+      accessibilityLabel={
+        skipped
+          ? `Skipped word ${correct} in ${ayah.surah}:${ayah.ayah}`
+          : `Said ${explanation.heard} instead of ${correct} in ${ayah.surah}:${ayah.ayah}`
+      }
+      accessibilityHint="Tap to jump to this word on the page, long press to practise this ayah"
+      style={[
+        styles.row,
+        { borderColor: focused ? palette.primary : palette.border, borderWidth: focused ? 2 : StyleSheet.hairlineWidth },
+      ]}
     >
-      <View style={styles.rowText}>
-        {/* the correct word, large, gold-highlighted in its phrase context */}
-        <Text style={[styles.phrase, { color: palette.textMuted }]} numberOfLines={2}>
-          {after}{' '}
-          <Text style={[styles.correct, { color: palette.ink, backgroundColor: palette.accentSoft }]}>
-            {correct}
-          </Text>{' '}
-          {before}
+      <View style={styles.rowTop}>
+        <View style={[styles.badge, { backgroundColor: badgeBackground, borderColor: badgeColour }]}>
+          <Text style={[styles.badgeText, { color: badgeColour }]}>{skipped ? 'Skipped' : 'Wrong word'}</Text>
+        </View>
+        <Text style={[styles.where, { color: palette.textMuted }]}>
+          {surahInfo(ayah.surah).transliteration} {ayah.surah}:{ayah.ayah} · word {offset + 1}
         </Text>
-        {mistake.heardInstead.length > 0 ? (
-          <Text style={[styles.heard, { color: palette.error }]} numberOfLines={1}>
-            heard: {mistake.heardInstead}
-          </Text>
-        ) : (
-          <Text style={[styles.heard, { color: palette.textMuted }]}>nothing heard here</Text>
-        )}
       </View>
+
+      {skipped ? (
+        <View style={styles.pair}>
+          <Text style={[styles.pairLabel, { color: palette.textMuted }]}>You skipped</Text>
+          <Text style={[styles.correctWord, { color: palette.success }]}>{correct}</Text>
+        </View>
+      ) : (
+        <>
+          <View style={styles.pair}>
+            <Text style={[styles.pairLabel, { color: palette.textMuted }]}>You said</Text>
+            <Text style={[styles.saidWord, { color: palette.error }]}>{explanation.heard}</Text>
+          </View>
+          <View style={styles.pair}>
+            <Text style={[styles.pairLabel, { color: palette.textMuted }]}>Correct</Text>
+            <Text style={[styles.correctWord, { color: palette.success }]}>{correct}</Text>
+          </View>
+        </>
+      )}
+
+      <Text style={[styles.explain, { color: palette.text }]}>
+        {skipped
+          ? previous !== null
+            ? `This word was not heard. It comes right after «${previous}».`
+            : 'This word was not heard. It is the first word of the ayah.'
+          : explanation.hint !== null
+            ? describeHint(explanation.hint)
+            : 'A different word was heard in its place.'}
+      </Text>
+      {explanation.likelyRecognizer ? (
+        <Text style={[styles.note, { color: palette.textMuted }]}>
+          The phone&apos;s recognizer often confuses these sounds. If you are sure you said it right, tap “I said it right”.
+        </Text>
+      ) : null}
+
+      {/* the ayah around it, in reading order, with the word marked */}
+      <Text style={[styles.phrase, { color: palette.textMuted }]} numberOfLines={2}>
+        {before}
+        {before ? ' ' : ''}
+        <Text style={[styles.inPhrase, { color: palette.ink, backgroundColor: palette.accentSoft }]}>{correct}</Text>
+        {after ? ' ' : ''}
+        {after}
+      </Text>
+
       <View style={styles.rowActions}>
         <Pressable
           onPress={() => onPlayWord(mistake.word)}
-          hitSlop={8}
+          hitSlop={6}
           accessibilityRole="button"
           accessibilityLabel="Show this word on the page"
+          style={[styles.action, { borderColor: palette.border }]}
         >
-          <Ionicons name="locate-outline" size={24} color={palette.primary} />
+          <Ionicons name="locate-outline" size={18} color={palette.primary} />
+          <Text style={[styles.actionText, { color: palette.primary }]}>Show on page</Text>
         </Pressable>
         <Pressable
           onPress={() => onDismiss(mistake.word)}
-          hitSlop={8}
+          hitSlop={6}
           accessibilityRole="button"
           accessibilityLabel="I said it right"
           accessibilityHint="Removes this permanently and never flags this word again"
+          style={[styles.action, { borderColor: palette.border }]}
         >
-          <Ionicons name="checkmark-circle-outline" size={26} color={palette.success} />
+          <Ionicons name="checkmark-circle-outline" size={18} color={palette.success} />
+          <Text style={[styles.actionText, { color: palette.success }]}>I said it right</Text>
         </Pressable>
       </View>
     </Pressable>
@@ -212,29 +293,49 @@ const styles = StyleSheet.create({
   groupLabel: { fontSize: 13, fontWeight: '700' },
   groupCount: { fontSize: 11 },
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.sm,
-    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radius.md,
     padding: space.sm,
     marginBottom: space.sm,
+    gap: space.xs,
   },
-  rowText: { flex: 1 },
+  rowTop: { flexDirection: 'row', alignItems: 'center', gap: space.sm, flexWrap: 'wrap' },
+  badge: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.sm,
+    paddingHorizontal: space.sm,
+    paddingVertical: 2,
+  },
+  badgeText: { fontSize: 12, fontWeight: '700' },
+  where: { fontSize: 12 },
+  pair: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm },
+  pairLabel: { fontSize: 13, fontWeight: '600' },
+  saidWord: {
+    fontFamily: 'Amiri_400Regular',
+    fontSize: 24,
+    lineHeight: 44,
+    textDecorationLine: 'line-through',
+    writingDirection: 'rtl',
+  },
+  correctWord: { fontFamily: 'KFGQPC-Hafs', fontSize: 28, lineHeight: 52, writingDirection: 'rtl' },
+  explain: { fontSize: 14, lineHeight: 20 },
+  note: { fontSize: 12, lineHeight: 17, fontStyle: 'italic' },
   phrase: {
     fontFamily: 'KFGQPC-Hafs',
-    fontSize: 19,
-    lineHeight: 42,
+    fontSize: 18,
+    lineHeight: 38,
     textAlign: 'right',
     writingDirection: 'rtl',
   },
-  correct: { fontSize: 23 },
-  heard: {
-    marginTop: 2,
-    fontSize: 12,
-    fontFamily: 'Amiri_400Regular',
-    textAlign: 'right',
-    writingDirection: 'rtl',
+  inPhrase: { fontSize: 20 },
+  rowActions: { flexDirection: 'row', gap: space.sm, justifyContent: 'flex-end', flexWrap: 'wrap' },
+  action: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.md,
+    paddingHorizontal: space.sm,
+    paddingVertical: 6,
   },
-  rowActions: { gap: space.sm, alignItems: 'center' },
+  actionText: { fontSize: 13, fontWeight: '600' },
 });

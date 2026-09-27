@@ -141,6 +141,30 @@ for (const [id, { end, maxMistakes }] of Object.entries(DEVICE_RUN)) {
  * the engine followed the reciter to 2:47 instead of telling them they had left
  * 2:40. Pinning mistakes = [] here would make that gap look intended.
  */
+/**
+ * What the review sheet says was said in each flagged word's place, on the
+ * phone's own sessions. Before this was pinned, the skipped اهبطوا (2:36) read
+ * "heard: يا" (from "يا آدم", two ayahs back) and the skipped أندادا (2:22) read
+ * "heard: وا" (a segment's leftover tail). A reciter shown a word they never
+ * said in that place cannot tell what they did wrong. '' means "skipped".
+ */
+const HEARD_IN_PLACE: Record<string, [surah: number, ayah: number, offset: number, heard: string][]> = {
+  '03': [[2, 8, 10, ''], [2, 13, 8, 'هلومن']],
+  '04': [[2, 19, 0, ''], [2, 19, 1, ''], [2, 19, 4, 'في'], [2, 20, 3, '']],
+  '05': [[2, 22, 4, 'فيران'], [2, 22, 20, '']],
+  '08': [[2, 36, 8, '']],
+};
+for (const [id, expected] of Object.entries(HEARD_IN_PLACE)) {
+  const baseline = EXPECTATIONS[`device-2026-09-26-${id}`];
+  EXPECTATIONS[`device-2026-09-26-${id}`] = (out) => {
+    baseline(out);
+    const said = new Map(out.final.mistakes.map((m) => [m.word, m.heardInstead]));
+    for (const [surah, ayah, offset, heard] of expected) {
+      expect([surah, ayah, offset, said.get(wordIndexOf(surah, ayah) + offset)]).toEqual([surah, ayah, offset, heard]);
+    }
+  };
+}
+
 const baseline09 = EXPECTATIONS['device-2026-09-26-09'];
 EXPECTATIONS['device-2026-09-26-09'] = (out) => {
   baseline09(out);

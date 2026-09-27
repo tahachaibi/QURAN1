@@ -32,7 +32,7 @@ const CLASS_OF = (() => {
   return m;
 })();
 
-const sharesClass = (a: string, b: string): boolean => {
+export const sharesClass = (a: string, b: string): boolean => {
   const ca = CLASS_OF.get(a);
   const cb = CLASS_OF.get(b);
   if (ca === undefined || cb === undefined) return false;
@@ -116,7 +116,7 @@ export function analyseMistake(record: MistakeRecord): ConfusionEvent[] {
   return out;
 }
 
-interface Op {
+export interface Op {
   kind: 'match' | 'sub' | 'gap';
   expected: string;
   heard: string;
@@ -127,7 +127,7 @@ interface Op {
  * attribute; once we have decided to, we want the simplest edit story, and a
  * weighted path would bias the narrative toward whichever edits we made cheap.
  */
-function traceback(a: string, b: string): Op[] {
+export function traceback(a: string, b: string): Op[] {
   const n = a.length;
   const m = b.length;
   const d: number[][] = Array.from({ length: n + 1 }, () => new Array<number>(m + 1).fill(0));

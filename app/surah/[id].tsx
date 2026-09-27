@@ -115,6 +115,7 @@ export default function SurahScreen() {
   const [tab, setTab] = useState<Tab>(params.tab === 'listen' ? 'listen' : 'read');
   const [headerVisible, setHeaderVisible] = useState(true);
   const [mistakesOpen, setMistakesOpen] = useState(false);
+  const [mistakeFocus, setMistakeFocus] = useState<number | null>(null);
   const [transcriptOpen, setTranscriptOpen] = useState(false);
   const [selecting, setSelecting] = useState<number | null>(null);
   /** what the "I read this" commit just did; clears itself like the other notices */
@@ -181,6 +182,12 @@ export default function SurahScreen() {
 
   const onWordPress = useCallback(
     (index: number) => {
+      if (selecting === null && session.mistakes.some((m) => m.word === index)) {
+        // a word with a red dot: tapping it answers "what did I do wrong here"
+        setMistakeFocus(index);
+        setMistakesOpen(true);
+        return;
+      }
       if (mode === 'hidden' && !session.matched.has(index)) {
         // in Hidden mode a tap is the hint ladder, not a seek (§6.2)
         requestHint(index);
@@ -193,7 +200,7 @@ export default function SurahScreen() {
       }
       seekTo(index);
     },
-    [mode, requestHint, seekTo, selecting, session.matched, setRange],
+    [mode, requestHint, seekTo, selecting, session.matched, session.mistakes, setRange],
   );
 
   const onWordLongPress = useCallback(
@@ -577,7 +584,10 @@ export default function SurahScreen() {
           baseMs={session.elapsedMs}
           mistakeCount={session.mistakes.length}
           onReset={resetStats}
-          onOpenMistakes={() => setMistakesOpen(true)}
+          onOpenMistakes={() => {
+            setMistakeFocus(null);
+            setMistakesOpen(true);
+          }}
           palette={palette}
         />
 
@@ -625,8 +635,12 @@ export default function SurahScreen() {
       <MistakeSheet
         visible={mistakesOpen}
         mistakes={session.mistakes}
+        focusWord={mistakeFocus}
         palette={palette}
-        onClose={() => setMistakesOpen(false)}
+        onClose={() => {
+          setMistakesOpen(false);
+          setMistakeFocus(null);
+        }}
         onDismiss={dismissMistake}
         onGoToWord={(word) => {
           setMistakesOpen(false);

@@ -19,6 +19,7 @@ import {
   type Mistake,
   type PendingSkip,
 } from './mistakes';
+import { compareWords, weightedDistance } from './distance';
 import { normalizeHeard } from './normalize';
 
 export type SessionStatus = 'idle' | 'listening' | 'paused' | 'stopped';
@@ -269,7 +270,7 @@ function applyResult(
         votes: n,
         ofAlternatives: scored.length,
         observedAtCursor: cursor,
-        heardInstead: nearestHeard(best, word),
+        heardInstead: heardInPlaceOf(best.heard, r, word, (i) => config.words[i] ?? ''),
       });
     }
     if (additions.length > 0) pending = [...pending, ...additions];
@@ -334,22 +335,74 @@ function applyResult(
 }
 
 /** Best guess at what was said in place of a skipped word, for the review sheet. */
-function nearestHeard(best: Scored, word: number): string {
-  let closest = '';
-  let bestDelta = Infinity;
-  for (const m of best.result.matches) {
-    const delta = Math.abs(m.word - word);
-    if (delta < bestDelta) {
-      bestDelta = delta;
-      closest = best.heard[m.heard] ?? '';
+/**
+ * What the reciter said where `word` should have been, or '' if they said
+ * nothing there. The review sheet reads it as "you said X": '' means the word
+ * was skipped, anything else was said in its place.
+ *
+ * Only the heard tokens BETWEEN the matches either side of the word count. The
+ * old version returned the first unmatched token anywhere in the utterance,
+ * which is how a skipped اهبطوا came to be shown as "heard: يا". The يا was from
+ * "يا آدم", two ayahs earlier. A reciter shown a word they never said in that
+ * place cannot tell what they did wrong.
+ *
+ * A reciter who stumbles usually goes back a word and tries again ("قالوا وانوا
+ * من قالوا هلؤمن"). So if the word before the gap is said again inside it, only
+ * what follows the LAST repeat counts: that is the attempt they settled on.
+ *
+ * If the gap holds exactly one token per missing word, they pair up in order.
+ * Otherwise the token closest to the expected word is taken, because the one
+ * that sounds like it is the likeliest attempt at it.
+ */
+export function heardInPlaceOf(
+  heard: readonly string[],
+  result: AlignResult,
+  word: number,
+  wordText: (index: number) => string,
+): string {
+  const expected = wordText(word);
+  let prevWord = -1;
+  let prevHeard = -1;
+  let nextWord = Number.MAX_SAFE_INTEGER;
+  let nextHeard = heard.length;
+  for (const m of result.matches) {
+    if (m.word < word && m.word > prevWord) {
+      prevWord = m.word;
+      prevHeard = m.heard;
+    }
+    if (m.word > word && m.word < nextWord) {
+      nextWord = m.word;
+      nextHeard = m.heard;
     }
   }
-  for (const h of best.result.unmatchedHeard) {
-    // an unmatched heard word near the skip is the likeliest substitute
-    const token = best.heard[h];
-    if (token) return token;
+  let tokens = result.unmatchedHeard
+    .filter((h) => h > prevHeard && h < nextHeard && (heard[h] ?? '') !== '')
+    .sort((a, b) => a - b);
+  if (prevWord >= 0) {
+    const before = wordText(prevWord);
+    let lastRepeat = -1;
+    tokens.forEach((h, i) => {
+      if (compareWords(heard[h], before).ok) lastRepeat = i;
+    });
+    if (lastRepeat >= 0) tokens = tokens.slice(lastRepeat + 1);
   }
-  return closest;
+  if (tokens.length === 0) return '';
+
+  const missing = result.skipped.filter((w) => w > prevWord && w < nextWord).sort((a, b) => a - b);
+  const at = missing.indexOf(word);
+  if (tokens.length === missing.length && at >= 0) return heard[tokens[at]];
+
+  let best = '';
+  let bestScore = Infinity;
+  for (const h of tokens) {
+    const token = heard[h];
+    const score = weightedDistance(token, expected) / Math.max(token.length, expected.length, 1);
+    if (score < bestScore) {
+      bestScore = score;
+      best = token;
+    }
+  }
+  return best;
 }
 
 function capTail<T>(arr: T[], cap: number): T[] {
