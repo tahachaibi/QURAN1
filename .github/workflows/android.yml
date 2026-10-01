@@ -121,6 +121,18 @@ jobs:
 
       - run: npm ci
 
+      - name: Give every build a higher version code than the one before
+        # Play refuses any upload whose versionCode it has already seen. A
+        # fixed 1 in app.json therefore allows exactly ONE upload, ever, and the
+        # second fails in Console with nothing pointing back here. The run
+        # number only grows; times ten plus the attempt keeps a re-run of the
+        # same commit above its first attempt too.
+        run: |
+          code=$(( GITHUB_RUN_NUMBER * 10 + GITHUB_RUN_ATTEMPT ))
+          node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync('app.json','utf8'));j.expo.android.versionCode=$code;fs.writeFileSync('app.json',JSON.stringify(j,null,2)+'\n')"
+          echo "versionCode $code"
+          echo "versionCode: \`$code\`" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Prebuild the Android project
         run: npx expo prebuild --platform android --no-install
 
@@ -289,6 +301,14 @@ jobs:
             fi
           done
           # Never re-added: nothing in this app starts a foreground service.
+          # Play Console asks "does your app use advertising ID?" and the
+          # honest answer is no. A library that quietly merges the AD_ID
+          # permission in would make that answer false, and Play flags the
+          # mismatch on upload.
+          if grep -q "com.google.android.gms.permission.AD_ID" /tmp/perms.txt; then
+            echo "::error::AD_ID is in the merged manifest; add it to blockedPermissions in app.json"
+            exit 1
+          fi
           for p in FOREGROUND_SERVICE FOREGROUND_SERVICE_MEDIA_PLAYBACK; do
             if grep -q "android.permission.$p\b" /tmp/perms.txt; then
               echo "::error::$p is back, and still nothing calls startForeground"
@@ -378,11 +398,18 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp "out/tasmee-hifz-${GITHUB_SHA::7}.apk" out/tasmee-hifz.apk
+          files=(out/tasmee-hifz.apk)
+          # The signed bundle too, so uploading to Play is also one link:
+          #   …/releases/download/test-build/tasmee-hifz.aab
+          if [ -f "out/tasmee-hifz-${GITHUB_SHA::7}.aab" ]; then
+            cp "out/tasmee-hifz-${GITHUB_SHA::7}.aab" out/tasmee-hifz.aab
+            files+=(out/tasmee-hifz.aab)
+          fi
           gh release delete test-build --yes --cleanup-tag 2>/dev/null || true
-          gh release create test-build out/tasmee-hifz.apk \
+          gh release create test-build "${files[@]}" \
             --prerelease --target "$GITHUB_SHA" \
             --title "Test build ${GITHUB_SHA::7}" \
-            --notes "Latest test build of Tasmee Hifz from commit ${GITHUB_SHA::7}, for installing on a phone. It is not the Play release. Download tasmee-hifz.apk below and open it."
+            --notes "Latest build of Tasmee Hifz from commit ${GITHUB_SHA::7}. On a phone: download tasmee-hifz.apk and open it. For Play Console: upload tasmee-hifz.aab."
           url="https://github.com/${GITHUB_REPOSITORY}/releases/download/test-build/tasmee-hifz.apk"
           echo "Phone download: $url"
           echo "### Install on a phone" >> "$GITHUB_STEP_SUMMARY"
