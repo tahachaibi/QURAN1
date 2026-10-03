@@ -11,6 +11,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ayahDisplayWords, ayahByGlobal, globalAyahOf, surahInfo, wordInAyahOf, words } from '../data/quran';
 import { describeHint, explainMistake } from '../engine/mistakeExplain';
+import { surahName } from '../i18n/names';
+import { useT } from '../i18n/useT';
 import type { Mistake } from '../engine/mistakes';
 import { radius, space, type Palette } from '../theme/theme';
 
@@ -47,6 +49,7 @@ export const MistakeSheet = memo(function MistakeSheet({
   onPlayWord,
   focusWord = null,
 }: MistakeSheetProps) {
+  const { t } = useT();
   const focused = focusWord === null ? undefined : mistakes.find((m) => m.word === focusWord);
   const groups = useMemo<AyahGroup[]>(() => {
     const byAyah = new Map<number, Mistake[]>();
@@ -67,29 +70,29 @@ export const MistakeSheet = memo(function MistakeSheet({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={[styles.backdrop, { backgroundColor: palette.overlay }]} onPress={onClose} accessibilityLabel="Close mistakes" />
+      <Pressable style={[styles.backdrop, { backgroundColor: palette.overlay }]} onPress={onClose} accessibilityLabel={t('Close mistakes')} />
       <View style={[styles.sheet, { backgroundColor: palette.surface, borderColor: palette.border }]}>
         <View style={styles.handleRow}>
           <View style={[styles.handle, { backgroundColor: palette.border }]} />
         </View>
         <View style={styles.header}>
           <Text style={[styles.title, { color: palette.text }]}>
-            {mistakes.length === 0 ? 'Nothing to review' : `${mistakes.length} to review`}
+            {mistakes.length === 0 ? t('Nothing to review') : t('{n} to review', { n: mistakes.length })}
           </Text>
-          <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel="Close">
+          <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('Close')}>
             <Ionicons name="close" size={20} color={palette.textMuted} />
           </Pressable>
         </View>
 
         {mistakes.length === 0 ? (
           <Text style={[styles.empty, { color: palette.textMuted }]}>
-            Your recitation matched the mushaf all the way through. Nothing here needs practice.
+            {t('Your recitation matched the mushaf all the way through. Nothing here needs practice.')}
           </Text>
         ) : (
           <ScrollView contentContainerStyle={styles.list}>
             {focused !== undefined ? (
               <View style={styles.group}>
-                <Text style={[styles.groupLabel, { color: palette.primary, marginBottom: space.xs }]}>The word you tapped</Text>
+                <Text style={[styles.groupLabel, { color: palette.primary, marginBottom: space.xs }]}>{t('The word you tapped')}</Text>
                 <MistakeRow
                   mistake={focused}
                   focused
@@ -147,6 +150,7 @@ function MistakeRow({
   onPractise: (word: number) => void;
   onPlayWord: (word: number) => void;
 }) {
+  const { t, lang } = useT();
   const ayah = ayahByGlobal(globalAyahOf(mistake.word));
   const display = ayahDisplayWords(ayah);
   const offset = wordInAyahOf(mistake.word);
@@ -171,10 +175,14 @@ function MistakeRow({
       accessibilityRole="button"
       accessibilityLabel={
         skipped
-          ? `Skipped word ${correct} in ${ayah.surah}:${ayah.ayah}`
-          : `Said ${explanation.heard} instead of ${correct} in ${ayah.surah}:${ayah.ayah}`
+          ? t('Skipped word {word} in {ref}', { word: correct, ref: `${ayah.surah}:${ayah.ayah}` })
+          : t('Said {heard} instead of {word} in {ref}', {
+              heard: explanation.heard,
+              word: correct,
+              ref: `${ayah.surah}:${ayah.ayah}`,
+            })
       }
-      accessibilityHint="Tap to jump to this word on the page, long press to practise this ayah"
+      accessibilityHint={t('Tap to jump to this word on the page, long press to practise this ayah')}
       style={[
         styles.row,
         { borderColor: focused ? palette.primary : palette.border, borderWidth: focused ? 2 : StyleSheet.hairlineWidth },
@@ -182,26 +190,26 @@ function MistakeRow({
     >
       <View style={styles.rowTop}>
         <View style={[styles.badge, { backgroundColor: badgeBackground, borderColor: badgeColour }]}>
-          <Text style={[styles.badgeText, { color: badgeColour }]}>{skipped ? 'Skipped' : 'Wrong word'}</Text>
+          <Text style={[styles.badgeText, { color: badgeColour }]}>{skipped ? t('Skipped') : t('Wrong word')}</Text>
         </View>
         <Text style={[styles.where, { color: palette.textMuted }]}>
-          {surahInfo(ayah.surah).transliteration} {ayah.surah}:{ayah.ayah} · word {offset + 1}
+          {surahName(ayah.surah, lang)} {ayah.surah}:{ayah.ayah} · {t('word {n}', { n: offset + 1 })}
         </Text>
       </View>
 
       {skipped ? (
         <View style={styles.pair}>
-          <Text style={[styles.pairLabel, { color: palette.textMuted }]}>You skipped</Text>
+          <Text style={[styles.pairLabel, { color: palette.textMuted }]}>{t('You skipped')}</Text>
           <Text style={[styles.correctWord, { color: palette.success }]}>{correct}</Text>
         </View>
       ) : (
         <>
           <View style={styles.pair}>
-            <Text style={[styles.pairLabel, { color: palette.textMuted }]}>You said</Text>
+            <Text style={[styles.pairLabel, { color: palette.textMuted }]}>{t('You said')}</Text>
             <Text style={[styles.saidWord, { color: palette.error }]}>{explanation.heard}</Text>
           </View>
           <View style={styles.pair}>
-            <Text style={[styles.pairLabel, { color: palette.textMuted }]}>Correct</Text>
+            <Text style={[styles.pairLabel, { color: palette.textMuted }]}>{t('Correct')}</Text>
             <Text style={[styles.correctWord, { color: palette.success }]}>{correct}</Text>
           </View>
         </>
@@ -210,15 +218,17 @@ function MistakeRow({
       <Text style={[styles.explain, { color: palette.text }]}>
         {skipped
           ? previous !== null
-            ? `This word was not heard. It comes right after «${previous}».`
-            : 'This word was not heard. It is the first word of the ayah.'
+            ? t('This word was not heard. It comes right after «{previous}».', { previous })
+            : t('This word was not heard. It is the first word of the ayah.')
           : explanation.hint !== null
-            ? describeHint(explanation.hint)
-            : 'A different word was heard in its place.'}
+            ? describeHint(explanation.hint, t)
+            : t('A different word was heard in its place.')}
       </Text>
       {explanation.likelyRecognizer ? (
         <Text style={[styles.note, { color: palette.textMuted }]}>
-          The phone&apos;s recognizer often confuses these sounds. If you are sure you said it right, tap “I said it right”.
+          {t(
+            'The phone’s recognizer often confuses these sounds. If you are sure you said it right, tap “I said it right”.',
+          )}
         </Text>
       ) : null}
 
@@ -236,22 +246,22 @@ function MistakeRow({
           onPress={() => onPlayWord(mistake.word)}
           hitSlop={6}
           accessibilityRole="button"
-          accessibilityLabel="Show this word on the page"
+          accessibilityLabel={t('Show this word on the page')}
           style={[styles.action, { borderColor: palette.border }]}
         >
           <Ionicons name="locate-outline" size={18} color={palette.primary} />
-          <Text style={[styles.actionText, { color: palette.primary }]}>Show on page</Text>
+          <Text style={[styles.actionText, { color: palette.primary }]}>{t('Show on page')}</Text>
         </Pressable>
         <Pressable
           onPress={() => onDismiss(mistake.word)}
           hitSlop={6}
           accessibilityRole="button"
-          accessibilityLabel="I said it right"
-          accessibilityHint="Removes this permanently and never flags this word again"
+          accessibilityLabel={t('I said it right')}
+          accessibilityHint={t('Removes this permanently and never flags this word again')}
           style={[styles.action, { borderColor: palette.border }]}
         >
           <Ionicons name="checkmark-circle-outline" size={18} color={palette.success} />
-          <Text style={[styles.actionText, { color: palette.success }]}>I said it right</Text>
+          <Text style={[styles.actionText, { color: palette.success }]}>{t('I said it right')}</Text>
         </Pressable>
       </View>
     </Pressable>

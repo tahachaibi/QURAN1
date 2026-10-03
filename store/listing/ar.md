@@ -1,21 +1,10 @@
 # Play Store listing — ar (Arabic)
 
-**Read this first.** The app's interface is English. There is no i18n layer
-anywhere in `src/` — every label is a hard-coded English string
-(`app/(tabs)/_layout.tsx` names the tabs "Prayer", "Hadith", "Quran", "Listen",
-"Tracker"; `app/onboarding.tsx` is three English paragraphs). Arabic appears only
-as sacred text and as prayer names (`PRAYER_ARABIC` in
-`src/data/prayerTimes.ts`).
-
-Publishing an Arabic store listing over an English-only app is the fastest way
-to earn one-star reviews in the market you most want. Two honest options:
-
-1. **Preferred:** localise the UI first. The surface is ~15 screens and a few
-   hundred strings; RTL needs `I18nManager` plus a pass over the flex rows. Then
-   publish this listing unchanged.
-2. **If you must ship now:** publish this listing with the disclosure line that
-   is already the last paragraph below (`الواجهة بالإنجليزية حاليًا`), and keep
-   it there until the Arabic UI ships.
+The interface is Arabic or English, chosen on the first screen and changeable
+in Settings. All of it is translated (`src/i18n/ar.ts`, enforced complete by
+`__tests__/i18n.test.ts`), so this listing describes an app that speaks
+Arabic. Layout direction is not mirrored: the mushaf lays out its own lines
+right to left, and a global RTL flip would print them backwards.
 
 ---
 
@@ -94,7 +83,7 @@ Tasmee Hifz يستمع إليك وأنت تتلو، ويتابع موضعك في
 • المواقيت محفوظة، فتبقى الشاشة مفيدة دون إنترنت.
 
 الحديث والأذكار
-• صحيح البخاري وصحيح مسلم كاملين: 14,734 حديثًا بالعربية مع ترجمة إنجليزية، ولكل حديث اسم كتابه ورقمه فيه لتراجعه في المطبوع.
+• صحيح البخاري وصحيح مسلم كاملين: 14,734 حديثًا بالعربية (مع ترجمة إنجليزية في الواجهة الإنجليزية)، ولكل حديث اسم كتابه ورقمه فيه لتراجعه في المطبوع.
 • أذكار الصباح والمساء، ولا حرف عربي واحد فيها من إنشاء هذا التطبيق: كل دعاء نصٌّ منقول حرفيًا من الحديث المضمَّن أو من المصحف المضمَّن.
 
 الاستماع
@@ -111,7 +100,7 @@ Tasmee Hifz يستمع إليك وأنت تتلو، ويتابع موضعك في
 • النص العربي فقط: لا ترجمة ولا تفسير في هذه النسخة.
 • المتابعة تعتمد على التعرّف العربي في أندرويد نفسه. ثبّت حزمة اللغة العربية دون اتصال من إعدادات هاتفك لأفضل نتيجة، ولا تتوقع دقة إنسان يسمعك.
 • لا يصحّح التجويد ولا المخارج. يتابع أي كلمة قلت، لا كيف قلتها.
-• واجهة التطبيق بالإنجليزية حاليًا؛ التعريب قيد العمل.
+• واجهة التطبيق بالعربية أو الإنجليزية، تختارها عند أول تشغيل ويمكنك تغييرها من الإعدادات.
 
 القرآن الكريم، المصحف، حفظ القرآن، تطبيق حفظ القرآن، تلاوة، تسميع القرآن، مراجعة الحفظ، مواقيت الصلاة، الأذان، أذكار الصباح والمساء، صحيح البخاري، صحيح مسلم، قرآن بدون إنترنت.
 ```
@@ -127,5 +116,5 @@ Tasmee Hifz يستمع إليك وأنت تتلو، ويتابع موضعك في
 - Have a native speaker with hifz experience read it once before publishing.
   `تسميع` in particular is a promise: it means reciting *to someone who corrects
   you*, and the app should be able to bear that weight in a review.
-- Remove the `الواجهة بالإنجليزية حاليًا` bullet only when the UI is actually
-  Arabic.
+- The last bullet now says the interface is Arabic or English. It was "English
+  only for now" until the Arabic interface shipped.

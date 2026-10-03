@@ -15,35 +15,56 @@ import { planRestore, type BackupParse, type RestoreSummary } from '../src/data/
 import { formatBytes, pickBackupFile, shareBackup } from '../src/data/backupFile';
 import { exportAll, importAll } from '../src/data/storage';
 import { useRecitation } from '../src/context/RecitationProvider';
+import type { T } from '../src/i18n/i18n';
+import { useT } from '../src/i18n/useT';
+import { recognizerErrorText } from '../src/recognition/errorText';
 import { useTheme } from '../src/theme/ThemeProvider';
 import { ayahTextSizes, radius, space, type FontStep } from '../src/theme/theme';
 
 const LOCALES = ['ar-SA', 'ar-EG', 'ar-MA', 'ar-AE', 'ar-JO', 'ar-DZ'];
-const THEMES: { value: 'system' | 'light' | 'dark'; label: string }[] = [
-  { value: 'system', label: 'System' },
-  { value: 'light', label: 'Day' },
-  { value: 'dark', label: 'Night mushaf' },
+const themes = (t: T): { value: 'system' | 'light' | 'dark'; label: string }[] => [
+  { value: 'system', label: t('System') },
+  { value: 'light', label: t('Day') },
+  { value: 'dark', label: t('Night mushaf') },
 ];
 
 export default function Settings() {
   const { palette, prefs, setPrefs } = useTheme();
+  const { t } = useT();
   const { recognizer } = useRecitation();
   const billing = useBilling();
   const router = useRouter();
-  const backup = useBackup();
+  const backup = useBackup(t);
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <Section title="Reading" palette={palette}>
-        <Row label="Theme" palette={palette}>
+      {/* First, and labelled in both languages: somebody who picked the wrong
+          one by accident has to be able to find the way back without reading
+          the language they cannot read. */}
+      <Section title="Language · اللغة" palette={palette}>
+        <Row label="Language · اللغة" palette={palette}>
           <Choices
-            options={THEMES.map((t) => ({ value: t.value, label: t.label }))}
+            options={[
+              { value: 'ar' as const, label: 'العربية' },
+              { value: 'en' as const, label: 'English' },
+            ]}
+            value={prefs.language === 'ar' ? 'ar' : 'en'}
+            onChange={(language) => setPrefs({ language })}
+            palette={palette}
+          />
+        </Row>
+      </Section>
+
+      <Section title={t('Reading')} palette={palette}>
+        <Row label={t('Theme')} palette={palette}>
+          <Choices
+            options={themes(t)}
             value={prefs.theme}
             onChange={(theme) => setPrefs({ theme })}
             palette={palette}
           />
         </Row>
-        <Row label="Text size" palette={palette}>
+        <Row label={t('Text size')} palette={palette}>
           <Choices
             options={ayahTextSizes.map((s, i) => ({ value: i as FontStep, label: `${s.fontSize}pt` }))}
             value={prefs.fontStep}
@@ -52,30 +73,30 @@ export default function Settings() {
           />
         </Row>
         <Toggle
-          label="High contrast"
-          hint="Maximum ink contrast for the mushaf text"
+          label={t('High contrast')}
+          hint={t('Maximum ink contrast for the mushaf text')}
           value={prefs.highContrast}
           onChange={(highContrast) => setPrefs({ highContrast })}
           palette={palette}
         />
         <Toggle
-          label="Reduce motion"
-          hint="No page-turn animation, instant reveals"
+          label={t('Reduce motion')}
+          hint={t('No page-turn animation, instant reveals')}
           value={prefs.reduceMotion}
           onChange={(reduceMotion) => setPrefs({ reduceMotion })}
           palette={palette}
         />
       </Section>
 
-      <Section title="While reciting" palette={palette}>
+      <Section title={t('While reciting')} palette={palette}>
         <Toggle
-          label="Haptics"
-          hint="A light tick at the end of each ayah, and on a confirmed mistake. Never per word."
+          label={t('Haptics')}
+          hint={t('A light tick at the end of each ayah, and on a confirmed mistake. Never per word.')}
           value={prefs.haptics}
           onChange={(haptics) => setPrefs({ haptics })}
           palette={palette}
         />
-        <Row label="Recognizer locale" palette={palette}>
+        <Row label={t('Recognizer locale')} palette={palette}>
           <Choices
             options={LOCALES.map((l) => ({ value: l, label: l }))}
             value={prefs.locale}
@@ -84,59 +105,60 @@ export default function Settings() {
           />
         </Row>
         <Text style={[styles.hint, { color: palette.textMuted }]}>
-          Recognition quality varies by locale. If Al-Fatiha tracks poorly, try ar-EG or ar-MA — the same
-          voice can score very differently.
+          {t(
+            'Recognition quality varies by locale. If Al-Fatiha tracks poorly, try ar-EG or ar-MA — the same voice can score very differently.',
+          )}
         </Text>
         <Toggle
-          label="Prefer on-device recognition"
-          hint="Lower latency, works with no network, and your recitation never leaves the phone."
+          label={t('Prefer on-device recognition')}
+          hint={t('Lower latency, works with no network, and your recitation never leaves the phone.')}
           value={prefs.preferOnDevice}
           onChange={(preferOnDevice) => setPrefs({ preferOnDevice })}
           palette={palette}
         />
         <Toggle
-          label="Continuous segmented session"
-          hint="Keeps one recognition session alive across breaths on Android 12+. Turn off if your device behaves oddly."
+          label={t('Continuous segmented session')}
+          hint={t('Keeps one recognition session alive across breaths on Android 12+. Turn off if your device behaves oddly.')}
           value={prefs.allowSegmented}
           onChange={(allowSegmented) => setPrefs({ allowSegmented })}
           palette={palette}
         />
       </Section>
 
-      <Section title="Recognizer on this device" palette={palette}>
-        <Info label="Android API" value={String(recognizer.capabilities?.sdkInt ?? '—')} palette={palette} />
+      <Section title={t('Recognizer on this device')} palette={palette}>
+        <Info label={t('Android API')} value={String(recognizer.capabilities?.sdkInt ?? '—')} palette={palette} />
         <Info
-          label="Recognition service"
-          value={recognizer.capabilities?.recognitionAvailable === true ? 'available' : 'not available'}
+          label={t('Recognition service')}
+          value={recognizer.capabilities?.recognitionAvailable === true ? t('available') : t('not available')}
           palette={palette}
         />
         <Info
-          label="On-device recognition"
-          value={recognizer.capabilities?.onDeviceAvailable === true ? 'supported' : 'not supported'}
+          label={t('On-device recognition')}
+          value={recognizer.capabilities?.onDeviceAvailable === true ? t('supported') : t('not supported')}
           palette={palette}
         />
         <Info
-          label="Segmented sessions"
+          label={t('Segmented sessions')}
           value={
             recognizer.capabilities?.segmentedProven === true
-              ? 'working'
+              ? t('working')
               : recognizer.capabilities?.segmentedAvailable === true
-                ? 'supported, not yet proven'
-                : 'not supported'
+                ? t('supported, not yet proven')
+                : t('not supported')
           }
           palette={palette}
         />
-        <Info label="Strategy in use" value={recognizer.strategy ?? '—'} palette={palette} />
+        <Info label={t('Strategy in use')} value={recognizer.strategy ?? '—'} palette={palette} />
         <Info
-          label="Arabic offline pack"
+          label={t('Arabic offline pack')}
           value={
             recognizer.languageStatus === null
               ? '—'
               : recognizer.languageStatus.localeInstalled === true
-                ? 'installed'
+                ? t('installed')
                 : recognizer.languageStatus.supported
-                  ? 'not installed'
-                  : (recognizer.languageStatus.detail ?? 'unknown')
+                  ? t('not installed')
+                  : (recognizer.languageStatus.detail ?? t('unknown'))
           }
           palette={palette}
         />
@@ -144,14 +166,14 @@ export default function Settings() {
           <Pressable
             onPress={() => void recognizer.requestLanguagePack()}
             accessibilityRole="button"
-            accessibilityLabel="Install the Arabic offline pack"
+            accessibilityLabel={t('Install the Arabic offline pack')}
             style={[styles.button, { backgroundColor: palette.primary }]}
           >
-            <Text style={[styles.buttonLabel, { color: palette.paper }]}>Install Arabic offline pack</Text>
+            <Text style={[styles.buttonLabel, { color: palette.paper }]}>{t('Install Arabic offline pack')}</Text>
           </Pressable>
         ) : null}
         {recognizer.lastError !== null ? (
-          <Text style={[styles.hint, { color: palette.error }]}>{recognizer.lastError.message}</Text>
+          <Text style={[styles.hint, { color: palette.error }]}>{recognizerErrorText(recognizer.lastError, t)}</Text>
         ) : null}
       </Section>
 
@@ -198,19 +220,20 @@ export default function Settings() {
         commit that flips the switch, and it is written down here so it is a
         decision rather than an oversight.
       */}
-      <Section title="Your data" palette={palette}>
+      <Section title={t('Your data')} palette={palette}>
         <Pressable
           onPress={backup.doExport}
           disabled={backup.busy !== null}
           accessibilityRole="button"
-          accessibilityLabel="Save a backup file"
+          accessibilityLabel={t('Save a backup file')}
           style={styles.toggleRow}
         >
           <View style={styles.toggleText}>
-            <Text style={[styles.rowLabel, { color: palette.text }]}>Save a backup</Text>
+            <Text style={[styles.rowLabel, { color: palette.text }]}>{t('Save a backup')}</Text>
             <Text style={[styles.hint, { color: palette.textMuted }]}>
-              Your memorisation schedule, streak, mistakes and reading positions, as one plain JSON file you
-              keep. Nothing is uploaded anywhere — you choose where it goes.
+              {t(
+                'Your memorisation schedule, streak, mistakes and reading positions, as one plain JSON file you keep. Nothing is uploaded anywhere — you choose where it goes.',
+              )}
             </Text>
           </View>
           {backup.busy === 'export' ? <ActivityIndicator color={palette.primary} /> : null}
@@ -220,14 +243,15 @@ export default function Settings() {
           onPress={backup.doPick}
           disabled={backup.busy !== null}
           accessibilityRole="button"
-          accessibilityLabel="Restore from a backup file"
+          accessibilityLabel={t('Restore from a backup file')}
           style={styles.toggleRow}
         >
           <View style={styles.toggleText}>
-            <Text style={[styles.rowLabel, { color: palette.text }]}>Restore from a backup</Text>
+            <Text style={[styles.rowLabel, { color: palette.text }]}>{t('Restore from a backup')}</Text>
             <Text style={[styles.hint, { color: palette.textMuted }]}>
-              Merged with what is already here, never replacing it — you will be told exactly what changes
-              before anything is written.
+              {t(
+                'Merged with what is already here, never replacing it — you will be told exactly what changes before anything is written.',
+              )}
             </Text>
           </View>
           {backup.busy === 'pick' ? <ActivityIndicator color={palette.primary} /> : null}
@@ -237,10 +261,10 @@ export default function Settings() {
           <View style={[styles.confirm, { borderColor: palette.border }]}>
             <Text style={[styles.rowLabel, { color: palette.text }]}>
               {backup.pending.summary.losesNothing
-                ? 'Nothing on this phone is lost'
-                : 'Some things on this phone will change'}
+                ? t('Nothing on this phone is lost')
+                : t('Some things on this phone will change')}
             </Text>
-            {describeLines(backup.pending.summary).map((line) => (
+            {describeLines(backup.pending.summary, t).map((line) => (
               <Text key={line} style={[styles.hint, { color: palette.textMuted }]}>
                 {line}
               </Text>
@@ -251,14 +275,14 @@ export default function Settings() {
                 accessibilityRole="button"
                 style={[styles.confirmButton, { borderColor: palette.border }]}
               >
-                <Text style={[styles.rowLabel, { color: palette.textMuted }]}>Cancel</Text>
+                <Text style={[styles.rowLabel, { color: palette.textMuted }]}>{t('Cancel')}</Text>
               </Pressable>
               <Pressable
                 onPress={backup.confirm}
                 accessibilityRole="button"
                 style={[styles.confirmButton, { backgroundColor: palette.primary, borderColor: palette.primary }]}
               >
-                <Text style={[styles.rowLabel, { color: palette.paper }]}>Restore</Text>
+                <Text style={[styles.rowLabel, { color: palette.paper }]}>{t('Restore')}</Text>
               </Pressable>
             </View>
           </View>
@@ -271,10 +295,10 @@ export default function Settings() {
         ) : null}
       </Section>
 
-      <Section title="Diagnostics" palette={palette}>
+      <Section title={t('Diagnostics')} palette={palette}>
         <Toggle
-          label="Show debug overlay"
-          hint="Heard alternatives, local vs global score, cursor and jump decisions. Dev builds only."
+          label={t('Show debug overlay')}
+          hint={t('Heard alternatives, local vs global score, cursor and jump decisions. Dev builds only.')}
           value={prefs.showDebugOverlay}
           onChange={(showDebugOverlay) => setPrefs({ showDebugOverlay })}
           palette={palette}
@@ -282,8 +306,9 @@ export default function Settings() {
       </Section>
 
       <Text style={[styles.footer, { color: palette.textMuted }]}>
-        Tasmee Hifz keeps everything on your device. There is no account, no analytics and no backend. Only
-        prayer times and optional audio playback reach the network.
+        {t(
+          'Tasmee Hifz keeps everything on your device. There is no account, no analytics and no backend. Only prayer times and optional audio playback reach the network.',
+        )}
       </Text>
     </ScrollView>
   );
@@ -297,7 +322,7 @@ export default function Settings() {
  * restore that touches somebody's memorisation record is never a side effect of
  * opening a file.
  */
-function useBackup() {
+function useBackup(t: T) {
   const [busy, setBusy] = useState<'export' | 'pick' | 'restore' | null>(null);
   const [note, setNote] = useState('');
   const [pending, setPending] = useState<{ values: Record<string, string>; summary: RestoreSummary } | null>(null);
@@ -305,16 +330,16 @@ function useBackup() {
   const doExport = useCallback(async () => {
     setBusy('export');
     setNote('');
-    const result = await shareBackup(Date.now());
+    const result = await shareBackup(Date.now(), t);
     setBusy(null);
-    setNote(result.detail !== '' ? result.detail : `Backup ready — ${formatBytes(result.sizeBytes)}.`);
-  }, []);
+    setNote(result.detail !== '' ? result.detail : t('Backup ready — {size}.', { size: formatBytes(result.sizeBytes) }));
+  }, [t]);
 
   const doPick = useCallback(async () => {
     setBusy('pick');
     setNote('');
     setPending(null);
-    const { parse, detail } = await pickBackupFile();
+    const { parse, detail } = await pickBackupFile(t);
     setBusy(null);
     if (parse === null) {
       // detail is empty when the user simply cancelled, which is not an error
@@ -322,12 +347,12 @@ function useBackup() {
       return;
     }
     if (!parse.ok) {
-      setNote(explainProblem(parse));
+      setNote(explainProblem(parse, t));
       return;
     }
     const plan = planRestore(await exportAll(), parse.backup.payload);
     setPending(plan);
-  }, []);
+  }, [t]);
 
   const confirm = useCallback(async () => {
     if (pending === null) return;
@@ -341,52 +366,64 @@ function useBackup() {
      * somebody restore, see an unchanged streak, and conclude it failed.
      */
     setNote(
-      `Restored ${restored.length} ${restored.length === 1 ? 'item' : 'items'}. Close and reopen Tasmee Hifz to see all of it.`,
+      restored.length === 1
+        ? t('Restored 1 item. Close and reopen Tasmee Hifz to see all of it.')
+        : t('Restored {n} items. Close and reopen Tasmee Hifz to see all of it.', { n: restored.length }),
     );
-  }, [pending]);
+  }, [pending, t]);
 
   const cancel = useCallback(() => {
     setPending(null);
-    setNote('Nothing was changed.');
-  }, []);
+    setNote(t('Nothing was changed.'));
+  }, [t]);
 
   return { busy, note, pending, doExport, doPick, confirm, cancel };
 }
 
 /** Why a file was refused, in words rather than an enum. */
-function explainProblem(parse: Extract<BackupParse, { ok: false }>): string {
+function explainProblem(parse: Extract<BackupParse, { ok: false }>, t: T): string {
   switch (parse.problem) {
     case 'empty':
-      return 'That file is empty. The copy may have failed — try sharing the backup to yourself again.';
+      return t('That file is empty. The copy may have failed — try sharing the backup to yourself again.');
     case 'not-json':
-      return 'That file is not a Tasmee Hifz backup — it is not even JSON. A photo or a truncated download looks like this.';
+      return t(
+        'That file is not a Tasmee Hifz backup — it is not even JSON. A photo or a truncated download looks like this.',
+      );
     case 'not-an-object':
     case 'not-a-backup':
-      return 'That is a JSON file, but not one of ours.';
+      return t('That is a JSON file, but not one of ours.');
     case 'schema-too-new':
-      return 'That backup was written by a newer version of Tasmee Hifz, and this build cannot be sure what its contents mean. Update the app and try again.';
+      return t(
+        'That backup was written by a newer version of Tasmee Hifz, and this build cannot be sure what its contents mean. Update the app and try again.',
+      );
     case 'nothing-to-restore':
-      return 'That is one of our backups, but there is nothing in it this version can restore.';
+      return t('That is one of our backups, but there is nothing in it this version can restore.');
     default:
       return parse.detail;
   }
 }
 
 /** The consequence, in counts, before anything is written. */
-function describeLines(s: RestoreSummary): string[] {
+function describeLines(s: RestoreSummary, t: T): string[] {
   const lines: string[] = [];
   if (s.hifz.added > 0 || s.hifz.recovered > 0) {
     lines.push(
-      `Memorisation: ${s.hifz.added} ayahs added, ${s.hifz.recovered} updated from the file, ${s.hifz.kept} left as they are.`,
+      t('Memorisation: {added} ayahs added, {updated} updated from the file, {kept} left as they are.', {
+        added: s.hifz.added,
+        updated: s.hifz.recovered,
+        kept: s.hifz.kept,
+      }),
     );
   } else {
-    lines.push('Memorisation: nothing in the file is newer than what is here.');
+    lines.push(t('Memorisation: nothing in the file is newer than what is here.'));
   }
-  if (s.sessions.merged > 0) lines.push(`Sessions: ${s.sessions.recovered} recovered, ${s.sessions.merged} in total.`);
-  if (s.mistakes.merged > 0) lines.push(`Mistakes: ${s.mistakes.recovered} recovered.`);
-  if (s.progress.recovered > 0) lines.push(`Reading positions: ${s.progress.recovered} moved forward.`);
-  if (s.settingsReplaced) lines.push('Settings will be replaced by the ones in the file.');
-  if (s.skipped.length > 0) lines.push(`${s.skipped.length} thing(s) in the file are deliberately not restored.`);
+  if (s.sessions.merged > 0) {
+    lines.push(t('Sessions: {recovered} recovered, {total} in total.', { recovered: s.sessions.recovered, total: s.sessions.merged }));
+  }
+  if (s.mistakes.merged > 0) lines.push(t('Mistakes: {n} recovered.', { n: s.mistakes.recovered }));
+  if (s.progress.recovered > 0) lines.push(t('Reading positions: {n} moved forward.', { n: s.progress.recovered }));
+  if (s.settingsReplaced) lines.push(t('Settings will be replaced by the ones in the file.'));
+  if (s.skipped.length > 0) lines.push(t('{n} thing(s) in the file are deliberately not restored.', { n: s.skipped.length }));
   return lines;
 }
 

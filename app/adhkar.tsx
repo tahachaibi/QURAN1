@@ -18,11 +18,14 @@ import * as Haptics from 'expo-haptics';
 import { adhkarFor, defaultTime, type AdhkarTime, type Dhikr } from '../src/data/adhkar';
 import { collectionById } from '../src/data/hadith';
 import { loadAdhkarCounts, saveAdhkarCounts } from '../src/data/storage';
+import { surahName } from '../src/i18n/names';
+import { useT } from '../src/i18n/useT';
 import { useTheme } from '../src/theme/ThemeProvider';
 import { radius, space } from '../src/theme/theme';
 
 export default function AdhkarScreen() {
   const { palette, fontStep, prefs } = useTheme();
+  const { t } = useT();
   const [time, setTime] = useState<AdhkarTime>(() => defaultTime());
   /** Repetitions done, per dhikr. Saying something a hundred times needs a tally. */
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -76,7 +79,7 @@ export default function AdhkarScreen() {
               onPress={() => switchTo(option)}
               accessibilityRole="tab"
               accessibilityState={{ selected: active }}
-              accessibilityLabel={`${option} adhkar`}
+              accessibilityLabel={option === 'morning' ? t('Morning adhkar') : t('Evening adhkar')}
               style={[styles.segmentButton, active ? { backgroundColor: palette.primary } : null]}
             >
               <Ionicons
@@ -85,7 +88,7 @@ export default function AdhkarScreen() {
                 color={active ? '#FFFFFF' : palette.textMuted}
               />
               <Text style={[styles.segmentText, { color: active ? '#FFFFFF' : palette.textMuted }]}>
-                {option === 'morning' ? 'Morning' : 'Evening'}
+                {option === 'morning' ? t('Morning') : t('Evening')}
               </Text>
             </Pressable>
           );
@@ -108,11 +111,9 @@ export default function AdhkarScreen() {
         initialNumToRender={5}
         ListFooterComponent={
           <Text style={[styles.footer, { color: palette.textMuted }]}>
-            The du'as are the list from islambook.com, stored exactly as supplied — nothing here is
-            reworded, and no tashkeel is added. Where the wording matches a narration bundled in this
-            app closely enough to be certain, the card shows that hadith and its number instead of the
-            website; where it does not, it says islambook.com and claims nothing more. The Qur'an
-            passages are read from the app's own mushaf text and cited by surah and ayah.
+            {t(
+              "The du'as are the list from islambook.com, stored exactly as supplied — nothing here is reworded, and no tashkeel is added. Where the wording matches a narration bundled in this app closely enough to be certain, the card shows that hadith and its number instead of the website; where it does not, it says islambook.com and claims nothing more. The Qur'an passages are read from the app's own mushaf text and cited by surah and ayah.",
+            )}
           </Text>
         }
       />
@@ -134,15 +135,27 @@ function DhikrCard({
   fontStep: number;
 }) {
   const [openSource, setOpenSource] = useState(false);
+  const { t, lang, arabic } = useT();
   const quran = dhikr.source.kind === 'quran';
+  // An English reader keeps the English name of a Qur'an passage; everyone
+  // else, and every du'a that only ever had an Arabic name, gets the Arabic.
+  const title = arabic ? (dhikr.titleAr ?? dhikr.titleEn ?? '') : (dhikr.titleEn ?? dhikr.titleAr ?? '');
   const complete = done >= dhikr.repeat;
 
   const sourceLabel =
     dhikr.source.kind === 'quran'
-      ? dhikr.source.reference
+      ? `${surahName(dhikr.source.surah, lang)} ${dhikr.source.surah}:${
+          dhikr.source.fromAyah === dhikr.source.toAyah
+            ? dhikr.source.fromAyah
+            : `${dhikr.source.fromAyah}-${dhikr.source.toAyah}`
+        }`
       : dhikr.source.kind === 'page'
         ? 'islambook.com'
-        : `${collectionById(dhikr.source.collection)?.englishTitle ?? 'Hadith'} ${dhikr.source.number}`;
+        : `${
+            (arabic
+              ? collectionById(dhikr.source.collection)?.arabicTitle
+              : collectionById(dhikr.source.collection)?.englishTitle) ?? t('Hadith')
+          } ${dhikr.source.number}`;
 
   return (
     /**
@@ -161,8 +174,8 @@ function DhikrCard({
       accessibilityRole="button"
       accessibilityLabel={
         dhikr.repeat === 1
-          ? `${dhikr.titleAr ?? dhikr.titleEn ?? ''}. Tap to mark as said.`
-          : `${dhikr.titleAr ?? dhikr.titleEn ?? ''}. ${done} of ${dhikr.repeat} said. Tap to count one more.`
+          ? t('{title}. Tap to mark as said.', { title })
+          : t('{title}. {done} of {total} said. Tap to count one more.', { title, done, total: dhikr.repeat })
       }
       style={[
         styles.card,
@@ -173,22 +186,22 @@ function DhikrCard({
       ]}
     >
       <View style={styles.head}>
-        {dhikr.titleAr !== null ? (
+        {title === dhikr.titleAr ? (
           <Text style={[styles.titleAr, { color: palette.text }]} numberOfLines={2}>
-            {dhikr.titleAr}
+            {title}
           </Text>
         ) : (
-          <Text style={[styles.title, { color: palette.text }]}>{dhikr.titleEn}</Text>
+          <Text style={[styles.title, { color: palette.text }]}>{title}</Text>
         )}
         <Pressable
           onPress={onCount}
           accessibilityRole="button"
           accessibilityLabel={
             dhikr.repeat === 1
-              ? `Mark ${dhikr.titleEn} as said`
-              : `Count a repetition of ${dhikr.titleEn}, ${done} of ${dhikr.repeat} done`
+              ? t('Mark {title} as said', { title })
+              : t('Count a repetition of {title}, {done} of {total} done', { title, done, total: dhikr.repeat })
           }
-          accessibilityHint="Tap to count; tapping again after the last one starts over"
+          accessibilityHint={t('Tap to count; tapping again after the last one starts over')}
           hitSlop={8}
           style={[
             styles.tally,
@@ -202,7 +215,7 @@ function DhikrCard({
             <Ionicons name="checkmark" size={14} color={palette.success} />
           ) : null}
           <Text style={[styles.tallyText, { color: complete ? palette.success : palette.textMuted }]}>
-            {dhikr.repeat === 1 ? (complete ? 'said' : 'once') : `${done}/${dhikr.repeat}`}
+            {dhikr.repeat === 1 ? (complete ? t('said') : t('once')) : `${done}/${dhikr.repeat}`}
           </Text>
         </Pressable>
       </View>
@@ -245,7 +258,7 @@ function DhikrCard({
       <Pressable
         onPress={() => setOpenSource((open) => !open)}
         accessibilityRole="button"
-        accessibilityLabel={`Source: ${sourceLabel}`}
+        accessibilityLabel={t('Source: {source}', { source: sourceLabel })}
         accessibilityState={{ expanded: openSource }}
         style={styles.sourceRow}
         disabled={dhikr.source.kind !== 'hadith'}
@@ -259,10 +272,13 @@ function DhikrCard({
       {openSource && dhikr.source.kind === 'hadith' ? (
         <View style={[styles.full, { borderTopColor: palette.border }]}>
           <Text style={[styles.fullArabic, { color: palette.text }]}>{dhikr.source.arabic}</Text>
-          {dhikr.source.narrator.length > 0 ? (
+          {/* the English narrator line and translation are for English readers */}
+          {!arabic && dhikr.source.narrator.length > 0 ? (
             <Text style={[styles.narrator, { color: palette.textMuted }]}>{dhikr.source.narrator}</Text>
           ) : null}
-          <Text style={[styles.fullEnglish, { color: palette.text }]}>{dhikr.source.english}</Text>
+          {arabic ? null : (
+            <Text style={[styles.fullEnglish, { color: palette.text }]}>{dhikr.source.english}</Text>
+          )}
         </View>
       ) : null}
     </Pressable>

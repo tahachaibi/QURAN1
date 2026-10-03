@@ -75,11 +75,15 @@ export const hasOffsets = (offsets: PrayerOffsets): boolean =>
   PRAYERS.some((prayer) => clampOffset(offsets[prayer] ?? 0) !== 0);
 
 /** e.g. "Maghrib +5, Fajr −2" for the tab's one-line summary. */
-export function describeOffsets(offsets: PrayerOffsets): string {
+export function describeOffsets(
+  offsets: PrayerOffsets,
+  name: (prayer: (typeof PRAYERS)[number]) => string = (p) => p,
+  separator = ', ',
+): string {
   return PRAYERS.filter((p) => clampOffset(offsets[p] ?? 0) !== 0)
     .map((p) => {
       const value = clampOffset(offsets[p]);
-      return `${p} ${value > 0 ? '+' : '−'}${Math.abs(value)}`;
+      return `${name(p)} ${value > 0 ? '+' : '−'}${Math.abs(value)}`;
     })
-    .join(', ');
+    .join(separator);
 }

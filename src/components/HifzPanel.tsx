@@ -12,6 +12,9 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ayahByGlobal, ayahStartWord, surahInfo } from '../data/quran';
 import { actionablePatterns, type ConfusionProfile } from '../engine/confusion';
+import type { T } from '../i18n/i18n';
+import { surahName } from '../i18n/names';
+import { useT } from '../i18n/useT';
 import { contiguousRuns, dueQueue, summarize, type HifzDeck } from '../engine/hifz';
 import { radius, space, type Palette } from '../theme/theme';
 
@@ -53,29 +56,30 @@ export const HifzPanel = memo(function HifzPanel({
   const summary = useMemo(() => summarize(deck, now), [deck, now]);
   const due = useMemo(() => dueQueue(deck, now, QUEUE_LIMIT), [deck, now]);
   const runs = useMemo(() => contiguousRuns(due), [due]);
-  const patterns = useMemo(() => actionablePatterns(profile), [profile]);
+  const { t, lang } = useT();
+  const patterns = useMemo(() => actionablePatterns(profile, t), [profile, t]);
 
   if (summary.tracked === 0) {
     return (
       <View style={styles.block}>
-        <Text style={[styles.section, { color: palette.textMuted }]}>Revision</Text>
+        <Text style={[styles.section, { color: palette.textMuted }]}>{t('Revision')}</Text>
         <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
           <Text style={[styles.empty, { color: palette.textMuted }]}>
-            Recite an ayah or two and this becomes your revision plan. Every session grades what you
-            recited, and the ayahs you stumble on come back sooner than the ones you know cold.
+            {t(
+              'Recite an ayah or two and this becomes your revision plan. Every session grades what you recited, and the ayahs you stumble on come back sooner than the ones you know cold.',
+            )}
           </Text>
           <Text style={[styles.empty, { color: palette.textMuted }]}>
-            You do not have to recite out loud to use it. If you read silently, or you are somewhere
-            you would rather not speak into a phone, or your phone has no Arabic speech pack, tell it
-            what you read and the same schedule starts. It is marked as read rather than verified,
-            and only recitation ever changes that.
+            {t(
+              'You do not have to recite out loud to use it. If you read silently, or you are somewhere you would rather not speak into a phone, or your phone has no Arabic speech pack, tell it what you read and the same schedule starts. It is marked as read rather than verified, and only recitation ever changes that.',
+            )}
           </Text>
           {selfReport !== undefined && selfReport !== null ? (
             <Pressable
               onPress={selfReport.onPress}
               accessibilityRole="button"
               accessibilityLabel={selfReport.label}
-              accessibilityHint="Adds those ayahs to your revision schedule as read, without using the microphone"
+              accessibilityHint={t('Adds those ayahs to your revision schedule as read, without using the microphone')}
               style={[styles.cta, { backgroundColor: palette.primary }]}
             >
               <Ionicons name="book-outline" size={16} color={palette.paper} />
@@ -90,13 +94,13 @@ export const HifzPanel = memo(function HifzPanel({
   return (
     <>
       <View style={styles.block}>
-        <Text style={[styles.section, { color: palette.textMuted }]}>Revision</Text>
+        <Text style={[styles.section, { color: palette.textMuted }]}>{t('Revision')}</Text>
         <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
           <View style={styles.statRow}>
-            <Metric label="Tracked" value={String(summary.tracked)} palette={palette} />
-            <Metric label="Due now" value={String(summary.due)} palette={palette} accent={summary.due > 0} />
-            <Metric label="Shaky" value={String(summary.weak)} palette={palette} />
-            <Metric label="Solid" value={String(summary.solid)} palette={palette} />
+            <Metric label={t('Tracked')} value={String(summary.tracked)} palette={palette} />
+            <Metric label={t('Due now')} value={String(summary.due)} palette={palette} accent={summary.due > 0} />
+            <Metric label={t('Shaky')} value={String(summary.weak)} palette={palette} />
+            <Metric label={t('Solid')} value={String(summary.solid)} palette={palette} />
           </View>
 
           <View style={[styles.strengthTrack, { backgroundColor: palette.border }]}>
@@ -111,8 +115,12 @@ export const HifzPanel = memo(function HifzPanel({
             />
           </View>
           <Text style={[styles.hint, { color: palette.textMuted }]}>
-            Average recall strength {Math.round(summary.averageStrength * 100)}% across{' '}
-            {summary.tracked} {summary.tracked === 1 ? 'ayah' : 'ayahs'}
+            {summary.tracked === 1
+              ? t('Average recall strength {pct}% across 1 ayah', { pct: Math.round(summary.averageStrength * 100) })
+              : t('Average recall strength {pct}% across {n} ayahs', {
+                  pct: Math.round(summary.averageStrength * 100),
+                  n: summary.tracked,
+                })}
           </Text>
 
           {runs.length > 0 ? (
@@ -122,17 +130,17 @@ export const HifzPanel = memo(function HifzPanel({
                 onPractise(ayahStartWord[first.from], ayahStartWord[first.to + 1] - 1);
               }}
               accessibilityRole="button"
-              accessibilityLabel={`Revise ${due.length} due ayahs`}
+              accessibilityLabel={due.length === 1 ? t('Revise 1 due ayah') : t('Revise {n} due ayahs', { n: due.length })}
               style={[styles.cta, { backgroundColor: palette.primary }]}
             >
               <Ionicons name="repeat" size={16} color={palette.paper} />
               <Text style={[styles.ctaLabel, { color: palette.paper }]}>
-                Revise {due.length} due {due.length === 1 ? 'ayah' : 'ayahs'}
+                {due.length === 1 ? t('Revise 1 due ayah') : t('Revise {n} due ayahs', { n: due.length })}
               </Text>
             </Pressable>
           ) : (
             <Text style={[styles.hint, { color: palette.success }]}>
-              Nothing due. The next review comes back on its own.
+              {t('Nothing due. The next review comes back on its own.')}
             </Text>
           )}
 
@@ -141,7 +149,7 @@ export const HifzPanel = memo(function HifzPanel({
               onPress={selfReport.onPress}
               accessibilityRole="button"
               accessibilityLabel={selfReport.label}
-              accessibilityHint="Adds those ayahs to your revision schedule as read, without using the microphone"
+              accessibilityHint={t('Adds those ayahs to your revision schedule as read, without using the microphone')}
               style={[styles.secondaryCta, { borderColor: palette.border }]}
             >
               <Ionicons name="book-outline" size={15} color={palette.primary} />
@@ -153,8 +161,10 @@ export const HifzPanel = memo(function HifzPanel({
               worth of this schedule is that it reports what happened. */}
           {summary.verified < summary.tracked ? (
             <Text style={[styles.hint, { color: palette.textMuted }]}>
-              {summary.tracked - summary.verified} of these you added by hand. They are scheduled the
-              same way, but nothing has heard them — recite one and it counts as verified.
+              {t(
+                '{n} of these you added by hand. They are scheduled the same way, but nothing has heard them — recite one and it counts as verified.',
+                { n: summary.tracked - summary.verified },
+              )}
             </Text>
           ) : null}
         </View>
@@ -162,7 +172,7 @@ export const HifzPanel = memo(function HifzPanel({
 
       {due.length > 0 ? (
         <View style={styles.block}>
-          <Text style={[styles.section, { color: palette.textMuted }]}>Weakest first</Text>
+          <Text style={[styles.section, { color: palette.textMuted }]}>{t('Weakest first')}</Text>
           {due.map((item) => {
             const ayah = ayahByGlobal(item.ayah);
             const surah = surahInfo(ayah.surah);
@@ -171,16 +181,20 @@ export const HifzPanel = memo(function HifzPanel({
                 key={item.ayah}
                 onPress={() => onOpenAyah(ayah.surah, ayah.ayah)}
                 accessibilityRole="button"
-                accessibilityLabel={`${surah.transliteration} ${ayah.surah}:${ayah.ayah}, strength ${Math.round(item.strength * 100)}%`}
+                accessibilityLabel={t('{name} {ref}, strength {pct}%', {
+                  name: surahName(ayah.surah, lang),
+                  ref: `${ayah.surah}:${ayah.ayah}`,
+                  pct: Math.round(item.strength * 100),
+                })}
                 style={[styles.dueRow, { backgroundColor: palette.surface, borderColor: palette.border }]}
               >
                 <View style={styles.dueMain}>
                   <Text style={[styles.dueTitle, { color: palette.text }]}>
-                    {surah.transliteration} {ayah.surah}:{ayah.ayah}
+                    {surahName(ayah.surah, lang)} {ayah.surah}:{ayah.ayah}
                   </Text>
                   <Text style={[styles.dueMeta, { color: palette.textMuted }]}>
-                    last graded {item.card.lastGrade}/5 · {describeOverdue(item.overdueDays)}
-                    {item.card.lapses > 0 ? ` · ${item.card.lapses} lapses` : ''}
+                    {t('last graded {grade}/5', { grade: item.card.lastGrade })} · {describeOverdue(item.overdueDays, t)}
+                    {item.card.lapses > 0 ? ` · ${t('lapses: {n}', { n: item.card.lapses })}` : ''}
                   </Text>
                 </View>
                 <View style={[styles.strengthPip, { backgroundColor: pipColour(item.strength, palette) }]} />
@@ -192,7 +206,7 @@ export const HifzPanel = memo(function HifzPanel({
 
       {patterns.length > 0 ? (
         <View style={styles.block}>
-          <Text style={[styles.section, { color: palette.textMuted }]}>What keeps tripping you</Text>
+          <Text style={[styles.section, { color: palette.textMuted }]}>{t('What keeps tripping you')}</Text>
           {patterns.slice(0, 4).map(({ pattern, advice }) => (
             <View
               key={pattern.id}
@@ -219,7 +233,7 @@ export const HifzPanel = memo(function HifzPanel({
                       { color: pattern.likelyRecognizer ? palette.primary : palette.error },
                     ]}
                   >
-                    {pattern.likelyRecognizer ? 'likely the recognizer' : 'worth checking'} ·{' '}
+                    {pattern.likelyRecognizer ? t('likely the recognizer') : t('worth checking')} ·{' '}
                     {pattern.count}×
                   </Text>
                 </View>
@@ -229,9 +243,10 @@ export const HifzPanel = memo(function HifzPanel({
           ))}
           {profile.recognizerShare > 0.6 ? (
             <Text style={[styles.hint, { color: palette.textMuted }]}>
-              {Math.round(profile.recognizerShare * 100)}% of these are pairs Android&apos;s Arabic model
-              routinely confuses, so most of this list is the recognizer rather than your recitation. Try a
-              different locale in Settings before drilling any of it.
+              {t(
+                "{pct}% of these are pairs Android's Arabic model routinely confuses, so most of this list is the recognizer rather than your recitation. Try a different locale in Settings before drilling any of it.",
+                { pct: Math.round(profile.recognizerShare * 100) },
+              )}
             </Text>
           ) : null}
         </View>
@@ -261,11 +276,11 @@ function Metric({
   );
 }
 
-const describeOverdue = (days: number): string => {
+const describeOverdue = (days: number, t: T): string => {
   const d = Math.floor(days);
-  if (d <= 0) return 'due today';
-  if (d === 1) return '1 day overdue';
-  return `${d} days overdue`;
+  if (d <= 0) return t('due today');
+  if (d === 1) return t('1 day overdue');
+  return t('{n} days overdue', { n: d });
 };
 
 const pipColour = (strength: number, palette: Palette): string =>

@@ -31,10 +31,14 @@ export * from './prayerSchedule';
  * Android freezes a channel's sound at creation, so changing it later requires a
  * new channel id. That is why the adhan sound is part of the channel identity.
  */
-export async function ensureChannels(adhanSound: string | null): Promise<void> {
+export async function ensureChannels(adhanSound: string | null, lang: 'en' | 'ar' = 'en'): Promise<void> {
   if (Platform.OS !== 'android') return;
+  // Names show in Android's own notification settings, so they follow the
+  // interface language. Re-registering an existing id updates its name, and
+  // only its name: the sound stays frozen as described above.
+  const ar = lang === 'ar';
   await Notifications.setNotificationChannelAsync(CHANNEL_WARNING, {
-    name: 'Prayer reminder',
+    name: ar ? 'تذكير بالصلاة' : 'Prayer reminder',
     importance: Notifications.AndroidImportance.HIGH,
     sound: 'default',
     vibrationPattern: [0, 250],
@@ -46,13 +50,13 @@ export async function ensureChannels(adhanSound: string | null): Promise<void> {
    * turning a bell off is to be left alone.
    */
   await Notifications.setNotificationChannelAsync(CHANNEL_SILENT, {
-    name: 'Prayer time (silent)',
+    name: ar ? 'وقت الصلاة (صامت)' : 'Prayer time (silent)',
     importance: Notifications.AndroidImportance.DEFAULT,
     sound: null,
     enableVibrate: false,
   });
   await Notifications.setNotificationChannelAsync(CHANNEL_ADHAN, {
-    name: 'Adhan',
+    name: ar ? 'الأذان' : 'Adhan',
     importance: Notifications.AndroidImportance.MAX,
     // a bundled file name without extension, or 'default' when none is bundled
     sound: adhanSound ?? 'default',
@@ -94,7 +98,7 @@ async function cancelOurs(): Promise<number> {
 
 /** Cancel ours and reschedule from scratch. Returns how many were set. */
 export async function rescheduleAll(options: ScheduleOptions, adhanSound: string | null): Promise<number> {
-  await ensureChannels(adhanSound);
+  await ensureChannels(adhanSound, options.lang);
   await cancelOurs();
 
   const planned = planNotifications(options);

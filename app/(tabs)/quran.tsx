@@ -7,6 +7,10 @@ import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-na
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
+import type { Lang, T } from '../../src/i18n/i18n';
+import { surahName } from '../../src/i18n/names';
+import { useT } from '../../src/i18n/useT';
+
 import {
   ayahByGlobal,
   globalAyahOf,
@@ -24,6 +28,7 @@ import { radius, space, type Palette } from '../../src/theme/theme';
 
 export default function QuranScreen() {
   const { palette } = useTheme();
+  const { t, lang, arabic } = useT();
   const router = useRouter();
   const { seekTo, setViewedPage } = useRecitation();
   const [query, setQuery] = useState('');
@@ -57,22 +62,32 @@ export default function QuranScreen() {
       <Pressable
         onPress={() => open(item.number)}
         accessibilityRole="button"
-        accessibilityLabel={`${item.transliteration}, ${item.translation}, ${item.totalVerses} verses, ${item.type}`}
+        accessibilityLabel={
+          arabic
+            ? `${item.name}، ${t('{n} verses', { n: item.totalVerses })}`
+            : `${item.transliteration}, ${item.translation}, ${item.totalVerses} verses, ${item.type}`
+        }
         style={[styles.row, { backgroundColor: palette.surface, borderColor: palette.border }]}
       >
         <View style={[styles.numberBadge, { borderColor: palette.accent }]}>
           <Text style={[styles.number, { color: palette.primary }]}>{item.number}</Text>
         </View>
         <View style={styles.rowMain}>
-          <Text style={[styles.translit, { color: palette.text }]}>{item.transliteration}</Text>
+          {/* In Arabic the Arabic name on the right is the name; a
+              transliteration and an English meaning are only for readers
+              who cannot read it. */}
+          {arabic ? null : (
+            <Text style={[styles.translit, { color: palette.text }]}>{item.transliteration}</Text>
+          )}
           <Text style={[styles.translation, { color: palette.textMuted }]}>
-            {item.translation} · {item.totalVerses} verses · {item.type === 'meccan' ? 'Meccan' : 'Medinan'}
+            {arabic ? '' : `${item.translation} · `}
+            {t('{n} verses', { n: item.totalVerses })} · {item.type === 'meccan' ? t('Meccan') : t('Medinan')}
           </Text>
         </View>
         <Text style={[styles.arabic, { color: palette.text }]}>{item.name}</Text>
       </Pressable>
     ),
-    [open, palette],
+    [open, palette, t, arabic],
   );
 
   return (
@@ -82,10 +97,10 @@ export default function QuranScreen() {
         <TextInput
           value={query}
           onChangeText={setQuery}
-          placeholder="Search surah name, meaning or number"
+          placeholder={t('Search surah name, meaning or number')}
           placeholderTextColor={palette.textMuted}
           style={[styles.searchInput, { color: palette.text }]}
-          accessibilityLabel="Search surahs"
+          accessibilityLabel={t('Search surahs')}
         />
       </View>
 
@@ -97,12 +112,12 @@ export default function QuranScreen() {
             open(ayah.surah, ayah.ayah);
           }}
           accessibilityRole="button"
-          accessibilityLabel="Continue where you left off"
+          accessibilityLabel={t('Continue where you left off')}
           style={[styles.resume, { backgroundColor: palette.primary }]}
         >
           <Ionicons name="play" size={16} color={palette.paper} />
           <Text style={[styles.resumeText, { color: palette.paper }]}>
-            Continue {describe(resume.cursor)}
+            {t('Continue {where}', { where: describe(resume.cursor, lang) })}
           </Text>
         </Pressable>
       ) : null}
@@ -127,6 +142,7 @@ export default function QuranScreen() {
               open(start.surah, start.ayah);
             }}
             palette={palette}
+            t={t}
           />
         }
         initialNumToRender={12}
@@ -136,9 +152,9 @@ export default function QuranScreen() {
   );
 }
 
-function describe(cursor: number): string {
+function describe(cursor: number, lang: Lang): string {
   const ayah = ayahByGlobal(globalAyahOf(cursor));
-  return `${surahs[ayah.surah - 1].transliteration} ${ayah.surah}:${ayah.ayah}`;
+  return `${surahName(ayah.surah, lang)} ${ayah.surah}:${ayah.ayah}`;
 }
 
 /**
@@ -153,10 +169,12 @@ function GoToRow({
   onJumpJuz,
   onJumpHizb,
   palette,
+  t,
 }: {
   onJumpJuz: (juz: number) => void;
   onJumpHizb: (hizb: number) => void;
   palette: Palette;
+  t: T;
 }) {
   const [open, setOpen] = useState<'juz' | 'hizb' | null>(null);
 
@@ -164,14 +182,14 @@ function GoToRow({
     <View style={styles.goWrap}>
       <View style={styles.goRow}>
         <GoButton
-          label="Go to juz"
+          label={t('Go to juz')}
           icon="bookmark-outline"
           active={open === 'juz'}
           onPress={() => setOpen((was) => (was === 'juz' ? null : 'juz'))}
           palette={palette}
         />
         <GoButton
-          label="Go to hizb"
+          label={t('Go to hizb')}
           icon="bookmarks-outline"
           active={open === 'hizb'}
           onPress={() => setOpen((was) => (was === 'hizb' ? null : 'hizb'))}
@@ -181,25 +199,27 @@ function GoToRow({
 
       {open === 'juz' ? (
         <NumberPanel
-          placeholder={`Juz number, 1 to ${TOTAL_JUZ}`}
+          placeholder={t('Juz number, 1 to {max}', { max: TOTAL_JUZ })}
           max={TOTAL_JUZ}
           onGo={(n) => {
             setOpen(null);
             onJumpJuz(n);
           }}
           palette={palette}
+          t={t}
         />
       ) : null}
 
       {open === 'hizb' ? (
         <NumberPanel
-          placeholder={`Hizb number, 1 to ${TOTAL_HIZB}`}
+          placeholder={t('Hizb number, 1 to {max}', { max: TOTAL_HIZB })}
           max={TOTAL_HIZB}
           onGo={(n) => {
             setOpen(null);
             onJumpHizb(n);
           }}
           palette={palette}
+          t={t}
         />
       ) : null}
     </View>
@@ -250,11 +270,13 @@ function NumberPanel({
   max,
   onGo,
   palette,
+  t,
 }: {
   placeholder: string;
   max: number;
   onGo: (n: number) => void;
   palette: Palette;
+  t: T;
 }) {
   const [value, setValue] = useState('');
   const n = Number(value);
@@ -278,7 +300,7 @@ function NumberPanel({
           onPress={() => valid && onGo(n)}
           disabled={!valid}
           accessibilityRole="button"
-          accessibilityLabel="Go"
+          accessibilityLabel={t('Go')}
           style={[
             styles.panelGo,
             { backgroundColor: valid ? palette.primary : palette.border },
@@ -289,7 +311,7 @@ function NumberPanel({
       </View>
       {value.length > 0 && !valid ? (
         <Text style={[styles.panelNote, { color: palette.error }]}>
-          Enter a number from 1 to {max}.
+          {t('Enter a number from 1 to {max}.', { max })}
         </Text>
       ) : null}
     </View>

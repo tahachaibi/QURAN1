@@ -19,11 +19,14 @@ import {
   selectedAdhan,
   type AdhanEntry,
 } from '../src/data/adhanLibrary';
+import { adhanName } from '../src/i18n/names';
+import { useT } from '../src/i18n/useT';
 import { useTheme } from '../src/theme/ThemeProvider';
 import { radius, space } from '../src/theme/theme';
 
 export default function AdhanScreen() {
   const { palette, prefs, setPrefs } = useTheme();
+  const { t, lang } = useT();
   const { previewEntry, previewingId, stopPreview } = useAdhan();
   const [picking, setPicking] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +37,7 @@ export default function AdhanScreen() {
   const add = () => {
     setPicking(true);
     setError(null);
-    void pickAdhanFile()
+    void pickAdhanFile(t)
       .then((result) => {
         if (result.chosen !== null) {
           const id = nextAdhanId(prefs.addedAdhans);
@@ -74,6 +77,7 @@ export default function AdhanScreen() {
         contentContainerStyle={styles.list}
         renderItem={({ item }) => {
           const active = item.id === selected?.id;
+          const name = adhanName(item, t, lang);
           const sounding = item.id === previewingId;
           return (
             <View
@@ -89,7 +93,7 @@ export default function AdhanScreen() {
                 onPress={() => setPrefs({ adhanSelectedId: item.id })}
                 accessibilityRole="radio"
                 accessibilityState={{ selected: active }}
-                accessibilityLabel={`Use ${item.name} at prayer time`}
+                accessibilityLabel={t('Use {name} at prayer time', { name })}
                 style={styles.main}
               >
                 <Ionicons
@@ -97,7 +101,7 @@ export default function AdhanScreen() {
                   size={20}
                   color={active ? palette.success : palette.textMuted}
                 />
-                <Text style={[styles.name, { color: palette.text }]}>{item.name}</Text>
+                <Text style={[styles.name, { color: palette.text }]}>{name}</Text>
               </Pressable>
 
               {item.builtIn ? null : (
@@ -105,7 +109,7 @@ export default function AdhanScreen() {
                   onPress={() => remove(item)}
                   hitSlop={8}
                   accessibilityRole="button"
-                  accessibilityLabel={`Remove ${item.name}`}
+                  accessibilityLabel={t('Remove {name}', { name })}
                   style={styles.action}
                 >
                   <Ionicons name="trash-outline" size={20} color={palette.error} />
@@ -121,7 +125,7 @@ export default function AdhanScreen() {
                 onPress={() => (sounding ? stopPreview() : previewEntry(item))}
                 hitSlop={8}
                 accessibilityRole="button"
-                accessibilityLabel={sounding ? `Stop ${item.name}` : `Play ${item.name}`}
+                accessibilityLabel={sounding ? t('Stop {name}', { name }) : t('Play {name}', { name })}
                 style={[styles.action, styles.play, { borderColor: palette.primary }]}
               >
                 <Ionicons name={sounding ? 'stop' : 'play'} size={18} color={palette.primary} />
@@ -135,12 +139,12 @@ export default function AdhanScreen() {
               onPress={add}
               disabled={picking}
               accessibilityRole="button"
-              accessibilityLabel="Add an adhan from this phone"
+              accessibilityLabel={t('Add an adhan from this phone')}
               style={[styles.add, { borderColor: palette.primary }]}
             >
               <Ionicons name="add" size={18} color={palette.primary} />
               <Text style={[styles.addText, { color: palette.primary }]}>
-                {picking ? 'Choosing…' : 'Add adhan'}
+                {picking ? t('Choosing…') : t('Add adhan')}
               </Text>
             </Pressable>
 

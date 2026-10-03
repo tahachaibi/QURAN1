@@ -14,12 +14,14 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useAdhan } from '../context/AdhanProvider';
 import { PRAYER_ARABIC } from '../data/prayerTimes';
+import { useT } from '../i18n/useT';
 import { useTheme } from '../theme/ThemeProvider';
 import { radius, space } from '../theme/theme';
 
 export function AdhanBanner() {
   const { prayer, dismiss } = useAdhan();
   const { palette } = useTheme();
+  const { t } = useT();
   const insets = useSafeAreaInsets();
 
   if (prayer === null) return null;
@@ -38,18 +40,18 @@ export function AdhanBanner() {
           <Ionicons name="volume-high" size={22} color={palette.accent} />
           <View style={styles.headText}>
             <Text style={[styles.arabic, { color: '#FFFFFF' }]}>{PRAYER_ARABIC[prayer]}</Text>
-            <Text style={[styles.sub, { color: palette.accentSoft }]}>Adhan</Text>
+            <Text style={[styles.sub, { color: palette.accentSoft }]}>{t('Adhan')}</Text>
           </View>
         </View>
 
         <Pressable
           onPress={dismiss}
           accessibilityRole="button"
-          accessibilityLabel="Stop the adhan"
+          accessibilityLabel={t('Stop the adhan')}
           style={[styles.stop, { backgroundColor: palette.accent }]}
         >
           <Ionicons name="stop" size={18} color="#1B4332" />
-          <Text style={styles.stopText}>Stop adhan</Text>
+          <Text style={styles.stopText}>{t('Stop adhan')}</Text>
         </Pressable>
       </View>
     </View>

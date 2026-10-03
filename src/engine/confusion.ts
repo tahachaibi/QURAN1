@@ -18,6 +18,7 @@
  *    the recognizer simply cannot hear the difference would be a lie.
  */
 import { PHONETIC_CLASSES, weightedDistance } from './distance';
+import { translate, type T } from '../i18n/i18n';
 
 /** Same-class pairs are the recognizer's known weakness, not necessarily yours. */
 const CLASS_OF = (() => {
@@ -240,21 +241,34 @@ export function buildProfile(records: readonly MistakeRecord[]): ConfusionProfil
 }
 
 /** The patterns worth surfacing, and a plain-language line for each. */
-export function actionablePatterns(profile: ConfusionProfile): { pattern: ConfusionPattern; advice: string }[] {
+export function actionablePatterns(
+  profile: ConfusionProfile,
+  t: T = (s, p) => translate('en', s, p),
+): { pattern: ConfusionPattern; advice: string }[] {
   return profile.patterns
     .filter((p) => p.count >= MIN_PATTERN_COUNT)
-    .map((p) => ({ pattern: p, advice: describe(p) }));
+    .map((p) => ({ pattern: p, advice: describe(p, t) }));
 }
 
-function describe(p: ConfusionPattern): string {
+function describe(p: ConfusionPattern, t: T): string {
+  const letters = { expected: p.expected, heard: p.heard };
   if (p.kind === 'madd') {
-    return `The madd on ${p.expected} keeps getting lost. This is usually the recognizer mishearing vowel length rather than your recitation — check it against the Listen tab before drilling it.`;
+    return t(
+      'The madd on {expected} keeps getting lost. This is usually the recognizer mishearing vowel length rather than your recitation — check it against the Listen tab before drilling it.',
+      letters,
+    );
   }
   if (p.kind === 'omission') {
-    return `${p.expected} is being dropped. Slow down on the words below and let the letter land.`;
+    return t('{expected} is being dropped. Slow down on the words below and let the letter land.', letters);
   }
   if (p.likelyRecognizer) {
-    return `${p.expected} is coming back as ${p.heard}. These two are hard for Android's Arabic model to tell apart, so this is more likely the recognizer than you.`;
+    return t(
+      "{expected} is coming back as {heard}. These two are hard for Android's Arabic model to tell apart, so this is more likely the recognizer than you.",
+      letters,
+    );
   }
-  return `${p.expected} is coming back as ${p.heard}, and these are not sounds the recognizer usually confuses — worth checking your articulation on the words below.`;
+  return t(
+    '{expected} is coming back as {heard}, and these are not sounds the recognizer usually confuses — worth checking your articulation on the words below.',
+    letters,
+  );
 }

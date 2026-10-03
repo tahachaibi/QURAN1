@@ -8,11 +8,13 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { surahs, type SurahInfo } from '../../src/data/quran';
+import { useT } from '../../src/i18n/useT';
 import { useTheme } from '../../src/theme/ThemeProvider';
 import { radius, space } from '../../src/theme/theme';
 
 export default function ListenTab() {
   const { palette } = useTheme();
+  const { t, arabic } = useT();
   const router = useRouter();
 
   const open = useCallback(
@@ -27,18 +29,18 @@ export default function ListenTab() {
       <Pressable
         onPress={() => open(item.number)}
         accessibilityRole="button"
-        accessibilityLabel={`Listen to ${item.transliteration}`}
+        accessibilityLabel={t('Listen to {name}', { name: arabic ? item.name : item.transliteration })}
         style={[styles.row, { backgroundColor: palette.surface, borderColor: palette.border }]}
       >
         <Ionicons name="play-circle-outline" size={24} color={palette.primary} />
         <View style={styles.rowMain}>
-          <Text style={[styles.translit, { color: palette.text }]}>{item.transliteration}</Text>
-          <Text style={[styles.meta, { color: palette.textMuted }]}>{item.totalVerses} verses</Text>
+          {arabic ? null : <Text style={[styles.translit, { color: palette.text }]}>{item.transliteration}</Text>}
+          <Text style={[styles.meta, { color: palette.textMuted }]}>{t('{n} verses', { n: item.totalVerses })}</Text>
         </View>
         <Text style={[styles.arabic, { color: palette.text }]}>{item.name}</Text>
       </Pressable>
     ),
-    [open, palette],
+    [open, palette, t, arabic],
   );
 
   return (

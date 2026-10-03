@@ -4,7 +4,7 @@
  * The microphone permission is requested at the point it is about to be used and
  * explained in the same breath.
  */
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,6 +12,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 
 import { setOnboarded } from '../src/data/storage';
+import type { T } from '../src/i18n/i18n';
+import { useT } from '../src/i18n/useT';
 import { useTheme } from '../src/theme/ThemeProvider';
 import { radius, space } from '../src/theme/theme';
 
@@ -22,32 +24,37 @@ interface Step {
   cta: string;
 }
 
-const STEPS: Step[] = [
+const steps = (t: T): Step[] => [
   {
     icon: 'book-outline',
-    title: 'The page follows your voice',
-    body:
+    title: t('The page follows your voice'),
+    body: t(
       'Open any surah and recite. Tasmee Hifz tracks where you are on the mushaf page — word by word — and turns the page when you do.',
-    cta: 'Next',
+    ),
+    cta: t('Next'),
   },
   {
     icon: 'sparkles-outline',
-    title: 'Start anywhere, in any surah',
-    body:
+    title: t('Start anywhere, in any surah'),
+    body: t(
       'You do not have to tell it what you are reciting. Begin in the middle of another surah, with or without the basmala, and it finds you within a second.',
-    cta: 'Next',
+    ),
+    cta: t('Next'),
   },
   {
     icon: 'mic-outline',
-    title: 'Try it on Al-Fatiha',
-    body:
+    title: t('Try it on Al-Fatiha'),
+    body: t(
       'Tasmee Hifz needs the microphone to follow along. Your recitation is processed on the device by Android’s own recognizer and is never uploaded.',
-    cta: 'Allow microphone and try',
+    ),
+    cta: t('Allow microphone and try'),
   },
 ];
 
 export default function Onboarding() {
   const { palette } = useTheme();
+  const { t } = useT();
+  const STEPS = useMemo(() => steps(t), [t]);
   const router = useRouter();
   const [index, setIndex] = useState(0);
   const [denied, setDenied] = useState(false);
@@ -75,8 +82,9 @@ export default function Onboarding() {
 
         {denied ? (
           <Text style={[styles.denied, { color: palette.error }]}>
-            Microphone access was denied, so follow-along cannot listen. You can still read and listen to
-            recitations. To turn it on later: Settings → Apps → Tasmee Hifz → Permissions → Microphone.
+            {t(
+              'Microphone access was denied, so follow-along cannot listen. You can still read and listen to recitations. To turn it on later: Settings → Apps → Tasmee Hifz → Permissions → Microphone.',
+            )}
           </Text>
         ) : null}
       </View>
@@ -110,10 +118,10 @@ export default function Onboarding() {
             void setOnboarded().then(() => router.replace('/(tabs)/quran'));
           }}
           accessibilityRole="button"
-          accessibilityLabel="Skip the introduction"
+          accessibilityLabel={t('Skip the introduction')}
         >
           <Text style={[styles.skip, { color: palette.textMuted }]}>
-            {denied ? 'Continue without the microphone' : 'Skip'}
+            {denied ? t('Continue without the microphone') : t('Skip')}
           </Text>
         </Pressable>
       </View>

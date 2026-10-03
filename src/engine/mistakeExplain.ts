@@ -22,6 +22,7 @@
  */
 import { sharesClass, traceback } from './confusion';
 import { weightedDistance } from './distance';
+import { translate, type T } from '../i18n/i18n';
 
 export type LetterHint =
   /** letters in the word that were not said */
@@ -88,19 +89,19 @@ export function explainMistake(expected: string, heard: string): MistakeExplanat
   return wrong(missing ? { type: 'missing', letters } : { type: 'extra', letters }, onlyMadd);
 }
 
-/** The hint as one English sentence, with the Arabic letters in guillemets. */
-export function describeHint(hint: LetterHint): string {
+/** The hint as one sentence, with the Arabic letters in guillemets. */
+export function describeHint(hint: LetterHint, t: T = (s, p) => translate('en', s, p)): string {
   const spaced = (s: string) => [...s].join(' ');
   switch (hint.type) {
     case 'missing':
       return hint.letters.length === 1
-        ? `You left out the letter «${hint.letters}».`
-        : `You left out the letters «${spaced(hint.letters)}».`;
+        ? t('You left out the letter «{letter}».', { letter: hint.letters })
+        : t('You left out the letters «{letters}».', { letters: spaced(hint.letters) });
     case 'extra':
       return hint.letters.length === 1
-        ? `You added a «${hint.letters}» that is not in the word.`
-        : `You added «${spaced(hint.letters)}», which are not in the word.`;
+        ? t('You added a «{letter}» that is not in the word.', { letter: hint.letters })
+        : t('You added «{letters}», which are not in the word.', { letters: spaced(hint.letters) });
     case 'swapped':
-      return `You said «${hint.said}» where the word has «${hint.should}».`;
+      return t('You said «{said}» where the word has «{should}».', { said: hint.said, should: hint.should });
   }
 }

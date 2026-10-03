@@ -42,6 +42,7 @@ import { adjustTimings } from '../data/prayerOffsets';
 import { type PrayerName } from '../data/prayerTimes';
 import { useRecitation } from './RecitationProvider';
 import { useTheme } from '../theme/ThemeProvider';
+import { useT } from '../i18n/useT';
 
 /** How late a TAP on the notification may still start the adhan. */
 const TAP_GRACE_MS = 10 * 60_000;
@@ -77,6 +78,7 @@ const AdhanContext = createContext<AdhanContextValue | null>(null);
 
 export function AdhanProvider({ children }: { children: ReactNode }) {
   const { prefs } = useTheme();
+  const { t, lang } = useT();
   const { session } = useRecitation();
   const [timings, setTimings] = useState<Record<string, string> | null>(null);
   /**
@@ -227,7 +229,9 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
       if (cancelled) return;
       if (!granted) {
         setScheduleError(
-          'Notifications are turned off for Tasmee Hifz, so there is no call to prayer. Turn them on in Settings > Apps > Tasmee Hifz > Notifications.',
+          t(
+            'Notifications are turned off for Tasmee Hifz, so there is no call to prayer. Turn them on in Settings > Apps > Tasmee Hifz > Notifications.',
+          ),
         );
         return;
       }
@@ -238,20 +242,23 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
           // Always planned; the bells decide which of them make a sound.
           adhan: true,
           bells: prefs.bells,
+          lang,
         },
         hasAdhanSound ? ADHAN_SOUND : null,
       );
       if (cancelled) return;
       setScheduleError(
         set === 0
-          ? 'Today\u2019s prayer times have all passed, or the saved times are out of date. Open the Prayer tab while online to refresh them.'
+          ? t(
+              'Today’s prayer times have all passed, or the saved times are out of date. Open the Prayer tab while online to refresh them.',
+            )
           : null,
       );
     })();
     return () => {
       cancelled = true;
     };
-  }, [timings, timingsDay, prefs.prayerWarning, prefs.bells]);
+  }, [timings, timingsDay, prefs.prayerWarning, prefs.bells, lang, t]);
 
   /**
    * The timer. Re-armed after every check rather than set once per prayer: a

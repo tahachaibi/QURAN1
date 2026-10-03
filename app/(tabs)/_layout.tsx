@@ -1,10 +1,12 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
+import { useT } from '../../src/i18n/useT';
 import { useTheme } from '../../src/theme/ThemeProvider';
 
 export default function TabsLayout() {
   const { palette } = useTheme();
+  const { t } = useT();
   return (
     <Tabs
       screenOptions={{
@@ -19,35 +21,35 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Prayer',
+          title: t('Prayer'),
           tabBarIcon: ({ color, size }) => <Ionicons name="moon-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="hadith"
         options={{
-          title: 'Hadith',
+          title: t('Hadith'),
           tabBarIcon: ({ color, size }) => <Ionicons name="library-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="quran"
         options={{
-          title: 'Quran',
+          title: t('Quran'),
           tabBarIcon: ({ color, size }) => <Ionicons name="book-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="listen"
         options={{
-          title: 'Listen',
+          title: t('Listen'),
           tabBarIcon: ({ color, size }) => <Ionicons name="headset-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="tracker"
         options={{
-          title: 'Tracker',
+          title: t('Tracker'),
           tabBarIcon: ({ color, size }) => <Ionicons name="flame-outline" size={size} color={color} />,
         }}
       />

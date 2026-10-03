@@ -7,12 +7,14 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { collectionById, searchChapters, type HadithChapter } from '../../../src/data/hadith';
+import { useT } from '../../../src/i18n/useT';
 import { useTheme } from '../../../src/theme/ThemeProvider';
 import { radius, space } from '../../../src/theme/theme';
 
 export default function CollectionScreen() {
   const params = useLocalSearchParams<{ collection?: string }>();
   const { palette } = useTheme();
+  const { t, arabic } = useT();
   const router = useRouter();
   const [query, setQuery] = useState('');
 
@@ -30,7 +32,7 @@ export default function CollectionScreen() {
           })
         }
         accessibilityRole="button"
-        accessibilityLabel={`${item.englishName}, ${item.count} hadith`}
+        accessibilityLabel={`${arabic ? item.arabicName : item.englishName}, ${t('{n} hadith', { n: item.count })}`}
         style={[styles.row, { backgroundColor: palette.surface, borderColor: palette.border }]}
       >
         <Text style={[styles.index, { color: palette.primary, borderColor: palette.accent }]}>{item.id}</Text>
@@ -39,19 +41,19 @@ export default function CollectionScreen() {
             {item.arabicName}
           </Text>
           <Text style={[styles.english, { color: palette.textMuted }]} numberOfLines={1}>
-            {item.englishName} · {item.count}
+            {arabic ? t('{n} hadith', { n: item.count }) : `${item.englishName} · ${item.count}`}
           </Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color={palette.textMuted} />
       </Pressable>
     ),
-    [collectionId, palette, router],
+    [collectionId, palette, router, t, arabic],
   );
 
   if (collection === undefined) {
     return (
       <View style={styles.root}>
-        <Text style={[styles.empty, { color: palette.textMuted }]}>That collection is not bundled.</Text>
+        <Text style={[styles.empty, { color: palette.textMuted }]}>{t('That collection is not bundled.')}</Text>
       </View>
     );
   }
@@ -63,10 +65,10 @@ export default function CollectionScreen() {
         <TextInput
           value={query}
           onChangeText={setQuery}
-          placeholder="Search books"
+          placeholder={t('Search books')}
           placeholderTextColor={palette.textMuted}
           style={[styles.searchInput, { color: palette.text }]}
-          accessibilityLabel="Search books of this collection"
+          accessibilityLabel={t('Search books of this collection')}
         />
       </View>
       <FlatList
@@ -77,7 +79,7 @@ export default function CollectionScreen() {
         keyboardShouldPersistTaps="handled"
         initialNumToRender={14}
         ListEmptyComponent={
-          <Text style={[styles.empty, { color: palette.textMuted }]}>No book matches that.</Text>
+          <Text style={[styles.empty, { color: palette.textMuted }]}>{t('No book matches that.')}</Text>
         }
       />
     </View>

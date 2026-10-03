@@ -1,21 +1,12 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, useColorScheme } from 'react-native';
 
 import { darkPalette, lightPalette, type FontStep, type Palette } from './theme';
 import { loadPrefs, savePrefs, type Prefs } from '../data/storage';
 
-export interface ThemeContextValue {
-  palette: Palette;
-  dark: boolean;
-  /** OS "reduce motion" — respected everywhere, including the page turn (§6.7) */
-  reduceMotion: boolean;
-  highContrast: boolean;
-  fontStep: FontStep;
-  prefs: Prefs;
-  setPrefs: (next: Partial<Prefs>) => void;
-}
+import { ThemeContext, type ThemeContextValue } from './themeContext';
 
-const ThemeContext = createContext<ThemeContextValue | null>(null);
+export type { ThemeContextValue };
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const scheme = useColorScheme();
@@ -74,3 +65,6 @@ export function useTheme(): ThemeContextValue {
   }
   return value;
 }
+
+
+export { useOptionalTheme } from './themeContext';

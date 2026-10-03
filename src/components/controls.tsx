@@ -9,6 +9,7 @@ import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { radius, space, type Palette } from '../theme/theme';
+import { useT } from '../i18n/useT';
 
 // ---------------------------------------------------------------------------
 
@@ -126,6 +127,7 @@ export const MicButton = memo(function MicButton({
   reduceMotion,
   disabled,
 }: MicButtonProps) {
+  const { t } = useT();
   const scale = reduceMotion
     ? 1
     : level.interpolate({ inputRange: [0, 1], outputRange: [1, 1.16] });
@@ -147,11 +149,11 @@ export const MicButton = memo(function MicButton({
         onPress={onPress}
         disabled={disabled}
         accessibilityRole="button"
-        accessibilityLabel={listening ? 'Stop reciting' : 'Start reciting'}
+        accessibilityLabel={listening ? t('Stop reciting') : t('Start reciting')}
         accessibilityHint={
           listening
-            ? 'Ends the session and shows your summary'
-            : 'Starts listening and follows your recitation on the page'
+            ? t('Ends the session and shows your summary')
+            : t('Starts listening and follows your recitation on the page')
         }
         style={({ pressed }) => [
           styles.mic,
@@ -228,18 +230,19 @@ export const StatsColumn = memo(function StatsColumn({
   onOpenMistakes,
   palette,
 }: StatsColumnProps) {
+  const { t } = useT();
   const elapsedMs = useLiveElapsed(listening, startedAt, baseMs);
   return (
     <View style={styles.stats}>
       <View style={styles.statsRow}>
-        <Text style={[styles.timer, { color: palette.text }]} accessibilityLabel={`Session time ${formatDuration(elapsedMs)}`}>
+        <Text style={[styles.timer, { color: palette.text }]} accessibilityLabel={t('Session time {time}', { time: formatDuration(elapsedMs) })}>
           {formatDuration(elapsedMs)}
         </Text>
         <Pressable
           onPress={onReset}
           hitSlop={10}
           accessibilityRole="button"
-          accessibilityLabel="Reset session stats"
+          accessibilityLabel={t('Reset session stats')}
         >
           <Ionicons name="refresh" size={13} color={palette.textMuted} />
         </Pressable>
@@ -247,8 +250,8 @@ export const StatsColumn = memo(function StatsColumn({
       <Pressable
         onPress={onOpenMistakes}
         accessibilityRole="button"
-        accessibilityLabel={`${mistakeCount} ${mistakeCount === 1 ? 'mistake' : 'mistakes'}`}
-        accessibilityHint="Opens the mistakes review sheet"
+        accessibilityLabel={mistakeCount === 1 ? t('1 mistake') : t('{n} mistakes', { n: mistakeCount })}
+        accessibilityHint={t('Opens the mistakes review sheet')}
         style={[
           styles.mistakePill,
           {
@@ -258,7 +261,7 @@ export const StatsColumn = memo(function StatsColumn({
         ]}
       >
         <Text style={[styles.mistakeCount, { color: mistakeCount > 0 ? palette.error : palette.success }]}>
-          {mistakeCount === 0 ? 'clean' : `${mistakeCount} to review`}
+          {mistakeCount === 0 ? t('clean') : t('{n} to review', { n: mistakeCount })}
         </Text>
       </Pressable>
     </View>
@@ -321,6 +324,7 @@ export const HeardPill = memo(function HeardPill({
   palette,
   reduceMotion,
 }: HeardPillProps) {
+  const { t } = useT();
   const opacity = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (text.length === 0) return;
@@ -335,7 +339,7 @@ export const HeardPill = memo(function HeardPill({
   if (text.length === 0 && !expanded) return null;
 
   return (
-    <Pressable onPress={onToggle} accessibilityRole="button" accessibilityLabel="Last heard" accessibilityHint="Expands the live transcript">
+    <Pressable onPress={onToggle} accessibilityRole="button" accessibilityLabel={t('Last heard')} accessibilityHint={t('Expands the live transcript')}>
       <Animated.View
         style={[
           styles.heardPill,

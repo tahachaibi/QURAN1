@@ -19,6 +19,9 @@ import * as Sharing from 'expo-sharing';
 
 import { BACKUP_MIME, backupFilename, parseBackup, serialiseBackup, type BackupParse } from './backup';
 import { exportAll } from './storage';
+import { translate, type T } from '../i18n/i18n';
+
+const ENGLISH: T = (s, p) => translate('en', s, p);
 
 const DIR = FileSystem.cacheDirectory ?? FileSystem.documentDirectory ?? '';
 
@@ -44,7 +47,7 @@ export interface WriteResult {
  * somewhere, this copy is litter, and the cache is the one directory Android
  * cleans up on its own.
  */
-export async function shareBackup(now: number): Promise<WriteResult> {
+export async function shareBackup(now: number, t: T = ENGLISH): Promise<WriteResult> {
   let text: string;
   try {
     text = serialiseBackup({
@@ -56,7 +59,7 @@ export async function shareBackup(now: number): Promise<WriteResult> {
       now,
     });
   } catch (e) {
-    return { ok: false, detail: `Your data could not be read: ${message(e)}`, sizeBytes: 0 };
+    return { ok: false, detail: t('Your data could not be read: {why}', { why: message(e) }), sizeBytes: 0 };
   }
 
   const sizeBytes = text.length;
@@ -64,7 +67,7 @@ export async function shareBackup(now: number): Promise<WriteResult> {
   try {
     await FileSystem.writeAsStringAsync(uri, text, { encoding: FileSystem.EncodingType.UTF8 });
   } catch (e) {
-    return { ok: false, detail: `The backup could not be written: ${message(e)}`, sizeBytes: 0 };
+    return { ok: false, detail: t('The backup could not be written: {why}', { why: message(e) }), sizeBytes: 0 };
   }
 
   if (!(await Sharing.isAvailableAsync())) {
@@ -76,18 +79,18 @@ export async function shareBackup(now: number): Promise<WriteResult> {
     return {
       ok: true,
       sizeBytes,
-      detail: `Saved to ${uri}. Nothing on this phone offered to share it, so copy it off over a cable.`,
+      detail: t('Saved to {path}. Nothing on this phone offered to share it, so copy it off over a cable.', { path: uri }),
     };
   }
 
   try {
     await Sharing.shareAsync(uri, {
       mimeType: BACKUP_MIME,
-      dialogTitle: 'Save your Tasmee Hifz backup',
+      dialogTitle: t('Save your Tasmee Hifz backup'),
       UTI: 'public.json',
     });
   } catch (e) {
-    return { ok: true, sizeBytes, detail: `Saved, but the share sheet failed: ${message(e)}` };
+    return { ok: true, sizeBytes, detail: t('Saved, but the share sheet failed: {why}', { why: message(e) }) };
   }
   return { ok: true, sizeBytes, detail: '' };
 }
@@ -106,7 +109,7 @@ export interface ReadResult {
  * of opening a file is not something this app is going to do to somebody's
  * memorisation record.
  */
-export async function pickBackupFile(): Promise<ReadResult> {
+export async function pickBackupFile(t: T = ENGLISH): Promise<ReadResult> {
   let picked: DocumentPicker.DocumentPickerResult;
   try {
     /**
@@ -123,12 +126,12 @@ export async function pickBackupFile(): Promise<ReadResult> {
       multiple: false,
     });
   } catch (e) {
-    return { parse: null, detail: `The file picker could not open: ${message(e)}` };
+    return { parse: null, detail: t('The file picker could not open: {why}', { why: message(e) }) };
   }
 
   if (picked.canceled) return { parse: null, detail: '' };
   const asset = picked.assets[0];
-  if (asset === undefined) return { parse: null, detail: 'No file came back from the picker.' };
+  if (asset === undefined) return { parse: null, detail: t('No file came back from the picker.') };
 
   let text: string;
   try {
@@ -136,7 +139,7 @@ export async function pickBackupFile(): Promise<ReadResult> {
     // it the moment we stop looking at it.
     text = await FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.UTF8 });
   } catch (e) {
-    return { parse: null, detail: `That file could not be read: ${message(e)}` };
+    return { parse: null, detail: t('That file could not be read: {why}', { why: message(e) }) };
   }
 
   return { parse: parseBackup(text), detail: '' };

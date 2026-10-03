@@ -14,6 +14,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, AppState, type AppStateStatus } from 'react-native';
 
+import { msg } from '../i18n/i18n';
 import {
   ArabicSpeech,
   isArabicSpeechLinked,
@@ -232,7 +233,7 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
             if (wantsToListen.current) {
               wantsToListen.current = false;
               setStatus('paused');
-              callbacks.current.onInterrupted('The microphone is in use elsewhere');
+              callbacks.current.onInterrupted(msg('The microphone is in use elsewhere'));
             }
             break;
           case 'offline-unavailable':
@@ -326,7 +327,7 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
         wantsToListen.current = false;
         void ArabicSpeech().stop().catch(() => undefined);
         setStatus('paused');
-        callbacks.current.onInterrupted('Tasmee Hifz went to the background');
+        callbacks.current.onInterrupted(msg('Tasmee Hifz went to the background'));
       }
     });
     return () => sub.remove();

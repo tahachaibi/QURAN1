@@ -43,6 +43,7 @@ import {
 import { loadCachedReciters, saveCachedReciters } from '../data/storage';
 import { ayahTextSizes, radius, space, type FontStep, type Palette } from '../theme/theme';
 import { OfflineBadge } from './controls';
+import { useT } from '../i18n/useT';
 
 export interface ListenPanelProps {
   palette: Palette;
@@ -70,6 +71,8 @@ export function ListenPanel({
   cursor,
   fontStep,
 }: ListenPanelProps) {
+  const { t, arabic } = useT();
+  const reciterName = (r: Reciter) => (arabic ? (r.arabicName ?? reciterLabel(r)) : reciterLabel(r));
   const [surah, setSurah] = useState(() => surahOf(cursor));
   const [playing, setPlaying] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -121,12 +124,12 @@ export function ListenPanel({
         // Offline or unparseable: keep whatever list we already have, but SAY so.
         // Failing silently here is what left the picker showing five reciters
         // with no explanation.
-        setListError(e instanceof Error ? e.message : 'could not load the reciter list');
+        setListError(e instanceof Error ? e.message : t('could not load the reciter list'));
       } finally {
         if (explicit) setRefreshing(false);
       }
     },
-    [],
+    [t],
   );
 
   useEffect(() => {
@@ -224,16 +227,16 @@ export function ListenPanel({
         <Text allowFontScaling={false} style={[styles.surahArabic, { color: palette.ink, fontSize: fontSize * 1.5 }]}>
           {info.name}
         </Text>
-        <Text style={[styles.surahLatin, { color: palette.text }]}>{info.transliteration}</Text>
+        {arabic ? null : <Text style={[styles.surahLatin, { color: palette.text }]}>{info.transliteration}</Text>}
         <Text style={[styles.surahMeta, { color: palette.textMuted }]}>
-          {info.translation} · {info.totalVerses} verses ·{' '}
-          {info.type === 'meccan' ? 'Meccan' : 'Medinan'}
+          {arabic ? '' : `${info.translation} · `}
+          {t('{n} verses', { n: info.totalVerses })} · {info.type === 'meccan' ? t('Meccan') : t('Medinan')}
         </Text>
       </View>
 
       <View style={[styles.controls, { borderColor: palette.border }]}>
         {failed ? (
-          <OfflineBadge palette={palette} label={`No audio for ${current.name} — try another reciter`} />
+          <OfflineBadge palette={palette} label={t('No audio for {name} — try another reciter', { name: reciterName(current) })} />
         ) : null}
 
         <View style={styles.timeRow}>
@@ -255,7 +258,7 @@ export function ListenPanel({
           <Pressable
             onPress={() => void play(surah - 1)}
             accessibilityRole="button"
-            accessibilityLabel="Previous surah"
+            accessibilityLabel={t('Previous surah')}
             hitSlop={12}
           >
             <Ionicons name="play-skip-back" size={26} color={palette.text} />
@@ -264,7 +267,7 @@ export function ListenPanel({
           <Pressable
             onPress={toggle}
             accessibilityRole="button"
-            accessibilityLabel={playing ? 'Pause' : `Play ${info.transliteration}`}
+            accessibilityLabel={playing ? t('Pause') : t('Play {name}', { name: arabic ? info.name : info.transliteration })}
             style={[styles.play, { backgroundColor: palette.primary }]}
           >
             {loading ? (
@@ -277,7 +280,7 @@ export function ListenPanel({
           <Pressable
             onPress={() => void play(surah + 1)}
             accessibilityRole="button"
-            accessibilityLabel="Next surah"
+            accessibilityLabel={t('Next surah')}
             hitSlop={12}
           >
             <Ionicons name="play-skip-forward" size={26} color={palette.text} />
@@ -287,16 +290,16 @@ export function ListenPanel({
         <Pressable
           onPress={() => setPickerOpen(true)}
           accessibilityRole="button"
-          accessibilityLabel={`Reciter: ${reciterLabel(current)}. Tap to change`}
+          accessibilityLabel={t('Reciter: {name}. Tap to change', { name: reciterName(current) })}
           style={[styles.reciterRow, { backgroundColor: palette.surface, borderColor: palette.border }]}
         >
           <Ionicons name="person-outline" size={16} color={palette.primary} />
           <View style={styles.reciterMain}>
             <Text style={[styles.reciterName, { color: palette.text }]} numberOfLines={1}>
-              {reciterLabel(current)}
+              {reciterName(current)}
             </Text>
             <Text style={[styles.reciterArabic, { color: palette.textMuted }]} numberOfLines={1}>
-              {current.arabicName ?? `${reciters.length} reciters`}
+              {arabic ? t('Reciters available: {n}', { n: reciters.length }) : (current.arabicName ?? `${reciters.length} reciters`)}
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={palette.textMuted} />
@@ -350,6 +353,7 @@ function ReciterPicker({
   onPick: (id: string) => void;
 }) {
   const [query, setQuery] = useState('');
+  const { t, arabic } = useT();
   const results = useMemo(() => searchReciters(reciters, query), [query, reciters]);
 
   const renderItem = useCallback(
@@ -367,9 +371,11 @@ function ReciterPicker({
           ]}
         >
           <View style={styles.pickerMain}>
-            <Text style={[styles.pickerName, { color: palette.text }]}>{item.name}</Text>
+            <Text style={[styles.pickerName, { color: palette.text }]}>
+              {arabic ? (item.arabicName ?? item.name) : item.name}
+            </Text>
             <Text style={[styles.pickerArabic, { color: palette.textMuted }]} numberOfLines={1}>
-              {item.arabicName ?? item.path}
+              {arabic ? (item.arabicName === undefined ? item.path : item.name) : (item.arabicName ?? item.path)}
               {item.style === undefined ? '' : ` · ${item.style}`}
             </Text>
           </View>
@@ -377,7 +383,7 @@ function ReciterPicker({
         </Pressable>
       );
     },
-    [current, onPick, palette],
+    [current, onPick, palette, arabic],
   );
 
   return (
@@ -385,7 +391,7 @@ function ReciterPicker({
       <Pressable
         style={[styles.backdrop, { backgroundColor: palette.overlay }]}
         onPress={onClose}
-        accessibilityLabel="Close reciter list"
+        accessibilityLabel={t('Close reciter list')}
       />
       <View style={[styles.sheet, { backgroundColor: palette.surface, borderColor: palette.border }]}>
         <View style={styles.handleRow}>
@@ -393,14 +399,14 @@ function ReciterPicker({
         </View>
         <View style={styles.sheetHeader}>
           <View>
-            <Text style={[styles.sheetTitle, { color: palette.text }]}>Reciter</Text>
+            <Text style={[styles.sheetTitle, { color: palette.text }]}>{t('Reciter')}</Text>
             <Text
               style={[styles.sheetSub, { color: error === null ? palette.textMuted : palette.error }]}
               numberOfLines={2}
             >
               {error !== null
-                ? `${reciters.length} shown — ${error}`
-                : `${reciters.length} available${source === 'builtin' ? ' · built-in, tap refresh for all' : ''}${source === 'cached' ? ' · saved list' : ''}`}
+                ? t('{n} shown — {error}', { n: reciters.length, error })
+                : `${t('{n} available', { n: reciters.length })}${source === 'builtin' ? ` · ${t('built-in, tap refresh for all')}` : ''}${source === 'cached' ? ` · ${t('saved list')}` : ''}`}
             </Text>
           </View>
           <View style={styles.sheetActions}>
@@ -408,7 +414,7 @@ function ReciterPicker({
               onPress={onRefresh}
               hitSlop={12}
               accessibilityRole="button"
-              accessibilityLabel="Refresh the reciter list"
+              accessibilityLabel={t('Refresh the reciter list')}
               disabled={refreshing}
             >
               {refreshing ? (
@@ -417,7 +423,7 @@ function ReciterPicker({
                 <Ionicons name="refresh" size={19} color={palette.primary} />
               )}
             </Pressable>
-            <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel="Close">
+            <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('Close')}>
               <Ionicons name="close" size={20} color={palette.textMuted} />
             </Pressable>
           </View>
@@ -428,10 +434,10 @@ function ReciterPicker({
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Search by name, Arabic name or style"
+            placeholder={t('Search by name, Arabic name or style')}
             placeholderTextColor={palette.textMuted}
             style={[styles.searchInput, { color: palette.text }]}
-            accessibilityLabel="Search reciters"
+            accessibilityLabel={t('Search reciters')}
           />
         </View>
 
@@ -441,7 +447,7 @@ function ReciterPicker({
           renderItem={renderItem}
           keyboardShouldPersistTaps="handled"
           ListEmptyComponent={
-            <Text style={[styles.empty, { color: palette.textMuted }]}>No reciter matches that.</Text>
+            <Text style={[styles.empty, { color: palette.textMuted }]}>{t('No reciter matches that.')}</Text>
           }
         />
       </View>

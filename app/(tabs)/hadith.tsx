@@ -12,11 +12,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { collections, searchHadith, type Hadith, type HadithCollection } from '../../src/data/hadith';
 import { adhkarCount, defaultTime } from '../../src/data/adhkar';
 import { HadithCard } from '../../src/components/HadithCard';
+import { useT } from '../../src/i18n/useT';
 import { useTheme } from '../../src/theme/ThemeProvider';
 import { radius, space } from '../../src/theme/theme';
 
 export default function HadithTab() {
   const { palette, fontStep } = useTheme();
+  const { t, arabic } = useT();
   const router = useRouter();
   const [query, setQuery] = useState('');
 
@@ -32,20 +34,21 @@ export default function HadithTab() {
       <Pressable
         onPress={() => router.push({ pathname: '/hadith/[collection]', params: { collection: String(item.id) } })}
         accessibilityRole="button"
-        accessibilityLabel={`${item.englishTitle}, ${item.total} hadith`}
+        accessibilityLabel={`${arabic ? item.arabicTitle : item.englishTitle}, ${t('{n} hadith', { n: item.total })}`}
         style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}
       >
         <View style={styles.cardMain}>
           <Text style={[styles.cardArabic, { color: palette.ink }]}>{item.arabicTitle}</Text>
-          <Text style={[styles.cardTitle, { color: palette.text }]}>{item.englishTitle}</Text>
+          {arabic ? null : <Text style={[styles.cardTitle, { color: palette.text }]}>{item.englishTitle}</Text>}
           <Text style={[styles.cardMeta, { color: palette.textMuted }]}>
-            {item.englishAuthor} · {item.total.toLocaleString()} hadith · {item.chapters.length} books
+            {arabic ? item.arabicAuthor : item.englishAuthor} · {t('{n} hadith', { n: item.total.toLocaleString() })} ·{' '}
+            {t('{n} books', { n: item.chapters.length })}
           </Text>
         </View>
         <Ionicons name="chevron-forward" size={20} color={palette.textMuted} />
       </Pressable>
     ),
-    [palette, router],
+    [palette, router, t, arabic],
   );
 
   return (
@@ -55,13 +58,13 @@ export default function HadithTab() {
         <TextInput
           value={query}
           onChangeText={setQuery}
-          placeholder="Search both collections, Arabic or English"
+          placeholder={t('Search both collections, Arabic or English')}
           placeholderTextColor={palette.textMuted}
           style={[styles.searchInput, { color: palette.text }]}
-          accessibilityLabel="Search hadith"
+          accessibilityLabel={t('Search hadith')}
         />
         {query.length > 0 ? (
-          <Pressable onPress={() => setQuery('')} hitSlop={10} accessibilityRole="button" accessibilityLabel="Clear search">
+          <Pressable onPress={() => setQuery('')} hitSlop={10} accessibilityRole="button" accessibilityLabel={t('Clear search')}>
             <Ionicons name="close-circle" size={18} color={palette.textMuted} />
           </Pressable>
         ) : null}
@@ -79,7 +82,7 @@ export default function HadithTab() {
           initialNumToRender={6}
           ListEmptyComponent={
             <Text style={[styles.empty, { color: palette.textMuted }]}>
-              Nothing matches that in Bukhari or Muslim.
+              {t('Nothing matches that in Bukhari or Muslim.')}
             </Text>
           }
         />
@@ -99,15 +102,17 @@ export default function HadithTab() {
             <Pressable
               onPress={() => router.push('/adhkar')}
               accessibilityRole="button"
-              accessibilityLabel="Adhkar of the morning and evening"
+              accessibilityLabel={t('Adhkar of the morning and evening')}
               style={[styles.card, { backgroundColor: palette.primary, borderColor: palette.accent }]}
             >
               <Ionicons name="partly-sunny-outline" size={22} color={palette.accent} />
               <View style={styles.cardMain}>
-                <Text style={[styles.cardTitle, { color: '#FFFFFF' }]}>Adhkar · morning & evening</Text>
+                <Text style={[styles.cardTitle, { color: '#FFFFFF' }]}>{t('Adhkar · morning & evening')}</Text>
                 <Text style={[styles.cardMeta, { color: palette.accentSoft }]}>
-                  {adhkarCount(defaultTime())} to say {defaultTime() === 'morning' ? 'this morning' : 'this evening'} ·
-                  every one quoted from Bukhari, Muslim or the Qur'an
+                  {defaultTime() === 'morning'
+                    ? t('{n} to say this morning', { n: adhkarCount(defaultTime()) })
+                    : t('{n} to say this evening', { n: adhkarCount(defaultTime()) })}{' '}
+                  · {t("every one quoted from Bukhari, Muslim or the Qur'an")}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={palette.accent} />

@@ -93,11 +93,19 @@ const GENERATED = (raw as unknown as { adhkar: RawDhikr[] }).adhkar;
  * mushaf at call time, which is the same text the Read screen shows — there is no
  * second copy of the Qur'an in this app to drift out of step.
  */
-const QURAN_ADHKAR: readonly { id: string; surah: number; from: number; to: number; repeat: number; titleEn: string }[] = [
-  { id: 'ayat-al-kursi', surah: 2, from: 255, to: 255, repeat: 1, titleEn: 'Ayat al-Kursi' },
-  { id: 'al-ikhlas', surah: 112, from: 1, to: 4, repeat: 3, titleEn: 'Surat al-Ikhlas' },
-  { id: 'al-falaq', surah: 113, from: 1, to: 5, repeat: 3, titleEn: 'Surat al-Falaq' },
-  { id: 'an-nas', surah: 114, from: 1, to: 6, repeat: 3, titleEn: 'Surat an-Nas' },
+const QURAN_ADHKAR: readonly {
+  id: string;
+  surah: number;
+  from: number;
+  to: number;
+  repeat: number;
+  titleEn: string;
+  titleAr: string;
+}[] = [
+  { id: 'ayat-al-kursi', surah: 2, from: 255, to: 255, repeat: 1, titleEn: 'Ayat al-Kursi', titleAr: 'آية الكرسي' },
+  { id: 'al-ikhlas', surah: 112, from: 1, to: 4, repeat: 3, titleEn: 'Surat al-Ikhlas', titleAr: 'سورة الإخلاص' },
+  { id: 'al-falaq', surah: 113, from: 1, to: 5, repeat: 3, titleEn: 'Surat al-Falaq', titleAr: 'سورة الفلق' },
+  { id: 'an-nas', surah: 114, from: 1, to: 6, repeat: 3, titleEn: 'Surat an-Nas', titleAr: 'سورة الناس' },
 ];
 
 function quranDhikr(entry: (typeof QURAN_ADHKAR)[number]): Dhikr {
@@ -110,7 +118,7 @@ function quranDhikr(entry: (typeof QURAN_ADHKAR)[number]): Dhikr {
   return {
     id: entry.id,
     repeat: entry.repeat,
-    titleAr: null,
+    titleAr: entry.titleAr,
     titleEn: entry.titleEn,
     note: null,
     lines,

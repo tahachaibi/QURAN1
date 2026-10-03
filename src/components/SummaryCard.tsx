@@ -12,6 +12,9 @@ import { ayahByGlobal, globalAyahOf, surahInfo } from '../data/quran';
 import { radius, space, type Palette } from '../theme/theme';
 import type { SessionSummary } from '../context/RecitationProvider';
 import { formatDuration } from './controls';
+import type { T } from '../i18n/i18n';
+import { surahName } from '../i18n/names';
+import { useT } from '../i18n/useT';
 
 export interface SummaryCardProps {
   summary: SessionSummary | null;
@@ -42,57 +45,59 @@ export const SummaryCard = memo(function SummaryCard({
   onExport,
   onAddByHand,
 }: SummaryCardProps) {
+  const { t, lang } = useT();
   if (summary === null) return null;
-  const surah = surahInfo(summary.surah);
-  const progressLine = describeProgress(summary);
+  const progressLine = describeProgress(summary, t);
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <View style={[styles.backdrop, { backgroundColor: palette.overlay }]}>
         <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-          <Text style={[styles.eyebrow, { color: palette.textMuted }]}>Session complete</Text>
-          <Text style={[styles.surah, { color: palette.text }]}>{surah.transliteration}</Text>
+          <Text style={[styles.eyebrow, { color: palette.textMuted }]}>{t('Session complete')}</Text>
+          <Text style={[styles.surah, { color: palette.text }]}>{surahName(summary.surah, lang)}</Text>
 
           <ScrollView style={styles.scroll} contentContainerStyle={styles.grid}>
-            <Stat label="Words recited" value={String(summary.wordsRecited)} palette={palette} />
-            <Stat label="Verses covered" value={String(summary.versesCovered)} palette={palette} />
-            <Stat label="Accuracy" value={`${Math.round(summary.accuracy * 100)}%`} palette={palette} />
-            <Stat label="Longest clean run" value={`${summary.longestCleanRun} words`} palette={palette} />
-            <Stat label="Needed a hint" value={String(summary.hintedWords.length)} palette={palette} />
-            <Stat label="Time" value={formatDuration(summary.durationMs)} palette={palette} />
+            <Stat label={t('Words recited')} value={String(summary.wordsRecited)} palette={palette} />
+            <Stat label={t('Verses covered')} value={String(summary.versesCovered)} palette={palette} />
+            <Stat label={t('Accuracy')} value={`${Math.round(summary.accuracy * 100)}%`} palette={palette} />
+            <Stat label={t('Longest clean run')} value={t('{n} words', { n: summary.longestCleanRun })} palette={palette} />
+            <Stat label={t('Needed a hint')} value={String(summary.hintedWords.length)} palette={palette} />
+            <Stat label={t('Time')} value={formatDuration(summary.durationMs)} palette={palette} />
           </ScrollView>
 
           <Text style={[styles.progress, { color: palette.primary }]}>{progressLine}</Text>
 
           {summary.graded.length > 0 ? (
             <Text style={[styles.hifz, { color: palette.textMuted }]}>
-              {summary.graded.length} {summary.graded.length === 1 ? 'ayah' : 'ayahs'} graded for revision
+              {summary.graded.length === 1
+                ? t('1 ayah graded for revision')
+                : t('{n} ayahs graded for revision', { n: summary.graded.length })}
               {weakest(summary) === null
                 ? ''
-                : ` · weakest ${weakest(summary)} — it comes back tomorrow`}
-              {summary.dueNow > 0 ? ` · ${summary.dueNow} due now` : ''}
+                : ` · ${t('weakest {ref} — it comes back tomorrow', { ref: weakest(summary) ?? '' })}`}
+              {summary.dueNow > 0 ? ` · ${t('due now: {n}', { n: summary.dueNow })}` : ''}
             </Text>
           ) : onAddByHand !== undefined ? (
             <>
               <Text style={[styles.hifz, { color: palette.textMuted }]}>
-                Nothing was matched clearly enough to schedule for revision. That is the recogniser,
-                not your recitation — if you did recite this, add it yourself. It goes in as read
-                rather than verified.
+                {t(
+                  'Nothing was matched clearly enough to schedule for revision. That is the recogniser, not your recitation — if you did recite this, add it yourself. It goes in as read rather than verified.',
+                )}
               </Text>
               <Pressable
                 onPress={onAddByHand}
                 accessibilityRole="button"
-                accessibilityLabel="Add this page to my revision schedule by hand"
-                accessibilityHint="Schedules the ayahs on the page you are reading, without the microphone"
+                accessibilityLabel={t('Add this page to my revision schedule by hand')}
+                accessibilityHint={t('Schedules the ayahs on the page you are reading, without the microphone')}
               >
-                <Text style={[styles.dismiss, { color: palette.primary }]}>Add it to revision anyway</Text>
+                <Text style={[styles.dismiss, { color: palette.primary }]}>{t('Add it to revision anyway')}</Text>
               </Pressable>
             </>
           ) : null}
 
           {summary.hintedWords.length > 0 ? (
             <Text style={[styles.hintList, { color: palette.textMuted }]} numberOfLines={2}>
-              Shaky: {summary.hintedWords.slice(0, 8).map(describeWord).join(' · ')}
+              {t('Shaky: {list}', { list: summary.hintedWords.slice(0, 8).map(describeWord).join(' · ') })}
             </Text>
           ) : null}
 
@@ -106,23 +111,25 @@ export const SummaryCard = memo(function SummaryCard({
               accessibilityRole="button"
               accessibilityLabel={
                 summary.autoLogged
-                  ? 'Update the streak entry already saved for this session'
-                  : 'Log this session to my streak'
+                  ? t('Update the streak entry already saved for this session')
+                  : t('Log this session to my streak')
               }
               style={[styles.primaryButton, { backgroundColor: palette.primary }]}
             >
               <Text style={[styles.primaryLabel, { color: palette.paper }]}>
-                {summary.autoLogged ? 'Saved — update it' : 'Log to streak'}
+                {summary.autoLogged ? t('Saved — update it') : t('Log to streak')}
               </Text>
             </Pressable>
             <Pressable
               onPress={onPractise}
               accessibilityRole="button"
-              accessibilityLabel="Practise the weakest ayah from this session"
+              accessibilityLabel={t('Practise the weakest ayah from this session')}
               style={[styles.secondaryButton, { borderColor: palette.border }]}
             >
               <Text style={[styles.secondaryLabel, { color: palette.text }]}>
-                {weakest(summary) === null ? 'Practise shaky words' : `Practise ${weakest(summary)}`}
+                {weakest(summary) === null
+                  ? t('Practise shaky words')
+                  : t('Practise {ref}', { ref: weakest(summary) ?? '' })}
               </Text>
             </Pressable>
             {/* The one thing that makes matching better is a real recording of a
@@ -131,13 +138,13 @@ export const SummaryCard = memo(function SummaryCard({
             <Pressable
               onPress={onExport}
               accessibilityRole="button"
-              accessibilityLabel="Save this session's recitation log"
-              accessibilityHint="Writes a file you can send, used to improve follow-along accuracy"
+              accessibilityLabel={t("Save this session's recitation log")}
+              accessibilityHint={t('Writes a file you can send, used to improve follow-along accuracy')}
             >
-              <Text style={[styles.dismiss, { color: palette.primary }]}>Save recitation log</Text>
+              <Text style={[styles.dismiss, { color: palette.primary }]}>{t('Save recitation log')}</Text>
             </Pressable>
-            <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Dismiss summary">
-              <Text style={[styles.dismiss, { color: palette.textMuted }]}>Not now</Text>
+            <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={t('Dismiss summary')}>
+              <Text style={[styles.dismiss, { color: palette.textMuted }]}>{t('Not now')}</Text>
             </Pressable>
           </View>
         </View>
@@ -177,14 +184,14 @@ export function weakestAyahOf(summary: SessionSummary): number | null {
   return worst.ayah;
 }
 
-function describeProgress(summary: SessionSummary): string {
+function describeProgress(summary: SessionSummary, t: T): string {
   if (summary.previousFurthest === null) {
-    return 'First time reciting this surah here — this is your baseline.';
+    return t('First time reciting this surah here — this is your baseline.');
   }
   const delta = summary.furthestWord - summary.previousFurthest;
-  if (delta > 0) return `You got ${delta} words further than last time in this surah.`;
-  if (delta === 0) return 'You reached exactly where you did last time in this surah.';
-  return `${Math.abs(delta)} words short of your best run in this surah.`;
+  if (delta > 0) return t('You got {n} words further than last time in this surah.', { n: delta });
+  if (delta === 0) return t('You reached exactly where you did last time in this surah.');
+  return t('{n} words short of your best run in this surah.', { n: Math.abs(delta) });
 }
 
 const styles = StyleSheet.create({

@@ -22,6 +22,7 @@ import { ayahTextSizes, radius, space, type FontStep, type Palette } from '../th
 import type { PageSlice } from '../hooks/usePageSlice';
 import { AyahWord, type WordState } from './AyahWord';
 import { GUTTER, MEASURE_WIDTH, pxFont, pxLine, refine } from './mushafFit';
+import { useT } from '../i18n/useT';
 
 export interface MushafPageProps {
   page: number;
@@ -63,6 +64,7 @@ function MushafPageImpl({
   onWordLongPress,
   width,
 }: MushafPageProps) {
+  const { t } = useT();
   const lines = useMemo(() => linesOfPage(page), [page]);
   /**
    * How many of this page's lines have a width worth measuring.
@@ -245,7 +247,7 @@ function MushafPageImpl({
           level={level}
           onPress={onWordPress}
           onLongPress={onWordLongPress}
-          accessibilityHint="Tap to move here, long press to start reciting from here"
+          accessibilityHint={t('Tap to move here, long press to start reciting from here')}
         />
       ),
     );

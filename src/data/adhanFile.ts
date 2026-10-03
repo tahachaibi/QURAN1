@@ -20,6 +20,7 @@
  */
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
+import { translate, type T } from '../i18n/i18n';
 
 /** Where the chosen recording is kept: our own directory, so it survives. */
 const DIR = FileSystem.documentDirectory ?? FileSystem.cacheDirectory ?? '';
@@ -44,7 +45,7 @@ export interface PickResult {
  * delete, and an adhan that works until the system clears its cache is worse than
  * one that never worked.
  */
-export async function pickAdhanFile(): Promise<PickResult> {
+export async function pickAdhanFile(t: T = (s, p) => translate('en', s, p)): Promise<PickResult> {
   let picked: DocumentPicker.DocumentPickerResult;
   try {
     picked = await DocumentPicker.getDocumentAsync({
@@ -53,12 +54,12 @@ export async function pickAdhanFile(): Promise<PickResult> {
       multiple: false,
     });
   } catch (e) {
-    return { ok: false, chosen: null, detail: `The file picker could not open: ${message(e)}` };
+    return { ok: false, chosen: null, detail: t('The file picker could not open: {why}', { why: message(e) }) };
   }
 
   if (picked.canceled) return { ok: false, chosen: null, detail: '' };
   const asset = picked.assets[0];
-  if (asset === undefined) return { ok: false, chosen: null, detail: 'No file came back from the picker.' };
+  if (asset === undefined) return { ok: false, chosen: null, detail: t('No file came back from the picker.') };
 
   // Keep the extension: Android's media stack sniffs content, but a correct
   // extension is one less thing that can differ between phones.
@@ -78,7 +79,7 @@ export async function pickAdhanFile(): Promise<PickResult> {
       detail: '',
     };
   } catch (e) {
-    return { ok: false, chosen: null, detail: `The file could not be saved: ${message(e)}` };
+    return { ok: false, chosen: null, detail: t('The file could not be saved: {why}', { why: message(e) }) };
   }
 }
 

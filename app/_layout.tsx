@@ -21,6 +21,7 @@ import { AdhanBanner } from '../src/components/AdhanBanner';
 import { ThemeProvider, useTheme } from '../src/theme/ThemeProvider';
 import { hasOnboarded } from '../src/data/storage';
 import { lightPalette } from '../src/theme/theme';
+import { useT } from '../src/i18n/useT';
 
 export default function RootLayout() {
   // Every hook runs before any early return (§10): rendering nothing while the
@@ -98,15 +99,24 @@ export default function RootLayout() {
 }
 
 function Chrome() {
-  const { palette, dark } = useTheme();
+  const { palette, dark, prefs } = useTheme();
+  const { t } = useT();
   const router = useRouter();
   const [checked, setChecked] = useState(false);
+  const chosen = prefs.language !== null;
 
   useEffect(() => {
+    // Language first: everything after it, onboarding included, is in it.
+    if (!chosen) {
+      setChecked(true);
+      router.replace('/language');
+      return;
+    }
     void hasOnboarded().then((done) => {
       setChecked(true);
       if (!done) router.replace('/onboarding');
     });
+    // Only on launch. Choosing a language later must not restart onboarding.
   }, [router]);
 
   return (
@@ -122,17 +132,18 @@ function Chrome() {
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="surah/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="language" options={{ headerShown: false, animation: checked ? 'default' : 'none' }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false, animation: checked ? 'default' : 'none' }} />
-        <Stack.Screen name="adhan" options={{ title: 'Adhan' }} />
-        <Stack.Screen name="adhkar" options={{ title: 'Adhkar' }} />
-        <Stack.Screen name="hadith/[collection]/index" options={{ title: 'Books' }} />
-        <Stack.Screen name="hadith/[collection]/[chapter]" options={{ title: 'Hadith' }} />
-        <Stack.Screen name="settings" options={{ title: 'Settings', presentation: 'modal' }} />
+        <Stack.Screen name="adhan" options={{ title: t('Adhan') }} />
+        <Stack.Screen name="adhkar" options={{ title: t('Adhkar') }} />
+        <Stack.Screen name="hadith/[collection]/index" options={{ title: t('Books') }} />
+        <Stack.Screen name="hadith/[collection]/[chapter]" options={{ title: t('Hadith') }} />
+        <Stack.Screen name="settings" options={{ title: t('Settings'), presentation: 'modal' }} />
         {/* Registered so the route exists and can be developed against. With
             monetisation off nothing in the app navigates here — there is no row,
             no banner and no link — but a screen that only exists behind a
             switch is a screen nobody ever sees until the day it is sold. */}
-        <Stack.Screen name="upgrade" options={{ title: 'The coach', presentation: 'modal' }} />
+        <Stack.Screen name="upgrade" options={{ title: t('The coach'), presentation: 'modal' }} />
       </Stack>
       {/* Last sibling, so it paints over the header and every screen. */}
       <AdhanBanner />

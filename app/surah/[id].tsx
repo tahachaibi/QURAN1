@@ -51,6 +51,8 @@ import { useTheme } from '../../src/theme/ThemeProvider';
 import { radius, space } from '../../src/theme/theme';
 import { ListenPanel } from '../../src/components/ListenPanel';
 import { loadProgress } from '../../src/data/storage';
+import { useT } from '../../src/i18n/useT';
+import { recognizerErrorText } from '../../src/recognition/errorText';
 
 type Tab = 'listen' | 'read';
 
@@ -66,6 +68,7 @@ export default function SurahScreen() {
   const params = useLocalSearchParams<{ id?: string; ayah?: string; tab?: string }>();
   const router = useRouter();
   const { palette, fontStep, reduceMotion, prefs, setPrefs } = useTheme();
+  const { t, tr, arabic } = useT();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const recitation = useRecitation();
@@ -217,17 +220,17 @@ export default function SurahScreen() {
         {
           value: 'follow' as ReadMode,
           icon: 'eye-outline' as const,
-          label: 'Follow mode',
-          hint: 'Everything visible; recited words settle into full ink',
+          label: t('Follow mode'),
+          hint: t('Everything visible; recited words settle into full ink'),
         },
         {
           value: 'hidden' as ReadMode,
           icon: 'eye-off-outline' as const,
-          label: 'Hidden mode',
-          hint: 'Words are concealed and revealed as you recite them',
+          label: t('Hidden mode'),
+          hint: t('Words are concealed and revealed as you recite them'),
         },
       ],
-    [],
+    [t],
   );
 
   const onToggleMic = useCallback(() => {
@@ -258,11 +261,13 @@ export default function SurahScreen() {
     void commitSelfReport(selfReportKind, from, to).then((added) => {
       setSelfReportNote(
         added === 0
-          ? 'Already in your revision schedule from earlier today.'
-          : `${added} ${added === 1 ? 'ayah' : 'ayahs'} added to revision, as read rather than heard.`,
+          ? t('Already in your revision schedule from earlier today.')
+          : added === 1
+            ? t('1 ayah added to revision, as read rather than heard.')
+            : t('{n} ayahs added to revision, as read rather than heard.', { n: added }),
       );
     });
-  }, [commitSelfReport, selfReportKind, selfReportRange]);
+  }, [commitSelfReport, selfReportKind, selfReportRange, t]);
 
   useEffect(() => {
     if (selfReportNote === null) return undefined;
@@ -296,21 +301,23 @@ export default function SurahScreen() {
               onPress={goBack}
               hitSlop={12}
               accessibilityRole="button"
-              accessibilityLabel="Back"
+              accessibilityLabel={t('Back')}
             >
               <Ionicons name="chevron-back" size={24} color={palette.text} />
             </Pressable>
             <View style={styles.headerCentre}>
               <Text style={[styles.headerArabic, { color: palette.text }]}>{info.name}</Text>
               <Text style={[styles.headerLatin, { color: palette.textMuted }]}>
-                {info.transliteration} · page {viewedPage} · juz {liveAyah.juz}
+                {arabic
+                  ? t('page {page} · juz {juz}', { page: viewedPage, juz: liveAyah.juz })
+                  : `${info.transliteration} · ${t('page {page} · juz {juz}', { page: viewedPage, juz: liveAyah.juz })}`}
               </Text>
             </View>
             <Pressable
               onPress={() => router.push('/settings')}
               hitSlop={12}
               accessibilityRole="button"
-              accessibilityLabel="Settings"
+              accessibilityLabel={t('Settings')}
             >
               <Ionicons name="options-outline" size={22} color={palette.text} />
             </Pressable>
@@ -396,13 +403,17 @@ export default function SurahScreen() {
             <Chip
               label={
                 range !== null
-                  ? `${selfReportKind === 'revised' ? 'I revised' : 'I read'} ${rangeLabel(range.from, range.to)} — add it`
-                  : `${selfReportKind === 'revised' ? 'I revised' : 'I read'} page ${viewedPage} — add it`
+                  ? selfReportKind === 'revised'
+                    ? t('I revised {range} — add it', { range: rangeLabel(range.from, range.to) })
+                    : t('I read {range} — add it', { range: rangeLabel(range.from, range.to) })
+                  : selfReportKind === 'revised'
+                    ? t('I revised page {page} — add it', { page: viewedPage })
+                    : t('I read page {page} — add it', { page: viewedPage })
               }
               icon="book-outline"
               palette={palette}
               onPress={onSelfReport}
-              accessibilityHint="Adds these ayahs to your revision schedule without the microphone, marked as read rather than verified"
+              accessibilityHint={t('Adds these ayahs to your revision schedule without the microphone, marked as read rather than verified')}
             />
           )}
         </View>
@@ -419,7 +430,7 @@ export default function SurahScreen() {
         <>
         {awayFromPlace ? (
           <Chip
-            label={`Return to my place · ${liveAyah.surah}:${liveAyah.ayah}`}
+            label={t('Return to my place · {ref}', { ref: `${liveAyah.surah}:${liveAyah.ayah}` })}
             icon="return-down-back-outline"
             tone="accent"
             palette={palette}
@@ -427,13 +438,13 @@ export default function SurahScreen() {
               returnToMyPlace();
               deck.current?.goToPage(pageOf(session.livePos), !reduceMotion);
             }}
-            accessibilityHint="Scrolls back to the page your voice is on"
+            accessibilityHint={t('Scrolls back to the page your voice is on')}
           />
         ) : null}
 
         {interruption !== null ? (
           <Chip
-            label={`Paused: ${interruption}. Tap to resume`}
+            label={t('Paused: {reason}. Tap to resume', { reason: tr(interruption) })}
             icon="play"
             tone="accent"
             palette={palette}
@@ -445,12 +456,12 @@ export default function SurahScreen() {
         ) : null}
 
         {silenceTimedOut ? (
-          <Chip label="Still there? Tap to carry on" icon="ear-outline" tone="accent" palette={palette} onPress={resumeSession} />
+          <Chip label={t('Still there? Tap to carry on')} icon="ear-outline" tone="accent" palette={palette} onPress={resumeSession} />
         ) : null}
 
         {range !== null ? (
           <Chip
-            label={`Practising ${rangeLabel(range.from, range.to)} · tap to clear`}
+            label={t('Practising {range} · tap to clear', { range: rangeLabel(range.from, range.to) })}
             icon="repeat"
             tone="accent"
             palette={palette}
@@ -459,12 +470,12 @@ export default function SurahScreen() {
         ) : null}
 
         {selecting !== null ? (
-          <Chip label="Now tap the last word of the range" icon="hand-left-outline" palette={palette} onPress={() => setSelecting(null)} />
+          <Chip label={t('Now tap the last word of the range')} icon="hand-left-outline" palette={palette} onPress={() => setSelecting(null)} />
         ) : null}
 
 
         {recognizer.status === 'unavailable' ? (
-          <OfflineBadge palette={palette} label="Recitation needs the dev-client build" />
+          <OfflineBadge palette={palette} label={t('Recitation needs the dev-client build')} />
         ) : null}
 
         {/* A dead recognizer used to fail in complete silence: the microphone
@@ -472,22 +483,22 @@ export default function SurahScreen() {
             no indication why. Every one of these states is now visible. */}
         {recognizer.status === 'error' && recognizer.lastError !== null ? (
           <Chip
-            label={recognizer.lastError.message}
+            label={recognizerErrorText(recognizer.lastError, t)}
             icon="alert-circle-outline"
             tone="error"
             palette={palette}
             onPress={() => router.push('/settings')}
-            accessibilityHint="Opens settings, where you can change the recognizer locale"
+            accessibilityHint={t('Opens settings, where you can change the recognizer locale')}
           />
         ) : null}
 
         {listening && !recognizer.heardSomething ? (
           <Chip
-            label="Listening — nothing recognised yet"
+            label={t('Listening — nothing recognised yet')}
             icon="ellipsis-horizontal"
             palette={palette}
             onPress={() => setTranscriptOpen(true)}
-            accessibilityHint="The microphone is open but the recognizer has not returned any words yet"
+            accessibilityHint={t('The microphone is open but the recognizer has not returned any words yet')}
           />
         ) : null}
 
@@ -506,8 +517,8 @@ export default function SurahScreen() {
           <Chip
             label={
               micPermission === 'blocked'
-                ? 'Microphone blocked — open settings'
-                : 'Microphone needed to follow along'
+                ? t('Microphone blocked — open settings')
+                : t('Microphone needed to follow along')
             }
             icon="mic-off-outline"
             tone="accent"
@@ -515,19 +526,19 @@ export default function SurahScreen() {
             onPress={micPermission === 'blocked' ? openAppSettings : () => start()}
             accessibilityHint={
               micPermission === 'blocked'
-                ? 'Opens this app\u2019s permissions in Android settings, the only way to turn the microphone back on'
-                : 'Asks for microphone access again so following along can listen'
+                ? t('Opens this app’s permissions in Android settings, the only way to turn the microphone back on')
+                : t('Asks for microphone access again so following along can listen')
             }
           />
         ) : null}
 
         {recognizer.offlineDropped ? (
           <Chip
-            label="No offline Arabic — recognising online"
+            label={t('No offline Arabic — recognising online')}
             icon="cloud-outline"
             palette={palette}
             onPress={() => void recognizer.requestLanguagePack()}
-            accessibilityHint="Downloads the on-device Arabic model so recitation stays on your phone"
+            accessibilityHint={t('Downloads the on-device Arabic model so recitation stays on your phone')}
           />
         ) : null}
 
@@ -535,12 +546,12 @@ export default function SurahScreen() {
         recognizer.languageStatus.supported &&
         recognizer.languageStatus.localeInstalled === false ? (
           <Chip
-            label="Install Arabic offline pack"
+            label={t('Install Arabic offline pack')}
             icon="cloud-download-outline"
             tone="accent"
             palette={palette}
             onPress={() => void recognizer.requestLanguagePack()}
-            accessibilityHint="Downloads the on-device Arabic model so recitation works without a network"
+            accessibilityHint={t('Downloads the on-device Arabic model so recitation works without a network')}
           />
         ) : null}
 
@@ -600,21 +611,21 @@ export default function SurahScreen() {
             <Pressable
               onPress={() => requestHint(nextHintTarget)}
               accessibilityRole="button"
-              accessibilityLabel="Hint"
-              accessibilityHint="First tap shows the word's first letter, second tap shows the whole word"
+              accessibilityLabel={t('Hint')}
+              accessibilityHint={t("First tap shows the word's first letter, second tap shows the whole word")}
               style={[styles.hintButton, { borderColor: palette.accent, backgroundColor: palette.accentSoft }]}
             >
               <Ionicons name="bulb-outline" size={18} color={palette.primary} />
               <Text style={[styles.hintLabel, { color: palette.primary }]}>
-                {hintLevelOf(nextHintTarget) === 0 ? 'Hint' : hintLevelOf(nextHintTarget) === 1 ? 'Reveal' : 'Shown'}
+                {hintLevelOf(nextHintTarget) === 0 ? t('Hint') : hintLevelOf(nextHintTarget) === 1 ? t('Reveal') : t('Shown')}
               </Text>
             </Pressable>
           ) : tab === 'read' ? (
             <Pressable
               onPress={() => setSelecting(session.livePos)}
               accessibilityRole="button"
-              accessibilityLabel="Practise an ayah range"
-              accessibilityHint="Select a first and last word to loop"
+              accessibilityLabel={t('Practise an ayah range')}
+              accessibilityHint={t('Select a first and last word to loop')}
               style={[styles.hintButton, { borderColor: palette.border }]}
             >
               <Ionicons name="repeat" size={18} color={palette.textMuted} />

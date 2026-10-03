@@ -9,6 +9,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import type { Hadith } from '../data/hadith';
 import { collectionById } from '../data/hadith';
+import { useT } from '../i18n/useT';
 import { ayahTextSizes, radius, space, type FontStep, type Palette } from '../theme/theme';
 
 export interface HadithCardProps {
@@ -25,6 +26,7 @@ export const HadithCard = memo(function HadithCard({
   fontStep,
   showSource,
 }: HadithCardProps) {
+  const { arabic } = useT();
   const { fontSize } = ayahTextSizes[fontStep];
   const arabicSize = Math.round(fontSize * 0.72);
   const collection = showSource === true ? collectionById(hadith.collectionId) : undefined;
@@ -37,7 +39,7 @@ export const HadithCard = memo(function HadithCard({
         </Text>
         {collection !== undefined ? (
           <Text style={[styles.source, { color: palette.textMuted }]} numberOfLines={1}>
-            {collection.englishTitle}
+            {arabic ? collection.arabicTitle : collection.englishTitle}
           </Text>
         ) : null}
       </View>
@@ -49,12 +51,18 @@ export const HadithCard = memo(function HadithCard({
         {hadith.arabic}
       </Text>
 
-      <View style={[styles.rule, { backgroundColor: palette.border }]} />
-
-      {hadith.narrator.length > 0 ? (
-        <Text style={[styles.narrator, { color: palette.primary }]}>{hadith.narrator}</Text>
-      ) : null}
-      <Text style={[styles.english, { color: palette.textMuted }]}>{hadith.english}</Text>
+      {/* The English narrator line and translation exist for readers who
+          cannot read the Arabic above them. In Arabic they are text the reader
+          cannot use, so they are not shown. */}
+      {arabic ? null : (
+        <>
+          <View style={[styles.rule, { backgroundColor: palette.border }]} />
+          {hadith.narrator.length > 0 ? (
+            <Text style={[styles.narrator, { color: palette.primary }]}>{hadith.narrator}</Text>
+          ) : null}
+          <Text style={[styles.english, { color: palette.textMuted }]}>{hadith.english}</Text>
+        </>
+      )}
     </View>
   );
 });

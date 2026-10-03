@@ -33,6 +33,8 @@ import {
   type PrayerDay,
 } from '../../src/data/prayer';
 import { clampOffset, describeOffsets, hasOffsets, OFFSET_LIMIT } from '../../src/data/prayerOffsets';
+import { adhanName, prayerName } from '../../src/i18n/names';
+import { useT } from '../../src/i18n/useT';
 import { selectedAdhan } from '../../src/data/adhanLibrary';
 import { useTheme } from '../../src/theme/ThemeProvider';
 import { radius, space } from '../../src/theme/theme';
@@ -41,6 +43,7 @@ import { useAdhan } from '../../src/context/AdhanProvider';
 
 export default function PrayerScreen() {
   const { palette, prefs, setPrefs } = useTheme();
+  const { t, lang, arabic } = useT();
   const router = useRouter();
   /**
    * Read, not owned. Scheduling moved to AdhanProvider, which is mounted above
@@ -61,12 +64,12 @@ export default function PrayerScreen() {
       try {
         setError(null);
         // No method is passed: it is decided from the country the phone is in.
-        setDay(await fetchPrayerTimes({ offsets: prefs.prayerOffsets, freshLocation }));
+        setDay(await fetchPrayerTimes({ offsets: prefs.prayerOffsets, freshLocation, t }));
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
       }
     },
-    [prefs.prayerOffsets],
+    [prefs.prayerOffsets, t],
   );
 
   useEffect(() => {
@@ -98,11 +101,11 @@ export default function PrayerScreen() {
       {next !== null ? (
         <View style={[styles.hero, { backgroundColor: palette.primary }]}>
           <Text style={[styles.heroLabel, { color: palette.accentSoft }]}>
-            {next.tomorrow ? 'Tomorrow' : 'Next'}
+            {next.tomorrow ? t('Tomorrow') : t('Next')}
           </Text>
-          <Text style={[styles.heroName, { color: '#FFFFFF' }]}>{next.name}</Text>
+          <Text style={[styles.heroName, { color: '#FFFFFF' }]}>{prayerName(next.name, lang)}</Text>
           <Text style={[styles.heroCountdown, { color: palette.accent }]}>
-            in {formatCountdown(next.msAway)}
+            {t('in {time}', { time: formatCountdown(next.msAway, lang) })}
           </Text>
         </View>
       ) : null}
@@ -116,8 +119,8 @@ export default function PrayerScreen() {
       {error !== null ? (
         <View style={[styles.errorCard, { backgroundColor: palette.errorSoft, borderColor: palette.error }]}>
           <Text style={[styles.errorText, { color: palette.error }]}>{error}</Text>
-          <Pressable onPress={() => void load()} accessibilityRole="button" accessibilityLabel="Try again">
-            <Text style={[styles.retry, { color: palette.primary }]}>Try again</Text>
+          <Pressable onPress={() => void load()} accessibilityRole="button" accessibilityLabel={t('Try again')}>
+            <Text style={[styles.retry, { color: palette.primary }]}>{t('Try again')}</Text>
           </Pressable>
         </View>
       ) : null}
@@ -160,11 +163,13 @@ export default function PrayerScreen() {
                     { color: past && !isNext ? palette.textMuted : palette.text },
                   ]}
                 >
-                  {prayer}
+                  {prayerName(prayer, lang)}
                 </Text>
-                <Text style={[styles.rowArabic, { color: palette.textMuted }]}>
-                  {PRAYER_ARABIC[prayer]}
-                </Text>
+                {/* the Arabic name beside the English is for English readers;
+                    in Arabic it would just say the same word twice */}
+                {arabic ? null : (
+                  <Text style={[styles.rowArabic, { color: palette.textMuted }]}>{PRAYER_ARABIC[prayer]}</Text>
+                )}
                 <Text style={[styles.rowTime, { color: palette.text }]}>{raw.trim().slice(0, 5)}</Text>
 
                 {/**
@@ -182,11 +187,11 @@ export default function PrayerScreen() {
                   hitSlop={10}
                   accessibilityRole="switch"
                   accessibilityState={{ checked: prefs.bells[prayer] !== false }}
-                  accessibilityLabel={`Adhan sound for ${prayer}`}
+                  accessibilityLabel={t('Adhan sound for {prayer}', { prayer: prayerName(prayer, lang) })}
                   accessibilityHint={
                     prefs.bells[prayer] === false
-                      ? 'Currently silent. Tap to hear the adhan at this prayer.'
-                      : 'Currently sounds the adhan. Tap to make it silent.'
+                      ? t('Currently silent. Tap to hear the adhan at this prayer.')
+                      : t('Currently sounds the adhan. Tap to make it silent.')
                   }
                   style={styles.bell}
                 >
@@ -207,8 +212,8 @@ export default function PrayerScreen() {
       {day !== null ? (
         <View style={[styles.notifyCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
           <Toggle
-            label={`Remind me ${WARNING_MINUTES} minutes before`}
-            hint="A plain reminder — never the adhan, which would be five minutes early."
+            label={t('Remind me {n} minutes before', { n: WARNING_MINUTES })}
+            hint={t('A plain reminder — never the adhan, which would be five minutes early.')}
             value={prefs.prayerWarning}
             onChange={(prayerWarning) => setPrefs({ prayerWarning })}
             palette={palette}
@@ -221,14 +226,14 @@ export default function PrayerScreen() {
           <Pressable
             onPress={() => router.push('/adhan')}
             accessibilityRole="button"
-            accessibilityLabel={`Change adhan, currently ${selected?.name ?? 'none'}`}
+            accessibilityLabel={t('Change adhan, currently {name}', { name: selected ? adhanName(selected, t, lang) : t('none') })}
             style={styles.subRow}
           >
             <Ionicons name="musical-notes-outline" size={15} color={palette.textMuted} />
             <View style={styles.toggleText}>
-              <Text style={[styles.subLabel, { color: palette.text }]}>Change adhan</Text>
+              <Text style={[styles.subLabel, { color: palette.text }]}>{t('Change adhan')}</Text>
               <Text style={[styles.notifyNote, { color: palette.textMuted }]}>
-                {selected?.name ?? 'none available'}
+                {selected ? adhanName(selected, t, lang) : t('none available')}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={palette.textMuted} />
@@ -264,7 +269,7 @@ export default function PrayerScreen() {
               disabled={locating}
               hitSlop={10}
               accessibilityRole="button"
-              accessibilityLabel="Refresh my location"
+              accessibilityLabel={t('Refresh my location')}
               accessibilityState={{ busy: locating }}
               style={styles.refresh}
             >
@@ -283,15 +288,17 @@ export default function PrayerScreen() {
           <Pressable
             onPress={() => setTuning((open) => !open)}
             accessibilityRole="button"
-            accessibilityLabel="Fine-tune each prayer time"
+            accessibilityLabel={t('Fine-tune each prayer time')}
             accessibilityState={{ expanded: tuning }}
             style={styles.subRow}
           >
             <Ionicons name="options-outline" size={15} color={palette.textMuted} />
             <Text style={[styles.subLabel, { color: palette.text }]}>
               {hasOffsets(prefs.prayerOffsets)
-                ? `Shifted by hand: ${describeOffsets(prefs.prayerOffsets)}`
-                : 'A time here is wrong by a few minutes'}
+                ? t('Shifted by hand: {list}', {
+                    list: describeOffsets(prefs.prayerOffsets, (p) => prayerName(p, lang), arabic ? '، ' : ', '),
+                  })
+                : t('A time here is wrong by a few minutes')}
             </Text>
             <Ionicons name={tuning ? 'chevron-up' : 'chevron-down'} size={15} color={palette.textMuted} />
           </Pressable>
@@ -299,9 +306,9 @@ export default function PrayerScreen() {
           {tuning ? (
             <View style={styles.tuneBlock}>
               <Text style={[styles.notifyNote, { color: palette.textMuted }]}>
-                Only use this if a time above does not match the mosque you follow. Each + adds one
-                minute to that prayer and each − takes one away, permanently, and the countdown, the
-                reminder and the adhan all move with it. If everything is right, leave it at 0.
+                {t(
+                  'Only use this if a time above does not match the mosque you follow. Each + adds one minute to that prayer and each − takes one away, permanently, and the countdown, the reminder and the adhan all move with it. If everything is right, leave it at 0.',
+                )}
               </Text>
               {PRAYERS.map((prayer) => {
                 const value = clampOffset(prefs.prayerOffsets[prayer] ?? 0);
@@ -311,13 +318,13 @@ export default function PrayerScreen() {
                   });
                 return (
                   <View key={prayer} style={styles.tuneRow}>
-                    <Text style={[styles.tuneName, { color: palette.text }]}>{prayer}</Text>
+                    <Text style={[styles.tuneName, { color: palette.text }]}>{prayerName(prayer, lang)}</Text>
                     <Pressable
                       onPress={() => step(-1)}
                       disabled={value <= -OFFSET_LIMIT}
                       hitSlop={8}
                       accessibilityRole="button"
-                      accessibilityLabel={`One minute earlier for ${prayer}`}
+                      accessibilityLabel={t('One minute earlier for {prayer}', { prayer: prayerName(prayer, lang) })}
                       style={[styles.stepper, { borderColor: palette.border }]}
                     >
                       <Ionicons name="remove" size={16} color={palette.text} />
@@ -330,7 +337,7 @@ export default function PrayerScreen() {
                       disabled={value >= OFFSET_LIMIT}
                       hitSlop={8}
                       accessibilityRole="button"
-                      accessibilityLabel={`One minute later for ${prayer}`}
+                      accessibilityLabel={t('One minute later for {prayer}', { prayer: prayerName(prayer, lang) })}
                       style={[styles.stepper, { borderColor: palette.border }]}
                     >
                       <Ionicons name="add" size={16} color={palette.text} />
@@ -355,25 +362,26 @@ export default function PrayerScreen() {
                 <Pressable
                   onPress={() => void Linking.openSettings()}
                   accessibilityRole="button"
-                  accessibilityLabel="Open this app's system settings"
+                  accessibilityLabel={t("Open this app's system settings")}
                   style={[styles.testButton, { borderColor: palette.error, flex: 1 }]}
                 >
                   <Ionicons name="settings-outline" size={16} color={palette.error} />
-                  <Text style={[styles.testText, { color: palette.error }]}>Open settings</Text>
+                  <Text style={[styles.testText, { color: palette.error }]}>{t('Open settings')}</Text>
                 </Pressable>
                 <Pressable
                   onPress={() => void load()}
                   accessibilityRole="button"
-                  accessibilityLabel="Check again for notification permission"
+                  accessibilityLabel={t('Check again for notification permission')}
                   style={[styles.testButton, { borderColor: palette.primary, flex: 1 }]}
                 >
                   <Ionicons name="refresh" size={16} color={palette.primary} />
-                  <Text style={[styles.testText, { color: palette.primary }]}>Check again</Text>
+                  <Text style={[styles.testText, { color: palette.primary }]}>{t('Check again')}</Text>
                 </Pressable>
               </View>
               <Text style={[styles.notifyNote, { color: palette.textMuted }]}>
-                Without this, the reminder and the closed-app notification cannot fire. The adhan
-                still plays while the app is open — that part needs no permission.
+                {t(
+                  'Without this, the reminder and the closed-app notification cannot fire. The adhan still plays while the app is open — that part needs no permission.',
+                )}
               </Text>
             </View>
           ) : null}

@@ -29,11 +29,14 @@ import { useRecitation } from '../../src/context/RecitationProvider';
 import { useTheme } from '../../src/theme/ThemeProvider';
 import { radius, space, type Palette } from '../../src/theme/theme';
 import { formatDuration } from '../../src/components/controls';
+import { surahName } from '../../src/i18n/names';
+import { useT } from '../../src/i18n/useT';
 
 const HEATMAP_WEEKS = 18;
 
 export default function TrackerScreen() {
   const { palette } = useTheme();
+  const { t, lang } = useT();
   const router = useRouter();
   const { practiseRange, commitSelfReport } = useRecitation();
   const [logged, setLogged] = useState<LoggedSession[]>([]);
@@ -114,21 +117,21 @@ export default function TrackerScreen() {
       }
     >
       <View style={[styles.hero, { backgroundColor: palette.primary }]}>
-        <Text style={[styles.heroLabel, { color: palette.accentSoft }]}>Recitation streak</Text>
+        <Text style={[styles.heroLabel, { color: palette.accentSoft }]}>{t('Recitation streak')}</Text>
         <Text style={styles.heroValue}>
-          {streak} {streak === 1 ? 'day' : 'days'}
+          {streak === 1 ? t('1 day') : t('{n} days', { n: streak })}
         </Text>
         <Text style={[styles.heroNote, { color: palette.accentSoft }]}>
           {streak === 0
-            ? 'Recite anything today to start it.'
-            : 'Every day you recited, in a row.'}
+            ? t('Recite anything today to start it.')
+            : t('Every day you recited, in a row.')}
         </Text>
       </View>
 
       <View style={styles.statRow}>
-        <Stat label="Words recited" value={String(totals.words)} palette={palette} />
-        <Stat label="Verses" value={String(totals.verses)} palette={palette} />
-        <Stat label="Time" value={formatDuration(totals.ms)} palette={palette} />
+        <Stat label={t('Words recited')} value={String(totals.words)} palette={palette} />
+        <Stat label={t('Verses')} value={String(totals.verses)} palette={palette} />
+        <Stat label={t('Time')} value={formatDuration(totals.ms)} palette={palette} />
       </View>
 
       <HifzPanel
@@ -140,7 +143,7 @@ export default function TrackerScreen() {
           lastRead === null
             ? null
             : {
-                label: `I read page ${pageOf(lastRead.cursor)} — add it`,
+                label: t('I read page {page} — add it', { page: pageOf(lastRead.cursor) }),
                 onPress: () => {
                   // pageWordRange is [from, to); commitSelfReport wants an
                   // inclusive last word.
@@ -148,8 +151,10 @@ export default function TrackerScreen() {
                   void commitSelfReport('read', from, to - 1).then((added) => {
                     setSelfReportNote(
                       added === 0
-                        ? 'That page is already in your revision schedule from earlier today.'
-                        : `${added} ${added === 1 ? 'ayah' : 'ayahs'} added as read. Recite one and it counts as verified.`,
+                        ? t('That page is already in your revision schedule from earlier today.')
+                        : added === 1
+                          ? t('1 ayah added as read. Recite it and it counts as verified.')
+                          : t('{n} ayahs added as read. Recite one and it counts as verified.', { n: added }),
                     );
                     return load();
                   });
@@ -173,7 +178,7 @@ export default function TrackerScreen() {
         <Text style={[styles.empty, { color: palette.textMuted }]}>{selfReportNote}</Text>
       )}
 
-      <Text style={[styles.section, { color: palette.textMuted }]}>Last {HEATMAP_WEEKS} weeks</Text>
+      <Text style={[styles.section, { color: palette.textMuted }]}>{t('Last {n} weeks', { n: HEATMAP_WEEKS })}</Text>
       <View style={styles.heatmap}>
         {grid.map((week, wi) => (
           <View key={wi} style={styles.week}>
@@ -181,7 +186,7 @@ export default function TrackerScreen() {
               <View
                 key={cell.day}
                 accessible
-                accessibilityLabel={`${cell.day}: ${cell.intensity === 0 ? 'nothing recited' : `${cell.words} words`}`}
+                accessibilityLabel={`${cell.day}: ${cell.intensity === 0 ? t('nothing recited') : t('{n} words', { n: cell.words })}`}
                 style={[
                   styles.cell,
                   {
@@ -201,21 +206,23 @@ export default function TrackerScreen() {
         ))}
       </View>
 
-      <Text style={[styles.section, { color: palette.textMuted }]}>Recent sessions</Text>
+      <Text style={[styles.section, { color: palette.textMuted }]}>{t('Recent sessions')}</Text>
       {recent.length === 0 ? (
         <Text style={[styles.empty, { color: palette.textMuted }]}>
-          Nothing logged yet. Finish a recitation and tap “Log to streak” on the summary card — or
-          just start one and walk away: a session you abandon is saved on its own.
+          {t(
+            'Nothing logged yet. Finish a recitation and tap “Log to streak” on the summary card — or just start one and walk away: a session you abandon is saved on its own.',
+          )}
         </Text>
       ) : (
         recent.map((s) => (
           <View key={s.id} style={[styles.sessionRow, { backgroundColor: palette.surface, borderColor: palette.border }]}>
             <View style={styles.sessionMain}>
               <Text style={[styles.sessionTitle, { color: palette.text }]}>
-                {surahs[s.surah - 1]?.transliteration ?? `Surah ${s.surah}`}
+                {surahs[s.surah - 1] === undefined ? t('Surah {n}', { n: s.surah }) : surahName(s.surah, lang)}
               </Text>
               <Text style={[styles.sessionMeta, { color: palette.textMuted }]}>
-                {s.day} · {s.wordsRecited} words · {Math.round(s.accuracy * 100)}% · best run {s.longestCleanRun}
+                {s.day} · {t('{n} words', { n: s.wordsRecited })} · {Math.round(s.accuracy * 100)}% ·{' '}
+                {t('best run {n}', { n: s.longestCleanRun })}
               </Text>
             </View>
             <Text style={[styles.sessionTime, { color: palette.textMuted }]}>{formatDuration(s.durationMs)}</Text>

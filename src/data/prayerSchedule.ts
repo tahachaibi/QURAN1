@@ -81,6 +81,8 @@ export interface ScheduleOptions {
   bells?: PrayerBells;
   /** current time; injected so the scheduler is testable */
   now?: Date;
+  /** the interface language, for the notification titles; English if unset */
+  lang?: 'en' | 'ar';
 }
 
 export type NotificationChannel =
@@ -167,7 +169,8 @@ export function planNotifications(options: ScheduleOptions): PlannedNotification
           channel: bells[prayer] === false ? CHANNEL_SILENT : CHANNEL_ADHAN,
           prayer,
           at,
-          title: `${PRAYER_ARABIC[prayer]} · ${prayer}`,
+          // In Arabic the English name would only repeat the Arabic one.
+          title: options.lang === 'ar' ? PRAYER_ARABIC[prayer] : `${PRAYER_ARABIC[prayer]} · ${prayer}`,
           body: 'حان الآن وقت الصلاة',
           data: { kind: 'adhan', prayer, at: at.toISOString() },
         });
@@ -179,7 +182,10 @@ export function planNotifications(options: ScheduleOptions): PlannedNotification
             channel: CHANNEL_WARNING,
             prayer,
             at: warnAt,
-            title: `${prayer} in ${WARNING_MINUTES} minutes`,
+            title:
+              options.lang === 'ar'
+                ? `${PRAYER_ARABIC[prayer]} بعد ${WARNING_MINUTES} دقائق`
+                : `${prayer} in ${WARNING_MINUTES} minutes`,
             body: `${PRAYER_ARABIC[prayer]} — ${raw.trim().slice(0, 5)}`,
             data: { kind: 'warning', prayer, at: at.toISOString() },
           });

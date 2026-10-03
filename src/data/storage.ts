@@ -45,6 +45,12 @@ export type { PrayerBells } from './prayerSchedule';
 export type { StoredAdhan } from './adhanLibrary';
 
 export interface Prefs {
+  /**
+   * The interface language, chosen on first launch and in Settings. null
+   * means "not chosen yet", which is what sends a first launch to the picker.
+   * The Quran text, the hadith Arabic and the adhkar are Arabic in both.
+   */
+  language: 'en' | 'ar' | null;
   theme: 'system' | 'light' | 'dark';
   fontStep: FontStep;
   reduceMotion: boolean;
@@ -88,6 +94,7 @@ export interface Prefs {
 }
 
 export const DEFAULT_PREFS: Prefs = {
+  language: null,
   theme: 'system',
   fontStep: 1,
   reduceMotion: false,

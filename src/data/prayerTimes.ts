@@ -42,12 +42,16 @@ export function nextPrayer(timings: Record<string, string>, now = new Date()): N
   return { name: 'Fajr', at, msAway: at.getTime() - now.getTime(), tomorrow: true };
 }
 
-export function formatCountdown(ms: number): string {
+export function formatCountdown(ms: number, lang: 'en' | 'ar' = 'en'): string {
   const total = Math.max(0, Math.floor(ms / 1000));
   const h = Math.floor(total / 3600);
   const m = Math.floor((total % 3600) / 60);
   const s = total % 60;
-  return h > 0 ? `${h}h ${String(m).padStart(2, '0')}m` : `${m}m ${String(s).padStart(2, '0')}s`;
+  // س ساعة، د دقيقة، ث ثانية: the abbreviations Arabic clocks and timetables use
+  const [uh, um, us] = lang === 'ar' ? [' س', ' د', ' ث'] : ['h', 'm', 's'];
+  return h > 0
+    ? `${h}${uh} ${String(m).padStart(2, '0')}${um}`
+    : `${m}${um} ${String(s).padStart(2, '0')}${us}`;
 }
 
 /** Prayer names in Arabic, for notifications and the prayer tab. */

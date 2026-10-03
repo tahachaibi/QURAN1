@@ -7,12 +7,14 @@ import { useLocalSearchParams } from 'expo-router';
 
 import { chapterOf, collectionById, hadithsOfChapter } from '../../../src/data/hadith';
 import { HadithCard } from '../../../src/components/HadithCard';
+import { useT } from '../../../src/i18n/useT';
 import { useTheme } from '../../../src/theme/ThemeProvider';
 import { space } from '../../../src/theme/theme';
 
 export default function ChapterScreen() {
   const params = useLocalSearchParams<{ collection?: string; chapter?: string }>();
   const { palette, fontStep } = useTheme();
+  const { t, arabic } = useT();
 
   const collectionId = Number(params.collection ?? '1');
   const chapterId = Number(params.chapter ?? '1');
@@ -35,14 +37,16 @@ export default function ChapterScreen() {
       ListHeaderComponent={
         <View style={styles.header}>
           <Text style={[styles.arabic, { color: palette.ink }]}>{chapter?.arabicName ?? ''}</Text>
-          <Text style={[styles.english, { color: palette.text }]}>{chapter?.englishName ?? ''}</Text>
+          {arabic ? null : (
+            <Text style={[styles.english, { color: palette.text }]}>{chapter?.englishName ?? ''}</Text>
+          )}
           <Text style={[styles.meta, { color: palette.textMuted }]}>
-            {collection?.englishTitle} · {hadiths.length} hadith
+            {arabic ? collection?.arabicTitle : collection?.englishTitle} · {t('{n} hadith', { n: hadiths.length })}
           </Text>
         </View>
       }
       ListEmptyComponent={
-        <Text style={[styles.meta, { color: palette.textMuted }]}>This book has no hadith bundled.</Text>
+        <Text style={[styles.meta, { color: palette.textMuted }]}>{t('This book has no hadith bundled.')}</Text>
       }
     />
   );

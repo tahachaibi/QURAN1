@@ -17,6 +17,9 @@ import { loadPrayerCache, savePrayerCache, today, type PrayerCache } from './sto
 import { adjustTimings, NO_OFFSETS, type PrayerOffsets } from './prayerOffsets';
 import { FALLBACK_METHOD, fetchMethods } from './prayerMethods';
 import { describeRegion, pickMethod, REGION_RULES, type ResolvedMethod } from './prayerRegion';
+import { translate, type T } from '../i18n/i18n';
+
+const ENGLISH: T = (s, p) => translate('en', s, p);
 
 const ALADHAN = 'https://api.aladhan.com/v1/timings';
 
@@ -29,6 +32,8 @@ export interface PrayerOptions {
   method?: number;
   /** per-prayer minute corrections, applied before anything else sees the times */
   offsets?: PrayerOffsets;
+  /** the interface translator, for the notes and errors this returns; English if unset */
+  t?: T;
   /**
    * Take a new position reading instead of accepting the last known one.
    *
@@ -96,11 +101,12 @@ async function whereAmI(
 async function resolveMethod(
   countryCode: string | null,
   countryName: string | null,
+  t: T,
 ): Promise<{ method: ResolvedMethod | null; note: string | null }> {
   if (countryCode === null && countryName === null) {
     return {
       method: null,
-      note: 'Could not tell where this phone is, so these use a general calculation.',
+      note: t('Could not tell where this phone is, so these use a general calculation.'),
     };
   }
 
@@ -108,16 +114,18 @@ async function resolveMethod(
   if (methods.length === 0) {
     return {
       method: null,
-      note: 'The list of prayer-time authorities has not downloaded yet, so these use a general calculation. Connect once and it is saved.',
+      note: t(
+        'The list of prayer-time authorities has not downloaded yet, so these use a general calculation. Connect once and it is saved.',
+      ),
     };
   }
 
   const method = pickMethod(countryCode, methods, countryName);
   if (method === null) {
-    const where = countryName ?? countryCode ?? 'here';
+    const where = countryName ?? countryCode ?? '?';
     return {
       method: null,
-      note: `No national prayer timetable is published for ${where}, so these use a general calculation.`,
+      note: t('No national prayer timetable is published for {where}, so these use a general calculation.', { where }),
     };
   }
   return { method, note: null };
@@ -125,6 +133,7 @@ async function resolveMethod(
 
 export async function fetchPrayerTimes(options: PrayerOptions = {}): Promise<PrayerDay> {
   const offsets = options.offsets ?? NO_OFFSETS;
+  const t = options.t ?? ENGLISH;
   const cached = await loadPrayerCache();
 
   let coords: { latitude: number; longitude: number } | null = null;
@@ -158,14 +167,14 @@ export async function fetchPrayerTimes(options: PrayerOptions = {}): Promise<Pra
       resolved: cachedResolved(cached),
       authorityNote:
         cachedResolved(cached) === null
-          ? 'Could not tell where this phone is, so these use a general calculation.'
+          ? t('Could not tell where this phone is, so these use a general calculation.')
           : null,
-      note: 'Showing your last saved times — location is unavailable right now.',
+      note: t('Showing your last saved times — location is unavailable right now.'),
     };
   }
   if (coords === null) {
     throw new Error(
-      'Prayer times need your location once. Grant location access in Settings > Apps > Tasmee Hifz > Permissions > Location.',
+      t('Prayer times need your location once. Grant location access in Settings > Apps > Tasmee Hifz > Permissions > Location.'),
     );
   }
 
@@ -173,6 +182,7 @@ export async function fetchPrayerTimes(options: PrayerOptions = {}): Promise<Pra
   const { method: resolved, note: authorityNote } = await resolveMethod(
     place.countryCode,
     place.country,
+    t,
   );
   const method = options.method ?? resolved?.id ?? FALLBACK_METHOD;
 
@@ -220,12 +230,12 @@ export async function fetchPrayerTimes(options: PrayerOptions = {}): Promise<Pra
         authorityNote: null,
         note:
           cached.day === day
-            ? "You're offline — these are today's saved times."
-            : `You're offline — these are the times saved on ${cached.day}.`,
+            ? t("You're offline — these are today's saved times.")
+            : t("You're offline — these are the times saved on {day}.", { day: cached.day }),
       };
     }
     throw new Error(
-      'Prayer times could not be fetched and nothing is cached yet. Connect once and they will work offline afterwards.',
+      t('Prayer times could not be fetched and nothing is cached yet. Connect once and they will work offline afterwards.'),
     );
   }
 }
