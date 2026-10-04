@@ -1,6 +1,8 @@
 /**
  * Session behaviour found wrong by the engine audit, each pinned by the case
- * that showed it. Every test here failed before its fix.
+ * that showed it. Each fix has a test here that failed before it; the others
+ * guard the fix from going too far (a real skip still counts, a word another
+ * alternative heard correctly is not blamed).
  */
 import { align } from '../src/engine/align';
 import { localize } from '../src/engine/localize';
@@ -10,6 +12,7 @@ import {
   normalizeHeardSpans,
   trailingClosingLength,
 } from '../src/engine/normalize';
+import { isHifzSlip } from '../src/engine/mistakes';
 import { replay, syntheticFixture, type ReplayEvent, type ReplayFixture } from '../src/engine/replay';
 import { initialSession, sessionReducer, type SessionConfig, type SessionState } from '../src/engine/session';
 import { pageOf, surahOf, wordIndexOf, words } from '../src/data/quran';
@@ -299,5 +302,47 @@ describe('the JUMPED label', () => {
     const jumped = out.frames.filter((f) => f.jumped);
     expect(jumped).toHaveLength(1);
     expect(labelled).toEqual(jumped);
+  });
+});
+
+describe('the slips a memoriser makes most', () => {
+  it('are told apart from what the phone mishears', () => {
+    for (const [expected, heard] of [
+      ['تعملون', 'يعملون'],
+      ['عليكم', 'عليهم'],
+      ['لكم', 'لهم'],
+      ['منهم', 'منكم'],
+      ['ربكم', 'ربهم'],
+      ['نعبد', 'يعبد'],
+    ]) {
+      expect({ expected, heard, slip: isHifzSlip(expected, heard, vocab) }).toEqual({ expected, heard, slip: true });
+    }
+    for (const [expected, heard] of [
+      ['الصراط', 'السراط'], // same class: the phone's confusion
+      ['العالمين', 'الظالمين'], // not a prefix or a pronoun
+      ['قيل', 'قال'], // a vowel inside the word
+      ['تعملون', 'تعملوت'], // not a Quran word: a garble
+      ['تعملون', 'تعملون'],
+    ]) {
+      expect({ expected, heard, slip: isHifzSlip(expected, heard, vocab) }).toEqual({ expected, heard, slip: false });
+    }
+  });
+
+  // 2:74 ends "وما الله بغافل عما تعملون"
+  const LAST = wordIndexOf(2, 75) - 1;
+
+  it('are flagged as said wrong while the reciter is still followed', () => {
+    expect(words[LAST]).toBe('تعملون');
+    const out = run(LAST - 4, utterance('وما الله بغافل عما يعملون', 2));
+    expect(out.final.cursor).toBe(LAST + 1);
+    expect(out.final.matched.has(LAST)).toBe(true);
+    expect(out.final.mistakes.map((m) => [m.word, m.heardInstead])).toEqual([[LAST, 'يعملون']]);
+  });
+
+  it('are not flagged when another alternative heard the word as written', () => {
+    const out = run(LAST - 4, [
+      { kind: 'final', alternatives: ['وما الله بغافل عما يعملون', 'وما الله بغافل عما تعملون'] },
+    ]);
+    expect(out.mistakes).toEqual([]);
   });
 });

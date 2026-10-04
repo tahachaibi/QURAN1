@@ -144,6 +144,50 @@ export function promotePending(
   return { pending: stillPending, promoted, discarded };
 }
 
+/** Person prefixes of a verb: يعملون / تعملون / نعمل / اعمل. */
+const PERSON_PREFIX = 'يتنا';
+/** Proclitics a person prefix can sit behind: وتعملون, فيعملون. */
+const PREFIX_CARRIERS = 'وف';
+
+/**
+ * Is `heard` the classic hifz slip on `expected`, rather than the recognizer
+ * mishearing it? The matcher accepts one consonant substitution in a short
+ * word, which is right for most of them and wrong for exactly the slips a
+ * memoriser makes most: the person of a verb (يعملون for تعملون) and the
+ * pronoun (عليهم for عليكم, لهم for لكم). Those were painted green.
+ *
+ * Deliberately narrow, because a false "Wrong word" is worse than a missed
+ * one. All of these must hold:
+ *  - the two differ in exactly ONE letter, and not two letters the phone
+ *    confuses with each other (same phonetic class);
+ *  - what was heard is itself a word of the Quran: a slip from memory produces
+ *    a real word, a recognizer garbling one usually does not;
+ *  - the letter is a person prefix (ي ت ن ا) at the start, or behind و/ف,
+ *    in a word of four letters or more; or it is ه/ك in the trailing pronoun
+ *    (ه ك هم كم هن كن هما كما), in a word of three letters or more.
+ */
+export function isHifzSlip(expected: string, heard: string, vocab: ReadonlySet<string>): boolean {
+  if (heard === expected || heard.length !== expected.length || !vocab.has(heard)) return false;
+  let at = -1;
+  for (let i = 0; i < expected.length; i++) {
+    if (expected[i] === heard[i]) continue;
+    if (at !== -1) return false;
+    at = i;
+  }
+  if (at === -1) return false;
+  const a = expected[at];
+  const b = heard[at];
+  if (compareWords(a + 'ثث', b + 'ثث').distance < 1) return false; // same class
+  const len = expected.length;
+  const prefixAt = at === 0 || (at === 1 && PREFIX_CARRIERS.includes(expected[0]));
+  if (len >= 4 && prefixAt && PERSON_PREFIX.includes(a) && PERSON_PREFIX.includes(b)) return true;
+  if (len >= 3 && 'هك'.includes(a) && 'هك'.includes(b)) {
+    const rest = expected.slice(at + 1);
+    return rest === '' || rest === 'م' || rest === 'ن' || rest === 'ما';
+  }
+  return false;
+}
+
 /**
  * Automatic retraction (spec §5.6): a later heard word matching a flagged word
  * removes the flag. Returns the SAME array reference when nothing changed, so

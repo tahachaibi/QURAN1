@@ -17,6 +17,7 @@ import {
   retractMatched,
   MIN_ALTERNATIVE_VOTES,
   MIN_WORDS_PAST,
+  isHifzSlip,
   type Mistake,
   type PendingSkip,
 } from './mistakes';
@@ -357,10 +358,14 @@ function applyResult(
     : promotion.pending;
   mistakes = mergeMistakes(mistakes, promotion.promoted);
 
+  // --- hifz slips the matcher accepted (see isHifzSlip) ---
+  const slips = isFinal ? hifzSlips(state, config, scored) : [];
+  mistakes = mergeMistakes(mistakes, slips.map((s) => ({ ...s, at })));
+
   // --- clean-run bookkeeping for the session summary (§6.6) ---
   let currentCleanRun = state.currentCleanRun;
   let longestCleanRun = state.longestCleanRun;
-  if (promotion.promoted.length > 0) {
+  if (promotion.promoted.length > 0 || slips.length > 0) {
     currentCleanRun = 0;
   } else {
     currentCleanRun += matched.size - state.matched.size;
@@ -421,6 +426,34 @@ function applyResult(
     lastHeard: best.raw.join(' '),
     debug,
   };
+}
+
+/**
+ * Words the best alternative MATCHED with a hifz slip (isHifzSlip): يعملون for
+ * تعملون. The match stands, because the reciter is plainly at that word and
+ * the cursor must follow them; the word is flagged as said wrong as well.
+ *
+ * Only when no alternative heard the word as written: lower-ranked
+ * alternatives are often the right one (spec §4), and one that says تعملون is
+ * the phone's own doubt about the prefix.
+ */
+function hifzSlips(
+  state: SessionState,
+  config: SessionConfig,
+  scored: readonly Scored[],
+): { word: number; heardInstead: string; heardRaw: string }[] {
+  const best = scored[0];
+  const out: { word: number; heardInstead: string; heardRaw: string }[] = [];
+  for (const m of best.result.matches) {
+    if (m.distance === 0 || state.dismissed.has(m.word)) continue;
+    const expected = config.words[m.word] ?? '';
+    const heard = best.heard[m.heard];
+    if (!isHifzSlip(expected, heard, config.vocabulary)) continue;
+    const exactly = scored.some((s) => s.result.matches.some((x) => x.word === m.word && x.distance === 0));
+    if (exactly) continue;
+    out.push({ word: m.word, heardInstead: heard, heardRaw: best.raw[m.heard] || heard });
+  }
+  return out;
 }
 
 /** What was said in a word's place: normalized for comparing, spelled for showing. */
