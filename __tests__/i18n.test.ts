@@ -26,7 +26,10 @@ function sources(dir: string): string[] {
 }
 
 const files = [...sources(join(ROOT, 'app')), ...sources(join(ROOT, 'src'))].filter(
-  (f) => !f.endsWith(join('src', 'i18n', 'ar.ts')) && !f.endsWith(join('src', 'i18n', 'i18n.ts')),
+  (f) =>
+    !f.endsWith(join('src', 'i18n', 'ar.ts')) &&
+    !f.endsWith(join('src', 'i18n', 'i18n.ts')) &&
+    !f.includes(join('src', 'i18n', 'ar') + '/'),
 );
 
 /** Matches t('…') and msg('…'), with any quote, where the argument is one plain literal. */
