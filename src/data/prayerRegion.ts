@@ -47,6 +47,12 @@ export interface RegionRule {
   /** country name for the UI, in English */
   country: string;
   /**
+   * The same name in Arabic, for the Arabic interface. Without it a Moroccan
+   * reader saw "الدار البيضاء, Morocco · وزارة الأوقاف…": one English word, and
+   * a Latin comma, in the middle of an Arabic line.
+   */
+  countryAr: string;
+  /**
    * Matched against the method names Aladhan returns. Deliberately loose: a
    * miss is visible and harmless, a wrong id would not be.
    */
@@ -64,25 +70,26 @@ export const REGION_RULES: readonly RegionRule[] = [
   {
     code: 'MA',
     country: 'Morocco',
+    countryAr: 'المغرب',
     match: /morocco|maroc/i,
     authority: 'وزارة الأوقاف والشؤون الإسلامية',
   },
-  { code: 'DZ', country: 'Algeria', match: /algeri/i },
-  { code: 'TN', country: 'Tunisia', match: /tunisi/i },
-  { code: 'EG', country: 'Egypt', match: /egypt/i },
-  { code: 'TR', country: 'Türkiye', match: /t[üu]rkiye|turkey|diyanet/i },
-  { code: 'SA', country: 'Saudi Arabia', match: /umm al-?qura|makkah/i },
-  { code: 'AE', country: 'United Arab Emirates', match: /dubai|emirat/i },
-  { code: 'KW', country: 'Kuwait', match: /kuwait/i },
-  { code: 'QA', country: 'Qatar', match: /qatar/i },
-  { code: 'JO', country: 'Jordan', match: /jordan/i },
-  { code: 'SG', country: 'Singapore', match: /singapore/i },
-  { code: 'MY', country: 'Malaysia', match: /malaysia|jakim/i },
-  { code: 'ID', country: 'Indonesia', match: /indonesia|kemenag/i },
-  { code: 'PK', country: 'Pakistan', match: /karachi/i },
-  { code: 'FR', country: 'France', match: /france|uoif/i },
-  { code: 'PT', country: 'Portugal', match: /portugal/i },
-  { code: 'RU', country: 'Russia', match: /russia/i },
+  { code: 'DZ', country: 'Algeria', countryAr: 'الجزائر', match: /algeri/i },
+  { code: 'TN', country: 'Tunisia', countryAr: 'تونس', match: /tunisi/i },
+  { code: 'EG', country: 'Egypt', countryAr: 'مصر', match: /egypt/i },
+  { code: 'TR', country: 'Türkiye', countryAr: 'تركيا', match: /t[üu]rkiye|turkey|diyanet/i },
+  { code: 'SA', country: 'Saudi Arabia', countryAr: 'السعودية', match: /umm al-?qura|makkah/i },
+  { code: 'AE', country: 'United Arab Emirates', countryAr: 'الإمارات', match: /dubai|emirat/i },
+  { code: 'KW', country: 'Kuwait', countryAr: 'الكويت', match: /kuwait/i },
+  { code: 'QA', country: 'Qatar', countryAr: 'قطر', match: /qatar/i },
+  { code: 'JO', country: 'Jordan', countryAr: 'الأردن', match: /jordan/i },
+  { code: 'SG', country: 'Singapore', countryAr: 'سنغافورة', match: /singapore/i },
+  { code: 'MY', country: 'Malaysia', countryAr: 'ماليزيا', match: /malaysia|jakim/i },
+  { code: 'ID', country: 'Indonesia', countryAr: 'إندونيسيا', match: /indonesia|kemenag/i },
+  { code: 'PK', country: 'Pakistan', countryAr: 'باكستان', match: /karachi/i },
+  { code: 'FR', country: 'France', countryAr: 'فرنسا', match: /france|uoif/i },
+  { code: 'PT', country: 'Portugal', countryAr: 'البرتغال', match: /portugal/i },
+  { code: 'RU', country: 'Russia', countryAr: 'روسيا', match: /russia/i },
 ];
 
 export interface ResolvedMethod {
@@ -154,10 +161,25 @@ export function mentionsCountry(methodName: string, countryName: string): boolea
   return new RegExp(`(?:^|[^a-z])${needle}(?:[^a-z]|$)`, 'i').test(methodName.toLowerCase());
 }
 
-/** "Beni Mellal, Morocco · وزارة الأوقاف والشؤون الإسلامية" */
-export function describeRegion(city: string | null, resolved: ResolvedMethod | null): string {
+/**
+ * "Beni Mellal, Morocco · وزارة الأوقاف والشؤون الإسلامية", and in the Arabic
+ * interface "بني ملال، المغرب · وزارة الأوقاف والشؤون الإسلامية".
+ *
+ * The country is translated where the table knows it, with the Arabic comma.
+ * The town is left as the phone's geocoder named it, which is already in the
+ * phone's own language; a country the table does not know is named the same way.
+ */
+export function describeRegion(
+  city: string | null,
+  resolved: ResolvedMethod | null,
+  lang: 'en' | 'ar' = 'en',
+): string {
   if (resolved === null) return city ?? '';
-  const where = city === null || city.length === 0 ? resolved.country : `${city}, ${resolved.country}`;
+  const arabic = lang === 'ar';
+  const country = arabic
+    ? (REGION_RULES.find((r) => r.country === resolved.country)?.countryAr ?? resolved.country)
+    : resolved.country;
+  const where = city === null || city.length === 0 ? country : `${city}${arabic ? '، ' : ', '}${country}`;
   return resolved.authority === null ? `${where} · ${resolved.name}` : `${where} · ${resolved.authority}`;
 }
 
