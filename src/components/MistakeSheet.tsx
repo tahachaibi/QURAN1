@@ -5,7 +5,7 @@
  * stays mounted behind it, so dismissing a mistake never costs you your
  * position. Grouped by ayah with a count per ayah.
  */
-import { memo, useMemo } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -22,6 +22,12 @@ export interface MistakeSheetProps {
   palette: Palette;
   onClose: () => void;
   onDismiss: (word: number) => void;
+  /**
+   * Take a dismissal back. "I said it right" is permanent and sits next to
+   * "Show on page"; when this is given, the sheet offers Undo for a few seconds
+   * after it, handing back the mistake so it can return to the list.
+   */
+  onUndismiss?: (mistake: Mistake) => void;
   onGoToWord: (word: number) => void;
   onPractise: (word: number) => void;
   onPlayWord: (word: number) => void;
@@ -31,6 +37,9 @@ export interface MistakeSheetProps {
    */
   focusWord?: number | null;
 }
+
+/** How long Undo stays offered after "I said it right", ms. */
+export const UNDO_DISMISS_MS = 6000;
 
 interface AyahGroup {
   globalAyah: number;
@@ -44,12 +53,30 @@ export const MistakeSheet = memo(function MistakeSheet({
   palette,
   onClose,
   onDismiss,
+  onUndismiss,
   onGoToWord,
   onPractise,
   onPlayWord,
   focusWord = null,
 }: MistakeSheetProps) {
   const { t } = useT();
+  const [undoable, setUndoable] = useState<Mistake | null>(null);
+  const dismiss = useCallback(
+    (word: number) => {
+      const mistake = mistakes.find((m) => m.word === word);
+      onDismiss(word);
+      if (onUndismiss !== undefined && mistake !== undefined) setUndoable(mistake);
+    },
+    [mistakes, onDismiss, onUndismiss],
+  );
+  useEffect(() => {
+    if (undoable === null) return undefined;
+    const timer = setTimeout(() => setUndoable(null), UNDO_DISMISS_MS);
+    return () => clearTimeout(timer);
+  }, [undoable]);
+  useEffect(() => {
+    if (!visible) setUndoable(null);
+  }, [visible]);
   const focused = focusWord === null ? undefined : mistakes.find((m) => m.word === focusWord);
   const groups = useMemo<AyahGroup[]>(() => {
     const byAyah = new Map<number, Mistake[]>();
@@ -84,6 +111,26 @@ export const MistakeSheet = memo(function MistakeSheet({
           </Pressable>
         </View>
 
+        {undoable !== null && onUndismiss !== undefined ? (
+          <View style={[styles.undoBar, { backgroundColor: palette.accentSoft, borderColor: palette.border }]}>
+            <Text style={[styles.undoText, { color: palette.text }]}>
+              {t('«{word}» will not be checked again.', { word: words[undoable.word] ?? '' })}
+            </Text>
+            <Pressable
+              onPress={() => {
+                onUndismiss(undoable);
+                setUndoable(null);
+              }}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={t('Undo')}
+              accessibilityHint={t('Checks this word again and puts the mistake back')}
+            >
+              <Text style={[styles.undoAction, { color: palette.primary }]}>{t('Undo')}</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
         {mistakes.length === 0 ? (
           <Text style={[styles.empty, { color: palette.textMuted }]}>
             {t('Your recitation matched the mushaf all the way through. Nothing here needs practice.')}
@@ -97,7 +144,7 @@ export const MistakeSheet = memo(function MistakeSheet({
                   mistake={focused}
                   focused
                   palette={palette}
-                  onDismiss={onDismiss}
+                  onDismiss={dismiss}
                   onGoToWord={onGoToWord}
                   onPractise={onPractise}
                   onPlayWord={onPlayWord}
@@ -109,7 +156,7 @@ export const MistakeSheet = memo(function MistakeSheet({
                 <View style={styles.groupHeader}>
                   <Text style={[styles.groupLabel, { color: palette.primary }]}>{group.label}</Text>
                   <Text style={[styles.groupCount, { color: palette.textMuted }]}>
-                    {group.items.length} {group.items.length === 1 ? 'word' : 'words'}
+                    {group.items.length === 1 ? t('1 word') : t('{n} words', { n: group.items.length })}
                   </Text>
                 </View>
                 {group.items.map((mistake) => (
@@ -118,7 +165,7 @@ export const MistakeSheet = memo(function MistakeSheet({
                     mistake={mistake}
                     focused={false}
                     palette={palette}
-                    onDismiss={onDismiss}
+                    onDismiss={dismiss}
                     onGoToWord={onGoToWord}
                     onPractise={onPractise}
                     onPlayWord={onPlayWord}
@@ -157,6 +204,10 @@ function MistakeRow({
   const correct = display[offset] ?? words[mistake.word];
   const explanation = explainMistake(words[mistake.word] ?? '', mistake.heardInstead);
   const skipped = explanation.kind === 'skipped';
+  // What the reader sees is the recognizer's own spelling (فئران, هلؤمن); the
+  // explanation is still worked out on the folded form, which is what the
+  // matcher compared. Mistakes saved before heardRaw existed fall back.
+  const said = mistake.heardRaw || explanation.heard;
 
   // Logical reading order: the words before, the word, the words after. The
   // renderer lays Arabic out right to left by itself. Putting "after" first,
@@ -177,7 +228,7 @@ function MistakeRow({
         skipped
           ? t('Skipped word {word} in {ref}', { word: correct, ref: `${ayah.surah}:${ayah.ayah}` })
           : t('Said {heard} instead of {word} in {ref}', {
-              heard: explanation.heard,
+              heard: said,
               word: correct,
               ref: `${ayah.surah}:${ayah.ayah}`,
             })
@@ -206,7 +257,7 @@ function MistakeRow({
         <>
           <View style={styles.pair}>
             <Text style={[styles.pairLabel, { color: palette.textMuted }]}>{t('You said')}</Text>
-            <Text style={[styles.saidWord, { color: palette.error }]}>{explanation.heard}</Text>
+            <Text style={[styles.saidWord, { color: palette.error }]}>{said}</Text>
           </View>
           <View style={styles.pair}>
             <Text style={[styles.pairLabel, { color: palette.textMuted }]}>{t('Correct')}</Text>
@@ -291,6 +342,20 @@ const styles = StyleSheet.create({
     paddingVertical: space.sm,
   },
   title: { fontSize: 17, fontWeight: '700' },
+  undoBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: space.sm,
+    marginHorizontal: space.md,
+    marginBottom: space.sm,
+    paddingHorizontal: space.sm,
+    paddingVertical: space.xs,
+    borderRadius: radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  undoText: { flex: 1, fontSize: 13, lineHeight: 19 },
+  undoAction: { fontSize: 14, fontWeight: '700' },
   empty: { paddingHorizontal: space.md, paddingBottom: space.lg, fontSize: 14, lineHeight: 21 },
   list: { paddingHorizontal: space.md, paddingBottom: space.md },
   group: { marginBottom: space.md },

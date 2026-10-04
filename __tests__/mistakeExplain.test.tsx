@@ -13,6 +13,7 @@
  * mistake is explained, and what the sheet actually shows.
  */
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+import type { ReactElement } from 'react';
 
 import { MistakeSheet } from '../src/components/MistakeSheet';
 import { ayahByGlobal, ayahDisplayWords, globalAyahOf, wordIndexOf, words } from '../src/data/quran';
@@ -20,7 +21,14 @@ import type { AlignResult } from '../src/engine/align';
 import { describeHint, explainMistake } from '../src/engine/mistakeExplain';
 import type { Mistake } from '../src/engine/mistakes';
 import { heardInPlaceOf } from '../src/engine/session';
+import { DEFAULT_PREFS } from '../src/data/storage';
+import { ThemeContext, type ThemeContextValue } from '../src/theme/themeContext';
 import { lightPalette } from '../src/theme/theme';
+
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  __esModule: true,
+  default: { getItem: () => Promise.resolve(null), setItem: () => Promise.resolve(), removeItem: () => Promise.resolve() },
+}));
 
 const result = (over: Partial<AlignResult>): AlignResult => ({
   cursor: 0,
@@ -56,6 +64,17 @@ describe('what was said in the word\'s place', () => {
     const heard = ['قالوا', 'وانوا', 'من', 'قالوا', 'هلومن', 'كما'];
     const r = result({ matches: [m(4, 0), m(6, 5)], skipped: [5], unmatchedHeard: [1, 2, 3, 4] });
     expect(heardInPlaceOf(heard, r, 5, text)).toBe('هلومن');
+  });
+
+  it('opens with the words that ended the previous utterance when nothing here precedes it', () => {
+    // "... هدى للمومنين" | pause | "الذين يومنون": للمتقين is found skipped only now
+    const heard = ['الذين', 'يومنون'];
+    const r = result({ matches: [m(1, 0), m(2, 1)], skipped: [0], unmatchedHeard: [] });
+    const tail = { from: 0, tokens: ['للمومنين'], spelled: ['للمؤمنين'] };
+    expect(heardInPlaceOf(heard, r, 0, text)).toBe('');
+    expect(heardInPlaceOf(heard, r, 0, text, tail)).toBe('للمومنين');
+    // but not for a word the tail was not said in place of
+    expect(heardInPlaceOf(heard, r, 0, text, { ...tail, from: 1 })).toBe('');
   });
 });
 
@@ -99,25 +118,45 @@ describe('the review sheet', () => {
   const SKIPPED = at(2, 36, 8); // اهبطوا
   const WRONG = at(2, 19, 4); // فيه, said as في
 
-  function render(mistakes: Mistake[], focusWord: number | null = null): ReactTestRenderer {
+  function render(
+    mistakes: Mistake[],
+    focusWord: number | null = null,
+    extra: Partial<Parameters<typeof MistakeSheet>[0]> = {},
+    wrap: (node: ReactElement) => ReactElement = (node) => node,
+  ): ReactTestRenderer {
     let tree!: ReactTestRenderer;
     act(() => {
       tree = create(
-        <MistakeSheet
-          visible
-          mistakes={mistakes}
-          focusWord={focusWord}
-          palette={lightPalette}
-          onClose={() => undefined}
-          onDismiss={() => undefined}
-          onGoToWord={() => undefined}
-          onPractise={() => undefined}
-          onPlayWord={() => undefined}
-        />,
+        wrap(
+          <MistakeSheet
+            visible
+            mistakes={mistakes}
+            focusWord={focusWord}
+            palette={lightPalette}
+            onClose={() => undefined}
+            onDismiss={() => undefined}
+            onGoToWord={() => undefined}
+            onPractise={() => undefined}
+            onPlayWord={() => undefined}
+            {...extra}
+          />,
+        ),
       );
     });
     return tree;
   }
+  const arabic = (node: ReactElement): ReactElement => {
+    const value: ThemeContextValue = {
+      palette: lightPalette,
+      dark: false,
+      reduceMotion: true,
+      highContrast: false,
+      fontStep: 1,
+      prefs: { ...DEFAULT_PREFS, language: 'ar' },
+      setPrefs: () => undefined,
+    };
+    return <ThemeContext.Provider value={value}>{node}</ThemeContext.Provider>;
+  };
   const flat = (tree: ReactTestRenderer): string => JSON.stringify(tree.toJSON());
   const display = (word: number) => {
     const a = ayahByGlobal(globalAyahOf(word));
@@ -162,6 +201,49 @@ describe('the review sheet', () => {
     expect(out).toContain('The word you tapped');
     expect(out.indexOf('The word you tapped')).toBeLessThan(out.indexOf('Wrong word'));
     expect(out.split('You skipped').length - 1).toBe(1);
+  });
+
+  it('shows what was said as the recognizer spelled it, and explains it on the folded form', () => {
+    // 2:22 from the phone: فراشا heard as فئران
+    const word = at(2, 22, 4);
+    const out = flat(render([{ word, heardInstead: 'فيران', heardRaw: 'فئران', at: 1 }]));
+    expect(out).toContain('"فئران"');
+    expect(out).not.toContain('فيران');
+    expect(out).toContain('Said فئران instead of');
+    // a mistake saved before heardRaw existed still reads
+    expect(flat(render([{ word, heardInstead: 'فيران', at: 1 }]))).toContain('"فيران"');
+  });
+
+  it('counts the words in each ayah group in the interface language', () => {
+    const two = [
+      { word: at(2, 19, 4), heardInstead: 'في', at: 1 },
+      { word: at(2, 19, 6), heardInstead: '', at: 1 },
+    ];
+    expect(flat(render(two.slice(0, 1)))).toContain('1 word');
+    expect(flat(render(two))).toContain('2 words');
+    const ar = flat(render(two, null, {}, arabic));
+    expect(ar).toContain('كلمتان');
+    expect(ar).not.toContain('words');
+    expect(flat(render(two.slice(0, 1), null, {}, arabic))).toContain('كلمة واحدة');
+  });
+
+  it('offers Undo after "I said it right", and hands the mistake back', () => {
+    const mistake = { word: WRONG, heardInstead: 'في', at: 1 };
+    const dismissed: number[] = [];
+    const undone: Mistake[] = [];
+    const tree = render([mistake], null, {
+      onDismiss: (w: number) => dismissed.push(w),
+      onUndismiss: (m: Mistake) => undone.push(m),
+    });
+    expect(flat(tree)).not.toContain('Undo');
+    const button = tree.root.findAll((n) => n.props.accessibilityLabel === 'I said it right' && typeof n.props.onPress === 'function')[0];
+    act(() => button.props.onPress());
+    expect(dismissed).toEqual([WRONG]);
+    expect(flat(tree)).toContain('will not be checked again.');
+    const undo = tree.root.findAll((n) => n.props.accessibilityLabel === 'Undo' && typeof n.props.onPress === 'function')[0];
+    act(() => undo.props.onPress());
+    expect(undone).toEqual([mistake]);
+    expect(flat(tree)).not.toContain('Undo');
   });
 
   it('labels its two actions in words, not just icons', () => {
