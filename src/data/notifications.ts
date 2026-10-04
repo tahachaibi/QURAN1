@@ -96,8 +96,39 @@ async function cancelOurs(): Promise<number> {
   return cancelled;
 }
 
-/** Cancel ours and reschedule from scratch. Returns how many were set. */
-export async function rescheduleAll(options: ScheduleOptions, adhanSound: string | null): Promise<number> {
+/**
+ * One rebuild at a time, and only the latest one asked for.
+ *
+ * A rebuild is a long run of native calls — channels, the list, a cancel each, a
+ * schedule each — and the adhan provider starts one on every return to the app
+ * and on every bell, warning or minute-correction tap. Two that overlapped
+ * scheduled everything twice: the second listed the queue while the first was
+ * still adding to it, so the first's later notifications survived beside the
+ * second's whole set, and the adhan posted twice. So each run now waits for the
+ * one before it, and a run that a newer request has replaced by the time its
+ * turn comes is skipped: the newer one cancels and rebuilds everything anyway.
+ */
+let queue: Promise<unknown> = Promise.resolve();
+let latest = 0;
+
+/** Run `job` after everything already queued; one failure does not block the rest. */
+function enqueue<R>(job: () => Promise<R>): Promise<R> {
+  const run = queue.catch(() => undefined).then(job);
+  queue = run;
+  return run;
+}
+
+/**
+ * Cancel ours and reschedule from scratch. Resolves to how many were set, or to
+ * null when a later call replaced this one before it began — that later call's
+ * count is then the one that describes the phone.
+ */
+export function rescheduleAll(options: ScheduleOptions, adhanSound: string | null): Promise<number | null> {
+  const ticket = ++latest;
+  return enqueue(() => (ticket === latest ? rebuild(options, adhanSound) : Promise.resolve(null)));
+}
+
+async function rebuild(options: ScheduleOptions, adhanSound: string | null): Promise<number> {
   await ensureChannels(adhanSound, options.lang);
   await cancelOurs();
 
@@ -122,10 +153,39 @@ export async function rescheduleAll(options: ScheduleOptions, adhanSound: string
   return planned.length;
 }
 
-/** Take every prayer notification down — ours only, for the same reason. */
-export const cancelAll = async (): Promise<void> => {
-  await cancelOurs();
+/**
+ * Take every prayer notification down — ours only, for the same reason.
+ *
+ * In the same queue as the rebuilds, so one already running cannot put its
+ * remaining notifications back afterwards; and it replaces any rebuild still
+ * waiting, because it is the newer intention.
+ */
+export const cancelAll = (): Promise<void> => {
+  ++latest;
+  return enqueue(async () => {
+    await cancelOurs();
+  });
 };
+
+/**
+ * Take down any adhan notification the system is showing right now.
+ *
+ * Its sound is the bundled adhan, played by the system rather than the app, and
+ * on Android it stops only when the notification goes. With the phone locked the
+ * app is never told one was posted, so when the app then sounds the adhan itself
+ * — the reader unlocking within the grace window — or the reader presses Stop,
+ * a posted one must be taken down too: otherwise two adhans play over each other
+ * and Stop silences only one of them.
+ */
+export async function dismissPresentedAdhan(): Promise<void> {
+  const presented = await Notifications.getPresentedNotificationsAsync().catch(
+    (): Notifications.Notification[] => [],
+  );
+  for (const notification of presented) {
+    if (payloadOf(notification)?.kind !== 'adhan') continue;
+    await Notifications.dismissNotificationAsync(notification.request.identifier).catch(() => undefined);
+  }
+}
 
 /**
  * How a notification behaves when it arrives while the app is OPEN.
