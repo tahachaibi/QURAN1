@@ -15,6 +15,7 @@
  * does about it.
  */
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+import { AppState, type AppStateStatus } from 'react-native';
 
 import {
   RecitationProvider,
@@ -66,8 +67,10 @@ jest.mock('expo-keep-awake', () => ({
   activateKeepAwakeAsync: () => Promise.resolve(),
   deactivateKeepAwake: () => undefined,
 }));
+const mockPrefWrites: Record<string, unknown>[] = [];
 jest.mock('../src/theme/ThemeProvider', () => ({
   useTheme: () => ({
+    setPrefs: (next: Record<string, unknown>) => mockPrefWrites.push(next),
     prefs: jest.requireActual('../src/data/storage').DEFAULT_PREFS,
     palette: jest.requireActual('../src/theme/theme').lightPalette,
     fontStep: 1,
@@ -118,6 +121,8 @@ async function mount(): Promise<ReactTestRenderer> {
   return tree;
 }
 
+let appStateHandlers: ((state: AppStateStatus) => void)[] = [];
+
 beforeEach(() => {
   mockRecognizer.length = 0;
   mockGranted = true;
@@ -125,7 +130,20 @@ beforeEach(() => {
   mockAsked = 0;
   mockOpenedSettings = 0;
   mockError = null;
+  mockPrefWrites.length = 0;
+  appStateHandlers = [];
   api = null;
+  jest.spyOn(AppState, 'addEventListener').mockImplementation(((
+    _type: string,
+    handler: (state: AppStateStatus) => void,
+  ) => {
+    appStateHandlers.push(handler);
+    return { remove: () => undefined };
+  }) as unknown as typeof AppState.addEventListener);
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
 });
 
 describe('the microphone is asked for when it is reached for', () => {
@@ -220,6 +238,71 @@ describe('the microphone is asked for when it is reached for', () => {
     // Without this the cached "granted" would stand forever and every later
     // tap would fail the same silent way.
     expect(api?.micPermission).toBe('blocked');
+    tree.unmount();
+  });
+});
+
+/**
+ * THE REGRESSION: Android does not restart an app when a permission is
+ * granted, and nothing re-read it on the way back, so after granting the
+ * microphone in settings the chip still said "blocked" and tapping it opened
+ * settings again — a loop — while the session listened to nothing.
+ */
+describe('coming back from the settings page', () => {
+  it('notices the microphone was granted, and starts listening', async () => {
+    mockGranted = false;
+    mockCanAskAgain = false;
+    const tree = await mount();
+    await act(async () => {
+      api?.start(0);
+    });
+    await act(async () => undefined);
+    expect(api?.micPermission).toBe('blocked');
+    expect(mockRecognizer).not.toContain('start');
+
+    // granted in Android settings, then back to the app
+    mockGranted = true;
+    await act(async () => {
+      for (const handler of appStateHandlers) handler('active');
+    });
+    await act(async () => undefined);
+
+    expect(api?.micPermission).toBe('granted');
+    // the session that started without a microphone gets one
+    expect(mockRecognizer).toEqual(['start']);
+    tree.unmount();
+  });
+
+  it('leaves a refusal that still stands alone', async () => {
+    mockGranted = false;
+    mockCanAskAgain = false;
+    const tree = await mount();
+    await act(async () => {
+      api?.start(0);
+    });
+    await act(async () => {
+      for (const handler of appStateHandlers) handler('active');
+    });
+    await act(async () => undefined);
+    expect(api?.micPermission).toBe('blocked');
+    expect(mockRecognizer).not.toContain('start');
+    tree.unmount();
+  });
+});
+
+/**
+ * THE REGRESSION: the hidden-mode preference was read at launch and never
+ * written, so whoever always tests from memory opened the app every day to the
+ * whole page in plain view.
+ */
+describe('the reading mode', () => {
+  it('is remembered for the next launch', async () => {
+    const tree = await mount();
+    act(() => api?.setMode('hidden'));
+    expect(api?.mode).toBe('hidden');
+    expect(mockPrefWrites).toEqual([{ hiddenMode: true }]);
+    act(() => api?.setMode('follow'));
+    expect(mockPrefWrites).toEqual([{ hiddenMode: true }, { hiddenMode: false }]);
     tree.unmount();
   });
 });
