@@ -110,7 +110,7 @@ export async function rescheduleAll(options: ScheduleOptions, adhanSound: string
         // null means "no sound at all": the notice for a prayer whose bell is
         // off. `false` is how expo-notifications spells silence in content.
         sound: soundFor(item.channel, adhanSound) ?? false,
-        data: item.data,
+        data: { ...item.data },
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DATE,
@@ -140,7 +140,9 @@ export function installForegroundBehaviour(): void {
       const data = notification.request.content.data as Partial<NotificationPayload> | null;
       const isAdhan = data?.kind === 'adhan';
       return Promise.resolve({
-        shouldShowAlert: true,
+        // shouldShowAlert was split into banner and list in SDK 53.
+        shouldShowBanner: true,
+        shouldShowList: true,
         shouldPlaySound: !isAdhan,
         shouldSetBadge: false,
       });

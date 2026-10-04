@@ -33,7 +33,8 @@
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.SYSTEM_ALERT_WINDOW",
         "android.permission.WRITE_EXTERNAL_STORAGE"
-      ]
+      ],
+      "allowBackup": false
     },
     "plugins": [
       [
@@ -46,10 +47,10 @@
         "expo-build-properties",
         {
           "android": {
-            "compileSdkVersion": 35,
-            "targetSdkVersion": 35,
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
             "minSdkVersion": 26,
-            "buildToolsVersion": "35.0.0",
+            "buildToolsVersion": "36.0.0",
             "enableProguardInReleaseBuilds": false,
             "enableJetifier": true
           }

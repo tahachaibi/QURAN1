@@ -39,13 +39,17 @@ jest.mock('expo-av', () => ({
   },
 }));
 
+// Linking is an ES module default export since React Native 0.79.
 jest.mock('react-native/Libraries/Linking/Linking', () => ({
-  openSettings: () => {
-    mockOpenedSettings++;
-    return Promise.resolve();
+  __esModule: true,
+  default: {
+    openSettings: () => {
+      mockOpenedSettings++;
+      return Promise.resolve();
+    },
+    addEventListener: () => ({ remove: () => undefined }),
+    getInitialURL: () => Promise.resolve(null),
   },
-  addEventListener: () => ({ remove: () => undefined }),
-  getInitialURL: () => Promise.resolve(null),
 }));
 
 jest.mock('@react-native-async-storage/async-storage', () => ({

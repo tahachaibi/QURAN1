@@ -117,7 +117,7 @@ jobs:
           # that aapt2 is GUARANTEED present rather than merely likely: two
           # steps below verify the APK with it, and both used to exit 0 when it
           # was missing. A verification that can silently pass is not one.
-          packages: platform-tools build-tools;35.0.0
+          packages: platform-tools build-tools;36.0.0
 
       - run: npm ci
 

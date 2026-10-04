@@ -14,7 +14,10 @@
  */
 import Constants from 'expo-constants';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system';
+// The classic path-based API. SDK 54 moved it to /legacy and made the
+// object-based File/Directory API the default; this code was written for, and
+// tested against, the path-based one.
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 
 import { BACKUP_MIME, backupFilename, parseBackup, serialiseBackup, type BackupParse } from './backup';

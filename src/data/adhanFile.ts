@@ -19,7 +19,10 @@
  * discovering it at Fajr.
  */
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system';
+// The classic path-based API. SDK 54 moved it to /legacy and made the
+// object-based File/Directory API the default; this code was written for, and
+// tested against, the path-based one.
+import * as FileSystem from 'expo-file-system/legacy';
 import { translate, type T } from '../i18n/i18n';
 
 /** Where the chosen recording is kept: our own directory, so it survives. */
@@ -70,7 +73,8 @@ export async function pickAdhanFile(t: T = (s, p) => translate('en', s, p)): Pro
     // Replace any previous choice rather than accumulating files.
     await FileSystem.deleteAsync(target, { idempotent: true });
     await FileSystem.copyAsync({ from: asset.uri, to: target });
-    const info = await FileSystem.getInfoAsync(target, { size: true });
+    // Size is always reported for an existing file; the option was removed.
+    const info = await FileSystem.getInfoAsync(target);
     if (!info.exists) throw new Error('the copy is not there afterwards');
     const sizeBytes = 'size' in info ? info.size : (asset.size ?? 0);
     return {

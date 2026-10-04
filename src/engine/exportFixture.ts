@@ -8,7 +8,10 @@
  * something that never happened. The path is returned either way, so a capture
  * survives even when no app can accept the share.
  */
-import * as FileSystem from 'expo-file-system';
+// The classic path-based API. SDK 54 moved it to /legacy and made the
+// object-based File/Directory API the default; this code was written for, and
+// tested against, the path-based one.
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 
 import type { ReplayFixture } from './replay';
