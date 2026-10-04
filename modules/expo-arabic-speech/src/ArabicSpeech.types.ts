@@ -39,7 +39,12 @@ export interface RmsEvent {
 export interface SpeechErrorEvent {
   code: number;
   name: string;
-  /** transient codes (5, 6, 7, 8, 11) are restarted silently (§4) */
+  /**
+   * True when the native side is about to retry by itself (§4): codes 5, 6, 7,
+   * 8 and 11 within their backoff budget, and 1, 2 and 4 (network, server) for
+   * a few attempts. False means this error ends the session — a 'failed' state
+   * follows — or is decided by the state that follows it.
+   */
   transient: boolean;
   /** a message that names the actual fix, never a generic one (§11) */
   message: string;

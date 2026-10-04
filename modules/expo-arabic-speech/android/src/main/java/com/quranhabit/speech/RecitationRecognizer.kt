@@ -29,7 +29,7 @@ import java.util.concurrent.Executor
  * Three strategies, tried in the priority order of spec §4, each verified at
  * runtime rather than assumed:
  *
- *  1. SEGMENTED  RecognizerIntent.EXTRA_SEGMENTED_SESSION (API 31+). One
+ *  1. SEGMENTED  RecognizerIntent.EXTRA_SEGMENTED_SESSION (API 33+). One
  *     recognition session survives pauses and delivers repeated
  *     onSegmentResults() instead of ending the utterance, which removes the
  *     restart dead-time that dominated the old implementation's latency.
@@ -111,7 +111,28 @@ class RecitationRecognizer(
   private var segmentedProven = false
   private var segmentedAttempts = 0
 
-  private var focusRequest: AudioFocusRequest? = null
+  /**
+   * Transient errors since the recognizer last reached onReadyForSpeech or
+   * produced a result. The ordinary SPEECH_TIMEOUT / NO_MATCH of a pause comes
+   * AFTER ready and so never counts; what counts is a service that fails before
+   * it ever starts listening (unbound, busy, updating), which used to be
+   * relaunched every 60 ms for the three minutes until the silence timeout.
+   */
+  private var fastTransientErrors = 0
+
+  /**
+   * Network and server errors since the last result. These come after ready, so
+   * they need their own counter: reset on ready, a dead network would retry
+   * forever with nothing on screen.
+   */
+  private var networkRetries = 0
+
+  /**
+   * Volatile because start()/stop()/cancel() run on the module thread and the
+   * listener's abandon runs on the main thread. Every write goes through
+   * swapFocusRequest(), so a request is only ever abandoned by whoever took it.
+   */
+  @Volatile private var focusRequest: AudioFocusRequest? = null
   private var relayStartedAt = 0L
   private var lastResultAt = 0L
 
@@ -128,7 +149,14 @@ class RecitationRecognizer(
     Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
       SpeechRecognizer.isOnDeviceRecognitionAvailable(context)
 
-  fun supportsSegmented(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+  /**
+   * TIRAMISU, not S. EXTRA_SEGMENTED_SESSION, onSegmentResults and
+   * onEndOfSegmentedSession first appear in the Android 13 framework; on 12 and
+   * 12L the extra is silently ignored and the session ends with an ordinary
+   * onResults, which segmented mode used to treat as "carry on" — so the
+   * microphone went deaf after the first utterance of every session.
+   */
+  fun supportsSegmented(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
 
   fun capabilities(): Bundle = Bundle().apply {
     putInt("sdkInt", Build.VERSION.SDK_INT)
@@ -168,7 +196,17 @@ class RecitationRecognizer(
    */
   @RequiresApi(Build.VERSION_CODES.TIRAMISU)
   private fun languageStatusTiramisu(locale: String, onResult: (Bundle) -> Unit) {
-    val probe = SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
+    // An answer, not a rejection: the JS side treats a rejected status as
+    // "unknown" forever, while this detail at least reaches Settings.
+    val probe = runCatching { SpeechRecognizer.createOnDeviceSpeechRecognizer(context) }.getOrElse {
+      onResult(
+        Bundle().apply {
+          putBoolean("supported", false)
+          putString("detail", "Could not create the on-device recognizer: ${it.message}")
+        },
+      )
+      return
+    }
     var settled = false
     val finish = { bundle: Bundle ->
       if (!settled) {
@@ -249,10 +287,15 @@ class RecitationRecognizer(
         "No speech recognition service is installed. On a Google-services device, install or enable the Google app; " +
           "on an AOSP build install a RecognitionService provider.",
       )
+      // Every way a session ends without a stop() says 'failed', so JS has one
+      // signal to end its side of the session on rather than a list of names.
+      emitState("failed")
       return
     }
     active = true
     segmentedAttempts = 0
+    fastTransientErrors = 0
+    networkRetries = 0
     offlineViable = options.preferOnDevice
     requestAudioFocus()
     strategy = chooseStrategy()
@@ -266,13 +309,55 @@ class RecitationRecognizer(
     else -> Strategy.RELAY
   }
 
+  /**
+   * Where segmented mode falls back to. ON_DEVICE only while offline is still
+   * believed to work: once the recognizer has said there is no Arabic pack,
+   * an on-device recognizer is the one thing guaranteed to fail.
+   */
+  private fun demotedStrategy(): Strategy =
+    if (options.preferOnDevice && offlineViable && supportsOnDevice()) Strategy.ON_DEVICE else Strategy.RELAY
+
+  /**
+   * How long to wait before retrying `error`, or null when it should not be
+   * retried (any more). Counts the attempt, so call it once per error.
+   *
+   * Transient codes back off: the first restart stays at RESTART_DELAY_MS so
+   * the ordinary relay is as quick as ever, and a service that keeps failing
+   * before it is ready is retried more and more slowly, then given up on.
+   * SERVER and NETWORK used to end the session on the first occurrence while
+   * the message said "restarting"; one mobile-data blip killed an online
+   * session. They get a few slower retries, reset by any result.
+   */
+  private fun nextRetryDelay(error: Int): Long? = when (error) {
+    in TRANSIENT_ERRORS -> {
+      fastTransientErrors++
+      if (fastTransientErrors > MAX_FAST_TRANSIENT_ERRORS) {
+        null
+      } else {
+        TRANSIENT_BACKOFF_MS[minOf(fastTransientErrors, TRANSIENT_BACKOFF_MS.size) - 1]
+      }
+    }
+    in RETRYABLE_ERRORS -> {
+      networkRetries++
+      if (networkRetries > MAX_NETWORK_RETRIES) null else NETWORK_RETRY_DELAY_MS
+    }
+    else -> null
+  }
+
+  /**
+   * Focus is given up HERE, on the calling thread, not in the posted block.
+   * Abandoning "whatever focusRequest holds" from the main thread later meant a
+   * cancel() followed at once by start() (the watchdog does exactly that)
+   * abandoned the NEW request and left the old one on the focus stack for good,
+   * so the podcast paused at the start of recitation never resumed.
+   */
   fun stop() {
     active = false
     generation++
+    abandonAudioFocus()
     main.post {
       current?.let { runCatching { it.stopListening() } }
       releaseAll()
-      abandonAudioFocus()
       emitState("stopped")
     }
   }
@@ -280,10 +365,10 @@ class RecitationRecognizer(
   fun cancel() {
     active = false
     generation++
+    abandonAudioFocus()
     main.post {
       current?.let { runCatching { it.cancel() } }
       releaseAll()
-      abandonAudioFocus()
       emitState("cancelled")
     }
   }
@@ -297,6 +382,24 @@ class RecitationRecognizer(
     runCatching { outgoing?.destroy() }
     current = null
     outgoing = null
+  }
+
+  /**
+   * The session is over and nothing will restart it: say so and let go of
+   * everything. Before this the launch failures returned with the engine still
+   * 'active' and audio focus held, so other apps stayed paused until the JS
+   * silence timeout three minutes later, and a start-failed orphaned the
+   * previous recognizer, which nothing could reach to destroy.
+   */
+  private fun fail(orphan: SpeechRecognizer? = null) {
+    active = false
+    orphan?.let {
+      runCatching { it.cancel() }
+      runCatching { it.destroy() }
+    }
+    releaseAll()
+    abandonAudioFocus()
+    emitState("failed")
   }
 
   /**
@@ -314,6 +417,8 @@ class RecitationRecognizer(
       val recognizer = createRecognizer()
       if (recognizer == null) {
         emitError("create-failed", "Could not create a SpeechRecognizer. Is RECORD_AUDIO granted?")
+        // `previous` is still `current`, so releaseAll() inside fail() reaches it
+        fail()
         return@post
       }
       recognizer.setRecognitionListener(Listener(myGeneration))
@@ -327,6 +432,9 @@ class RecitationRecognizer(
         recognizer.startListening(buildIntent(options.locale, segmented = strategy == Strategy.SEGMENTED))
       }.onFailure {
         emitError("start-failed", "startListening threw: ${it.message}")
+        // `current` is already the new instance, so the previous one has to be
+        // handed in by name or it is never destroyed
+        fail(orphan = previous)
         return@post
       }
 
@@ -388,7 +496,7 @@ class RecitationRecognizer(
         putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
       }
 
-      if (segmented && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+      if (segmented && supportsSegmented()) {
         // Per AOSP: the value is the KEY of the extra that ends the session,
         // and that extra must be set in the same intent (it is, above).
         putExtra(
@@ -443,18 +551,31 @@ class RecitationRecognizer(
           }
         }
         .build()
-      focusRequest = request
+      // Each request has its own listener and so its own entry on the focus
+      // stack. Overwriting the field without abandoning the old one (start()
+      // while a session is live: long-press a word mid-recitation) left that
+      // entry there until the process died. New first, then old: the old
+      // entry is no longer on top, so nobody below is told to resume in between.
+      val old = swapFocusRequest(request)
       audioManager.requestAudioFocus(request)
+      old?.let { audioManager.abandonAudioFocusRequest(it) }
     } else {
       @Suppress("DEPRECATION")
       audioManager.requestAudioFocus(null, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
     }
   }
 
+  /** Atomic read-and-replace, so a request is abandoned by exactly one caller. */
+  @Synchronized
+  private fun swapFocusRequest(next: AudioFocusRequest?): AudioFocusRequest? {
+    val previous = focusRequest
+    focusRequest = next
+    return previous
+  }
+
   private fun abandonAudioFocus() {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-      focusRequest?.let { audioManager.abandonAudioFocusRequest(it) }
-      focusRequest = null
+      swapFocusRequest(null)?.let { audioManager.abandonAudioFocusRequest(it) }
     } else {
       @Suppress("DEPRECATION")
       audioManager.abandonAudioFocus(null)
@@ -468,8 +589,24 @@ class RecitationRecognizer(
   private inner class Listener(private val myGeneration: Int) : RecognitionListener {
     private val stale: Boolean get() = myGeneration != generation
 
+    /**
+     * Set once this instance has asked for its successor. `launch` only bumps
+     * the generation when its posted block runs, so a recognizer that ends its
+     * session twice (onResults, then onEndOfSegmentedSession or an error) would
+     * otherwise start two successors.
+     */
+    private var handedOver = false
+
+    private fun handOver(delayMs: Long) {
+      if (handedOver) return
+      handedOver = true
+      if (delayMs <= 0L) launch(fresh = false) else main.postDelayed({ if (active) launch(fresh = false) }, delayMs)
+    }
+
     override fun onReadyForSpeech(params: Bundle?) {
       if (stale) return
+      // It started listening, so whatever kept it from starting has cleared.
+      fastTransientErrors = 0
       emitState("ready")
     }
 
@@ -495,7 +632,10 @@ class RecitationRecognizer(
 
     override fun onError(error: Int) {
       if (stale) return
-      val transient = error in TRANSIENT_ERRORS
+      // Whether this error is about to be retried decides how it is reported:
+      // JS turns any non-transient error red, and a retry in flight is not one.
+      val retryDelay = if (active) nextRetryDelay(error) else null
+      val transient = if (active) retryDelay != null else error in TRANSIENT_ERRORS
       emit(
         "error",
         Bundle().apply {
@@ -506,10 +646,22 @@ class RecitationRecognizer(
         },
       )
       if (!active) return
-      if (transient) {
+      if (retryDelay != null) {
         // restart silently; the session is not over because the recognizer
-        // heard nothing for a moment
-        main.postDelayed({ if (active) launch(fresh = false) }, RESTART_DELAY_MS)
+        // heard nothing for a moment, or the network blinked
+        handOver(retryDelay)
+        return
+      }
+      if (error in TRANSIENT_ERRORS) {
+        // Out of retries: the service fails before it ever gets ready. Its own
+        // advice says "restarting", which would now be a lie, so name the real
+        // problem instead.
+        emitError(
+          "recognizer-unavailable",
+          "The speech recognition service keeps failing to start. Close other apps using voice input, or check " +
+            "that Google speech services are installed and enabled, then tap the microphone again.",
+        )
+        fail()
         return
       }
       if (error == SpeechRecognizer.ERROR_AUDIO) {
@@ -529,31 +681,47 @@ class RecitationRecognizer(
           error == SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED
       if (noOfflineModel && offlineViable) {
         offlineViable = false
+        // Dropping the extra is not enough on its own: an ON_DEVICE recognizer
+        // can only work on-device, so relaunching it without the pack fails the
+        // same way and ended the session the chip had just said was going
+        // online. Going online means the ordinary recognizer.
+        if (strategy == Strategy.ON_DEVICE) strategy = Strategy.RELAY
         emitState("offline-unavailable")
-        main.postDelayed({ if (active) launch(fresh = false) }, RESTART_DELAY_MS)
+        handOver(RESTART_DELAY_MS)
         return
       }
 
-      active = false
-      abandonAudioFocus()
-      emitState("failed")
+      fail()
     }
 
     override fun onResults(results: Bundle?) {
       if (stale) return
       lastResultAt = System.currentTimeMillis()
       resultsThisInstance++
+      fastTransientErrors = 0
+      networkRetries = 0
       emitTranscript("final", results)
-      // A non-segmented session is finished after its results. Relay onwards.
-      if (active && strategy != Strategy.SEGMENTED) {
-        launch(fresh = false)
+      if (!active) return
+      // A final result means this instance's session is over, in every mode.
+      // In segmented mode it should never arrive at all — segments come through
+      // onSegmentResults — so one arriving before any segment ever has is the
+      // proof that this recognizer ignored the extra. Waiting for
+      // onEndOfSegmentedSession instead, which such a recognizer never calls,
+      // left the microphone deaf until the JS watchdog noticed, once per ayah.
+      if (strategy == Strategy.SEGMENTED && !segmentedProven) {
+        segmentedFailed = true
+        strategy = demotedStrategy()
+        emitState("segmented-unsupported")
       }
+      handOver(0L)
     }
 
     override fun onPartialResults(partialResults: Bundle?) {
       if (stale) return
       lastResultAt = System.currentTimeMillis()
       resultsThisInstance++
+      fastTransientErrors = 0
+      networkRetries = 0
       emitTranscript("partial", partialResults)
     }
 
@@ -563,6 +731,8 @@ class RecitationRecognizer(
       segmentedProven = true
       lastResultAt = System.currentTimeMillis()
       resultsThisInstance++
+      fastTransientErrors = 0
+      networkRetries = 0
       emitTranscript("final", segmentResults)
     }
 
@@ -572,10 +742,10 @@ class RecitationRecognizer(
       if (!segmentedProven && segmentedAttempts >= SEGMENTED_PROBES) {
         // The device accepted the extra but never delivered a segment: demote.
         segmentedFailed = true
-        strategy = if (options.preferOnDevice && supportsOnDevice()) Strategy.ON_DEVICE else Strategy.RELAY
+        strategy = demotedStrategy()
         emitState("segmented-unsupported")
       }
-      if (active) launch(fresh = false)
+      if (active) handOver(0L)
     }
 
     override fun onEvent(eventType: Int, params: Bundle?) = Unit
@@ -632,6 +802,23 @@ class RecitationRecognizer(
     private const val LANGUAGE_PROBE_TIMEOUT_MS = 4_000L
     /** How long the throwaway download-trigger recognizer is kept alive. */
     private const val DOWNLOADER_LIFETIME_MS = 1_000L
+    /**
+     * Delays for the 1st, 2nd, 3rd and later consecutive transient error before
+     * the recognizer ever got ready. The first is the old fixed delay.
+     */
+    private val TRANSIENT_BACKOFF_MS = longArrayOf(RESTART_DELAY_MS, 250L, 1_000L, 2_000L)
+    /** About ten seconds of a service that will not start, then say so. */
+    private const val MAX_FAST_TRANSIENT_ERRORS = 8
+    /** Long enough for a network blip to clear; short enough not to lose an ayah. */
+    private const val NETWORK_RETRY_DELAY_MS = 500L
+    private const val MAX_NETWORK_RETRIES = 3
+
+    /** Codes worth a few retries before they end the session. */
+    private val RETRYABLE_ERRORS = setOf(
+      SpeechRecognizer.ERROR_SERVER,
+      SpeechRecognizer.ERROR_NETWORK,
+      SpeechRecognizer.ERROR_NETWORK_TIMEOUT,
+    )
 
     /**
      * Codes that mean "nothing was heard just now", not "the session is over".
@@ -678,7 +865,10 @@ class RecitationRecognizer(
           "assistant, then tap resume."
       SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT ->
         "The recognizer fell back to the network and could not reach it. Install the Arabic offline pack to work fully offline."
-      SpeechRecognizer.ERROR_SERVER, SpeechRecognizer.ERROR_SERVER_DISCONNECTED ->
+      // Only shown once its retries are spent, so it must not promise a restart.
+      SpeechRecognizer.ERROR_SERVER ->
+        "The recognition service stopped responding. Tap the microphone to try again."
+      SpeechRecognizer.ERROR_SERVER_DISCONNECTED ->
         "The recognition service dropped the session; restarting."
       SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT ->
         "Nothing recognized in that window; restarting."
