@@ -828,15 +828,19 @@ describe('a user can actually reach this', () => {
   });
 
   it('plans the restore before writing it', () => {
-    // planRestore must be reached from the screen, and importAll must not be
-    // called from the same function that picks the file. The gap between them
-    // is the confirmation step, and it is the whole reason restore is not
-    // destructive by accident.
+    // planRestore must be reached from the screen, and the write must not
+    // happen in the same function that picks the file. The gap between them is
+    // the confirmation step, and it is the whole reason restore is not
+    // destructive by accident. The write goes through restoreAll (storage.ts),
+    // never a bare importAll: restoreAll is what makes the parts of the app
+    // holding a copy in memory re-read it, instead of writing the old copy
+    // back over the restore the next time they save.
     expect(settings).toContain('planRestore');
-    expect(settings).toContain('importAll');
+    expect(settings).toContain('restoreAll(');
+    expect(settings).not.toContain('importAll');
     const pick = settings.slice(settings.indexOf('const doPick'), settings.indexOf('const confirm'));
     expect(pick).toContain('planRestore');
-    expect(pick).not.toContain('importAll');
+    expect(pick).not.toContain('restoreAll(');
   });
 
   it('explains every way a file can be refused', () => {

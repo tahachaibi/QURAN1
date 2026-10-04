@@ -6,14 +6,15 @@
  * quality genuinely varies by locale and only the user can tell which sounds
  * best for their recitation (§4).
  */
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
+import type { LanguageStatus, SpeechCapabilities, SpeechStrategy } from '../modules/expo-arabic-speech';
 import { useBilling } from '../src/billing/BillingProvider';
 import { planRestore, type BackupParse, type RestoreSummary } from '../src/data/backup';
 import { formatBytes, pickBackupFile, shareBackup } from '../src/data/backupFile';
-import { exportAll, importAll } from '../src/data/storage';
+import { exportAll, restoreAll, today } from '../src/data/storage';
 import { useRecitation } from '../src/context/RecitationProvider';
 import type { T } from '../src/i18n/i18n';
 import { useT } from '../src/i18n/useT';
@@ -148,18 +149,10 @@ export default function Settings() {
           }
           palette={palette}
         />
-        <Info label={t('Strategy in use')} value={recognizer.strategy ?? '—'} palette={palette} />
+        <Info label={t('Strategy in use')} value={strategyLabel(recognizer.strategy, t)} palette={palette} />
         <Info
           label={t('Arabic offline pack')}
-          value={
-            recognizer.languageStatus === null
-              ? '—'
-              : recognizer.languageStatus.localeInstalled === true
-                ? t('installed')
-                : recognizer.languageStatus.supported
-                  ? t('not installed')
-                  : (recognizer.languageStatus.detail ?? t('unknown'))
-          }
+          value={offlinePackLabel(recognizer.languageStatus, recognizer.capabilities, t)}
           palette={palette}
         />
         {recognizer.languageStatus?.localeInstalled === false ? (
@@ -264,7 +257,7 @@ export default function Settings() {
                 ? t('Nothing on this phone is lost')
                 : t('Some things on this phone will change')}
             </Text>
-            {describeLines(backup.pending.summary, t).map((line) => (
+            {describeLines(backup.pending, t).map((line) => (
               <Text key={line} style={[styles.hint, { color: palette.textMuted }]}>
                 {line}
               </Text>
@@ -279,6 +272,7 @@ export default function Settings() {
               </Pressable>
               <Pressable
                 onPress={backup.confirm}
+                disabled={backup.busy !== null}
                 accessibilityRole="button"
                 style={[styles.confirmButton, { backgroundColor: palette.primary, borderColor: palette.primary }]}
               >
@@ -295,15 +289,24 @@ export default function Settings() {
         ) : null}
       </Section>
 
-      <Section title={t('Diagnostics')} palette={palette}>
-        <Toggle
-          label={t('Show debug overlay')}
-          hint={t('Heard alternatives, local vs global score, cursor and jump decisions. Dev builds only.')}
-          value={prefs.showDebugOverlay}
-          onChange={(showDebugOverlay) => setPrefs({ showDebugOverlay })}
-          palette={palette}
-        />
-      </Section>
+      {/*
+        Development builds only. The overlay this switches on renders nothing
+        in a release build (DebugOverlay returns null unless __DEV__), and every
+        APK anybody installs — the test build and the Play bundle alike — is a
+        release build. So this was a switch that visibly did nothing, explained
+        in developer jargon, on every user's settings screen.
+      */}
+      {__DEV__ ? (
+        <Section title={t('Diagnostics')} palette={palette}>
+          <Toggle
+            label={t('Show debug overlay')}
+            hint={t('Heard alternatives, local vs global score, cursor and jump decisions. Dev builds only.')}
+            value={prefs.showDebugOverlay}
+            onChange={(showDebugOverlay) => setPrefs({ showDebugOverlay })}
+            palette={palette}
+          />
+        </Section>
+      ) : null}
 
       <Text style={[styles.footer, { color: palette.textMuted }]}>
         {t(
@@ -312,6 +315,18 @@ export default function Settings() {
       </Text>
     </ScrollView>
   );
+}
+
+/** A picked file waiting for the user to confirm it. */
+interface PendingRestore {
+  /** what the confirmation shows; the write plans again against storage as it is then */
+  summary: RestoreSummary;
+  /** the file's payload, kept so the write can be planned at the moment it happens */
+  incoming: Record<string, string>;
+  /** when the file was made, epoch ms; 0 when it does not say */
+  createdAt: number;
+  /** some of the file could not be read, or it promised entries it does not hold */
+  damaged: boolean;
 }
 
 /**
@@ -325,7 +340,8 @@ export default function Settings() {
 function useBackup(t: T) {
   const [busy, setBusy] = useState<'export' | 'pick' | 'restore' | null>(null);
   const [note, setNote] = useState('');
-  const [pending, setPending] = useState<{ values: Record<string, string>; summary: RestoreSummary } | null>(null);
+  const [pending, setPending] = useState<PendingRestore | null>(null);
+  const restoring = useRef(false);
 
   const doExport = useCallback(async () => {
     setBusy('export');
@@ -351,25 +367,52 @@ function useBackup(t: T) {
       return;
     }
     const plan = planRestore(await exportAll(), parse.backup.payload);
-    setPending(plan);
+    // Nothing would change: the same file restored twice, or a backup just made
+    // on this phone. Offering a Restore button for that ended in "Restored 0
+    // items"; saying so now, and writing nothing, is the honest answer.
+    if (Object.keys(plan.values).length === 0) {
+      setNote(t('This backup holds nothing newer than what is already on this phone. Nothing was changed.'));
+      return;
+    }
+    setPending({
+      summary: plan.summary,
+      incoming: parse.backup.payload,
+      createdAt: parse.backup.createdAt,
+      damaged: parse.warnings.some((w) => w.kind === 'unreadable-keys' || w.kind === 'incomplete'),
+    });
   }, [t]);
 
   const confirm = useCallback(async () => {
-    if (pending === null) return;
+    // A second tap would plan again from what the first one just wrote, and
+    // report that the file held nothing new.
+    if (pending === null || restoring.current) return;
+    restoring.current = true;
+    const { incoming } = pending;
     setBusy('restore');
-    const restored = await importAll(pending.values);
-    setBusy(null);
-    setPending(null);
-    /**
-     * The app reads most of this at mount, so a restore does not take effect
-     * everywhere until it is reopened. Saying so is better than letting
-     * somebody restore, see an unchanged streak, and conclude it failed.
-     */
-    setNote(
-      restored.length === 1
-        ? t('Restored 1 item. Close and reopen Tasmee Hifz to see all of it.')
-        : t('Restored {n} items. Close and reopen Tasmee Hifz to see all of it.', { n: restored.length }),
-    );
+    try {
+      /**
+       * Planned again HERE, against storage as it is now rather than when the
+       * file was picked, and written with every part of the app that keeps a
+       * copy in memory wrapped around the write (`restoreAll`, storage.ts).
+       * That is what makes the restore take effect at once — and what stops
+       * the next recitation or the next setting from quietly writing the old
+       * copy back over it, which a "close and reopen" note never prevented.
+       */
+      const { planned, restored } = await restoreAll((current) => planRestore(current, incoming).values);
+      setPending(null);
+      setNote(
+        planned === 0
+          ? t('This backup holds nothing newer than what is already on this phone. Nothing was changed.')
+          : restored.length === 0
+            ? t('Nothing could be restored. Nothing was changed.')
+            : restored.length < planned
+              ? t('Part of the backup could not be written. Restore it again to finish.')
+              : t('Backup restored.'),
+      );
+    } finally {
+      restoring.current = false;
+      setBusy(null);
+    }
   }, [pending, t]);
 
   const cancel = useCallback(() => {
@@ -404,8 +447,12 @@ function explainProblem(parse: Extract<BackupParse, { ok: false }>, t: T): strin
 }
 
 /** The consequence, in counts, before anything is written. */
-function describeLines(s: RestoreSummary, t: T): string[] {
+function describeLines(p: PendingRestore, t: T): string[] {
+  const s = p.summary;
   const lines: string[] = [];
+  // Which file this is, first: "yesterday's, or last year's?" is the question
+  // to settle before anything else. The same YYYY-MM-DD the file was named with.
+  if (p.createdAt > 0) lines.push(t('Backup made on {date}.', { date: today(new Date(p.createdAt)) }));
   if (s.hifz.added > 0 || s.hifz.recovered > 0) {
     lines.push(
       t('Memorisation: {added} ayahs added, {updated} updated from the file, {kept} left as they are.', {
@@ -423,8 +470,63 @@ function describeLines(s: RestoreSummary, t: T): string[] {
   if (s.mistakes.merged > 0) lines.push(t('Mistakes: {n} recovered.', { n: s.mistakes.recovered }));
   if (s.progress.recovered > 0) lines.push(t('Reading positions: {n} moved forward.', { n: s.progress.recovered }));
   if (s.settingsReplaced) lines.push(t('Settings will be replaced by the ones in the file.'));
+  // What a capped list pushes off the end. These are what `losesNothing`
+  // counted when it said something will change, and the screen used to leave
+  // the user to guess which thing it meant.
+  if (s.sessions.dropped > 0) {
+    lines.push(
+      s.sessions.dropped === 1
+        ? t('The oldest session will not be kept: the history is full.')
+        : t('The {n} oldest sessions will not be kept: the history is full.', { n: s.sessions.dropped }),
+    );
+  }
+  if (s.mistakes.dropped > 0) {
+    lines.push(
+      s.mistakes.dropped === 1
+        ? t('The oldest mistake will not be kept: the history is full.')
+        : t('The {n} oldest mistakes will not be kept: the history is full.', { n: s.mistakes.dropped }),
+    );
+  }
   if (s.skipped.length > 0) lines.push(t('{n} thing(s) in the file are deliberately not restored.', { n: s.skipped.length }));
+  if (p.damaged) lines.push(t('Part of this file could not be read, so not everything in it can be restored.'));
   return lines;
+}
+
+/**
+ * The recognizer strategy in words. The native module reports an enum name,
+ * and "SEGMENTED" or "RELAY" is a developer's word on a settings screen, in
+ * either language.
+ */
+function strategyLabel(strategy: SpeechStrategy | null, t: T): string {
+  switch (strategy) {
+    case 'SEGMENTED':
+      return t('Continuous segmented session');
+    case 'ON_DEVICE':
+      return t('On-device recognition');
+    case 'RELAY':
+      return t('Standard recognition');
+    default:
+      return '—';
+  }
+}
+
+/**
+ * The offline pack row, without the native module's own English.
+ *
+ * When the recognizer cannot say whether the pack is there, the Kotlin gives
+ * its reason as a developer's sentence ("checkRecognitionSupport timed out
+ * after 4s"), and that used to be printed here as it was, in English in the
+ * Arabic interface too. Its reasons come in two kinds and the capabilities
+ * already tell them apart: a phone that cannot recognise on-device at all
+ * (before Android 13, or with no on-device service) has no pack to install,
+ * and anything else is a question that went unanswered.
+ */
+function offlinePackLabel(status: LanguageStatus | null, capabilities: SpeechCapabilities | null, t: T): string {
+  if (status === null) return '—';
+  if (status.localeInstalled === true) return t('installed');
+  if (status.supported) return t('not installed');
+  const impossible = capabilities !== null && (capabilities.sdkInt < 33 || !capabilities.onDeviceAvailable);
+  return impossible ? t('not available') : t('unknown');
 }
 
 // --- small building blocks ---
