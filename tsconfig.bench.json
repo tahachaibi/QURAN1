@@ -8,7 +8,13 @@
     "outDir": "/tmp/qh-bench",
     "jsx": "react-jsx",
     "skipLibCheck": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "customConditions": null
   },
-  "include": ["scripts/bench-engine.ts", "scripts/make-fixtures.ts", "src/engine/**/*.ts", "src/data/**/*.ts"]
+  "include": [
+    "scripts/bench-engine.ts",
+    "scripts/make-fixtures.ts",
+    "src/engine/**/*.ts",
+    "src/data/**/*.ts"
+  ]
 }
