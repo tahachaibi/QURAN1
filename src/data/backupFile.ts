@@ -105,6 +105,17 @@ export interface ReadResult {
 }
 
 /**
+ * Larger than any backup this app can write, by a wide margin.
+ *
+ * A real one is tens of kilobytes; a deck covering the whole Quran plus a full
+ * session history is still only a few megabytes. The picker shows every file on
+ * purpose (see below), so a mistaken tap on a video would otherwise be decoded
+ * whole into a JavaScript string — the one way picking the wrong file could
+ * freeze the app instead of being told "not one of ours".
+ */
+export const MAX_BACKUP_BYTES = 10 * 1024 * 1024;
+
+/**
  * Ask for a backup file and parse it. Writes nothing.
  *
  * Stopping at the parse is deliberate. The caller shows the user what a restore
@@ -135,6 +146,13 @@ export async function pickBackupFile(t: T = ENGLISH): Promise<ReadResult> {
   if (picked.canceled) return { parse: null, detail: '' };
   const asset = picked.assets[0];
   if (asset === undefined) return { parse: null, detail: t('No file came back from the picker.') };
+  // Some providers do not report a size, and then there is nothing to check.
+  if (typeof asset.size === 'number' && asset.size > MAX_BACKUP_BYTES) {
+    // The picker has already copied it into the cache; a stray video is too
+    // big to leave there until Android gets round to it.
+    void FileSystem.deleteAsync(asset.uri, { idempotent: true }).catch(() => undefined);
+    return { parse: null, detail: t('That file is far too large to be a Tasmee Hifz backup.') };
+  }
 
   let text: string;
   try {

@@ -2,7 +2,7 @@ import { useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { AccessibilityInfo, useColorScheme } from 'react-native';
 
 import { darkPalette, lightPalette, type FontStep, type Palette } from './theme';
-import { loadPrefs, savePrefs, type Prefs } from '../data/storage';
+import { holdAcrossRestores, loadPrefs, savePrefs, type Prefs } from '../data/storage';
 
 import { ThemeContext, type ThemeContextValue } from './themeContext';
 
@@ -16,6 +16,23 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void loadPrefs().then(setPrefsState);
   }, []);
+
+  /**
+   * A restore writes the settings underneath this provider, which keeps its
+   * own copy and saves the WHOLE of it on every change. Without re-reading, the
+   * next toggle anywhere in the app — theme, reciter, a prayer bell — put the
+   * pre-restore settings back. There is nothing of ours to wait for first:
+   * `setPrefs` issues its save as it happens, and AsyncStorage runs writes in
+   * the order they were issued.
+   */
+  useEffect(
+    () =>
+      holdAcrossRestores(async (write) => {
+        await write();
+        setPrefsState(await loadPrefs());
+      }),
+    [],
+  );
 
   useEffect(() => {
     let cancelled = false;
