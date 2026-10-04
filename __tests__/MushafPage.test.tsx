@@ -108,6 +108,7 @@ function sliceFor(page: number, overrides: Partial<PageSlice> = {}): PageSlice {
     missed: [],
     hinted: [],
     progress: 0,
+    recitedUpTo: from,
     ...overrides,
   };
 }
@@ -124,7 +125,6 @@ function render(page: number, props: Partial<Parameters<typeof MushafPage>[0]> =
         palette={lightPalette}
         reduceMotion
         level={level}
-        cursor={pageWordRange(page)[0]}
         hintLevelOf={() => 0}
         onWordPress={() => undefined}
         onWordLongPress={() => undefined}
@@ -207,7 +207,6 @@ describe('MushafPage renders', () => {
           palette={lightPalette}
           reduceMotion
           level={level}
-          cursor={0}
           hintLevelOf={() => 0}
           onWordPress={() => undefined}
           onWordLongPress={() => undefined}
@@ -226,7 +225,6 @@ describe('MushafPage renders', () => {
           palette={lightPalette}
           reduceMotion
           level={level}
-          cursor={0}
           hintLevelOf={() => 0}
           onWordPress={() => undefined}
           onWordLongPress={() => undefined}
@@ -558,6 +556,95 @@ describe('centred lines', () => {
       return f !== null && f.flexDirection === 'row-reverse' && f.justifyContent === 'space-between';
     });
     expect(justified.length).toBeGreaterThan(0);
+    tree.unmount();
+  });
+});
+
+/**
+ * Reading direction on a phone whose SYSTEM language is Arabic.
+ *
+ * There React Native turns RTL layout on by itself — the manifest allows RTL,
+ * RTL is allowed by default, and the device locale is RTL; the in-app language
+ * has nothing to do with it — and Yoga swaps `row` and `row-reverse`
+ * (yoga/algorithm/FlexDirection.h). Every line was a hard-coded 'row-reverse',
+ * so on exactly those phones the first word of each line landed on the LEFT
+ * and the whole Quran read backwards, while every French and English phone it
+ * was tried on looked right.
+ *
+ * react-test-renderer does no layout, so this models the one Yoga rule that
+ * matters and asserts what the lines resolve to on the glass, in both modes.
+ */
+describe('reading direction', () => {
+  const { I18nManager } = require('react-native') as { I18nManager: { isRTL: boolean } };
+  const original = I18nManager.isRTL;
+  afterEach(() => {
+    I18nManager.isRTL = original;
+  });
+
+  /** Yoga: under an RTL layout direction, Row and RowReverse trade places. */
+  const onGlass = (flexDirection: unknown, isRTL: boolean): 'right-to-left' | 'left-to-right' => {
+    const firstChildOnRight = flexDirection === 'row-reverse' ? !isRTL : isRTL;
+    return firstChildOnRight ? 'right-to-left' : 'left-to-right';
+  };
+
+  const flat = (style: unknown): Record<string, unknown> | null => {
+    if (Array.isArray(style)) return Object.assign({}, ...style.filter(Boolean));
+    return style !== null && typeof style === 'object' ? (style as Record<string, unknown>) : null;
+  };
+
+  /**
+   * Every row whose children are a line's words in reading order: the justified
+   * line, the centred line's inner row, and both measuring rows. The centred
+   * line's OUTER row only centres one child, so its direction is immaterial.
+   */
+  const wordRows = (tree: ReactTestRenderer) =>
+    tree.root.findAll((n) => {
+      if (typeof n.type !== 'string') return false;
+      const f = flat(n.props.style);
+      if (f === null || f.justifyContent === 'center') return false;
+      const rowish = f.flexDirection === 'row' || f.flexDirection === 'row-reverse';
+      return rowish && (f.alignItems === 'flex-end' || f.width === MEASURE_WIDTH);
+    });
+
+  it.each([false, true])('lays every line right to left when isRTL is %s', (isRTL) => {
+    I18nManager.isRTL = isRTL;
+    for (const page of [1, 3]) {
+      // the measuring pass: the widths it reports must be of the same row
+      const tree = render(page);
+      const measuring = wordRows(tree);
+      expect(measuring.length).toBeGreaterThan(0);
+      for (const row of measuring) {
+        expect(onGlass(flat(row.props.style)?.flexDirection, isRTL)).toBe('right-to-left');
+      }
+
+      // and the settled page, justified (page 3) and centred (page 1)
+      settleLayout(tree);
+      const settled = wordRows(tree);
+      expect(settled.length).toBeGreaterThanOrEqual(linesOfPage(page).filter((l) => l.kind === 'ayah').length);
+      for (const row of settled) {
+        expect(onGlass(flat(row.props.style)?.flexDirection, isRTL)).toBe('right-to-left');
+      }
+      tree.unmount();
+    }
+  });
+});
+
+describe('words below the cursor', () => {
+  it('reads every word below the slice’s recitedUpTo as recited, and none from it on', () => {
+    // Hidden mode conceals upcoming words and shows recited ones in full, so the
+    // accessibility label tells the two apart without any layout.
+    const page = 3;
+    const [from] = pageWordRange(page);
+    const tree = render(page, { hidden: true, slice: sliceFor(page, { recitedUpTo: from + 5 }) });
+    const labels = tree.root
+      .findAll(
+        (n) =>
+          typeof n.type === 'string' &&
+          n.props.accessibilityRole === 'text' &&
+          typeof n.props.accessibilityLabel === 'string',
+      )
+      .map((n) => n.props.accessibilityLabel as string);
+    expect(labels.indexOf('Hidden word')).toBe(5);
     tree.unmount();
   });
 });

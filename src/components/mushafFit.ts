@@ -59,6 +59,29 @@ export const GUTTER = 8;
  */
 export const MEASURE_WIDTH = 4000;
 
+/**
+ * The flexDirection that lays a mushaf line out RIGHT TO LEFT on the glass:
+ * first token at the right margin, last at the left.
+ *
+ * Not a constant, because Yoga resolves `row` and `row-reverse` against the
+ * layout direction, and that is not ours to choose. On a phone whose SYSTEM
+ * language is Arabic, React Native turns RTL layout on by itself
+ * (I18nUtil.isRTL: supportsRtl in the manifest, RTL allowed by default, and an
+ * RTL device locale — the in-app language plays no part), and Yoga then swaps
+ * the two (FlexDirection.h: Row <-> RowReverse under RTL). A hard-coded
+ * 'row-reverse' therefore printed every line of the Quran backwards on exactly
+ * the phones most likely to be reading it, while French and English phones —
+ * where it was tested — looked right.
+ *
+ * So the direction is chosen against the direction the root is actually laid
+ * out in. The `direction: 'ltr'` style would be tidier, but the legacy
+ * architecture this app runs on (newArchEnabled: false) has no such prop on
+ * Android; it is silently ignored.
+ */
+export function lineFlexDirection(isRTL: boolean): 'row' | 'row-reverse' {
+  return isRTL ? 'row' : 'row-reverse';
+}
+
 /** How many times the fit may be re-measured before the smallest wins. */
 export const MAX_REFINEMENTS = 4;
 
