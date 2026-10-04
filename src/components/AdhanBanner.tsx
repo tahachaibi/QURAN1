@@ -19,12 +19,20 @@ import { useTheme } from '../theme/ThemeProvider';
 import { radius, space } from '../theme/theme';
 
 export function AdhanBanner() {
-  const { prayer, dismiss } = useAdhan();
+  const { prayer, sounding, dismiss } = useAdhan();
   const { palette } = useTheme();
   const { t } = useT();
   const insets = useSafeAreaInsets();
 
   if (prayer === null) return null;
+
+  /**
+   * The banner also announces a prayer whose bell is off, one that falls while
+   * the microphone is live, and one whose recording would not play. Then nothing
+   * is sounding, and a button saying "Stop adhan" over silence reads like a
+   * fault — so it says what it does: it puts the notice away.
+   */
+  const quiet = !sounding;
 
   return (
     <View style={[styles.wrap, { top: insets.top + space.xs }]} pointerEvents="box-none">
@@ -37,7 +45,7 @@ export function AdhanBanner() {
           * is broken and become clutter the moment it is not.
           */}
         <View style={styles.head}>
-          <Ionicons name="volume-high" size={22} color={palette.accent} />
+          <Ionicons name={quiet ? 'notifications' : 'volume-high'} size={22} color={palette.accent} />
           <View style={styles.headText}>
             <Text style={[styles.arabic, { color: '#FFFFFF' }]}>{PRAYER_ARABIC[prayer]}</Text>
             <Text style={[styles.sub, { color: palette.accentSoft }]}>{t('Adhan')}</Text>
@@ -47,11 +55,11 @@ export function AdhanBanner() {
         <Pressable
           onPress={dismiss}
           accessibilityRole="button"
-          accessibilityLabel={t('Stop the adhan')}
+          accessibilityLabel={quiet ? t('Dismiss') : t('Stop the adhan')}
           style={[styles.stop, { backgroundColor: palette.accent }]}
         >
-          <Ionicons name="stop" size={18} color="#1B4332" />
-          <Text style={styles.stopText}>{t('Stop adhan')}</Text>
+          <Ionicons name={quiet ? 'close' : 'stop'} size={18} color="#1B4332" />
+          <Text style={styles.stopText}>{quiet ? t('Dismiss') : t('Stop adhan')}</Text>
         </Pressable>
       </View>
     </View>

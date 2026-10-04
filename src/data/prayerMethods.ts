@@ -87,12 +87,40 @@ export interface MethodsResult {
   note: string | null;
 }
 
+/**
+ * How long one request may take, headers and body together.
+ *
+ * React Native's Android HTTP client is built with no timeouts at all, so a
+ * connection that opens and then goes quiet — a captive portal, a weak signal,
+ * a network handover — is waited on forever. The catch blocks that fall back to
+ * saved data never ran, and the prayer tab sat blank with saved times in hand.
+ * The prayer requests run one after another, so this is kept short enough that
+ * two of them still give up well within a person's patience.
+ */
+export const REQUEST_TIMEOUT_MS = 8_000;
+
+/**
+ * GET a URL and parse its JSON, giving up after `ms`.
+ *
+ * The timer covers the body as well as the headers: a server that sends its
+ * headers and then stalls would otherwise hang in `json()` instead.
+ */
+export async function fetchJson(url: string, ms = REQUEST_TIMEOUT_MS): Promise<unknown> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return (await response.json()) as unknown;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** Fetch and cache. Falls back to the cache, then to nothing — never throws. */
 export async function fetchMethods(): Promise<MethodsResult> {
   try {
-    const response = await fetch(METHODS_URL);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const json = (await response.json()) as unknown;
+    const json = await fetchJson(METHODS_URL);
     const methods = parseMethods(json);
     if (methods.length === 0) throw new Error('no methods in the response');
     await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(json));
