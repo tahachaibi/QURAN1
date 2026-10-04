@@ -31,7 +31,7 @@ import {
 import { Audio, InterruptionModeAndroid, type AVPlaybackStatus } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 
-import { surahInfo, surahWordRange, surahOf, TOTAL_SURAHS } from '../data/quran';
+import { surahInfo, surahWordRange, TOTAL_SURAHS } from '../data/quran';
 import {
   BUILTIN_RECITERS,
   fetchReciters,
@@ -51,10 +51,43 @@ export interface ListenPanelProps {
   onReciterChange: (id: string) => void;
   /** move the shared cursor, so Read opens where Listen left off */
   onFollowWord: (word: number) => void;
-  /** where the cursor is now, to pick the starting ayah */
-  cursor: number;
+  /**
+   * The surah that was TAPPED in the Listen tab — the route's, not the cursor's.
+   *
+   * This used to be read off the shared cursor, which on a fresh launch is
+   * Al-Fatiha and after any recitation is wherever that ended, and was captured
+   * before the screen's seed had moved it. So tapping Ya-Sin opened a player
+   * showing, and playing, Al-Fatiha: the surah list did nothing at all.
+   */
+  initialSurah: number;
   fontStep: FontStep;
+  /**
+   * Hand the provider a way to silence this player, which it calls when a
+   * recitation starts: the reciter's voice fed into the recognizer would be
+   * followed as if it were yours (§4). Pass null to unregister.
+   */
+  registerPlaybackStopper?: (stop: (() => void) | null) => void;
 }
+
+/**
+ * Arabic for the recitation styles the bundled list uses and the API commonly
+ * returns. A style with no entry is left out of the Arabic interface rather
+ * than shown in English; it is a detail, and the reciter's name still says who
+ * it is. A map rather than translating the value itself, because the dictionary test can only
+ * vouch for literals.
+ */
+const ARABIC_STYLE: Readonly<Record<string, string>> = {
+  studio: 'تسجيل استوديو',
+  'with children': 'مع الأطفال',
+  murattal: 'مرتّل',
+  mujawwad: 'مجوّد',
+  muallim: 'معلّم',
+};
+
+const styleLabel = (style: string | undefined, arabic: boolean): string | undefined => {
+  if (style === undefined || style.length === 0) return undefined;
+  return arabic ? ARABIC_STYLE[style.toLowerCase()] : style;
+};
 
 const ARABIC_DIGITS = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
 const toArabicDigits = (n: number): string =>
@@ -68,12 +101,13 @@ export function ListenPanel({
   reciter,
   onReciterChange,
   onFollowWord,
-  cursor,
+  initialSurah,
   fontStep,
+  registerPlaybackStopper,
 }: ListenPanelProps) {
   const { t, arabic } = useT();
   const reciterName = (r: Reciter) => (arabic ? (r.arabicName ?? reciterLabel(r)) : reciterLabel(r));
-  const [surah, setSurah] = useState(() => surahOf(cursor));
+  const [surah, setSurah] = useState(() => initialSurah);
   const [playing, setPlaying] = useState(false);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -83,8 +117,29 @@ export function ListenPanel({
   const [reciters, setReciters] = useState<readonly Reciter[]>(BUILTIN_RECITERS);
   const [listSource, setListSource] = useState<'builtin' | 'cached' | 'live'>('builtin');
   const [refreshing, setRefreshing] = useState(false);
-  const [listError, setListError] = useState<string | null>(null);
+  /**
+   * Whether the last refresh failed — a flag, not the error's text. The text
+   * was the exception's own message ("Network request failed", "reciter list:
+   * HTTP 503"), English in an Arabic interface on the most ordinary path an
+   * offline-first app has. The sentence shown is ours and translated, and being
+   * built at render it follows a language switch too.
+   */
+  const [listFailed, setListFailed] = useState(false);
   const sound = useRef<Audio.Sound | null>(null);
+  /**
+   * Which play() call is the live one.
+   *
+   * Loading a stream takes from a moment to several seconds, and while it does
+   * `sound.current` is still empty. Without this, leaving the screen mid-load
+   * found nothing to unload, and the sound then started with no screen left to
+   * stop it — auto-advancing through the Quran in the background until the app
+   * was killed. Two quick taps on Next, or Play pressed while loading, likewise
+   * left two surahs playing at once with only one of them reachable. Every
+   * play() takes a number; anything that supersedes it (another play, a new
+   * reciter, leaving) bumps the number, and a load that finishes for a number
+   * that is no longer current unloads itself instead of playing.
+   */
+  const playToken = useRef(0);
 
   /**
    * Keep playing when the screen locks or the app is backgrounded.
@@ -114,22 +169,22 @@ export function ListenPanel({
   const refresh = useCallback(
     async (explicit: boolean) => {
       if (explicit) setRefreshing(true);
-      setListError(null);
+      setListFailed(false);
       try {
         const live = await fetchReciters();
         setReciters(live);
         setListSource('live');
         void saveCachedReciters(live);
-      } catch (e) {
+      } catch {
         // Offline or unparseable: keep whatever list we already have, but SAY so.
         // Failing silently here is what left the picker showing five reciters
         // with no explanation.
-        setListError(e instanceof Error ? e.message : t('could not load the reciter list'));
+        setListFailed(true);
       } finally {
         if (explicit) setRefreshing(false);
       }
     },
-    [t],
+    [],
   );
 
   useEffect(() => {
@@ -153,6 +208,8 @@ export function ListenPanel({
 
   useEffect(
     () => () => {
+      // supersede any load still in flight, so it unloads itself on arrival
+      playToken.current++;
       void unload();
     },
     [unload],
@@ -161,7 +218,9 @@ export function ListenPanel({
   const play = useCallback(
     async (target: number) => {
       if (target < 1 || target > TOTAL_SURAHS) return;
+      const token = ++playToken.current;
       await unload();
+      if (token !== playToken.current) return;
       setFailed(false);
       setLoading(true);
       setSurah(target);
@@ -170,27 +229,61 @@ export function ListenPanel({
       // move the shared cursor so Read opens on this surah
       onFollowWord(surahWordRange(target)[0]);
       try {
+        // Loaded paused and started only once it is known to still be wanted:
+        // a superseded load must never make a sound, not even briefly.
         const { sound: created } = await Audio.Sound.createAsync(
           { uri: surahAudioUrl(target, current.path) },
-          { shouldPlay: true },
+          { shouldPlay: false },
         );
+        if (token !== playToken.current) {
+          await created.unloadAsync().catch(() => undefined);
+          return;
+        }
         sound.current = created;
-        setPlaying(true);
         created.setOnPlaybackStatusUpdate((status: AVPlaybackStatus) => {
-          if (!status.isLoaded) return;
+          if (!status.isLoaded || token !== playToken.current) return;
           setPosition(status.positionMillis);
           if (status.durationMillis !== undefined) setDuration(status.durationMillis);
-          if (status.didJustFinish) void play(target + 1);
+          if (!status.didJustFinish) return;
+          if (target < TOTAL_SURAHS) {
+            void play(target + 1);
+            return;
+          }
+          // An-Nas has finished and there is nothing after it. Without this the
+          // button went on saying Pause over a finished sound, and play() on a
+          // finished sound does not restart it. stopAsync rewinds AND clears
+          // shouldPlay; a bare seek to 0 would start An-Nas again by itself
+          // under a button that said Play.
+          setPlaying(false);
+          void created.stopAsync().catch(() => undefined);
         });
+        await created.playAsync();
+        if (token === playToken.current) setPlaying(true);
       } catch {
-        setFailed(true);
-        setPlaying(false);
+        if (token === playToken.current) {
+          setFailed(true);
+          setPlaying(false);
+        }
       } finally {
-        setLoading(false);
+        if (token === playToken.current) setLoading(false);
       }
     },
     [current.path, onFollowWord, unload],
   );
+
+  /**
+   * The provider calls this when a recitation starts. Registered by the player
+   * that exists, and unregistered with it, so the provider never holds a
+   * stopper for a screen that has gone.
+   */
+  useEffect(() => {
+    if (registerPlaybackStopper === undefined) return undefined;
+    registerPlaybackStopper(() => {
+      void sound.current?.pauseAsync().catch(() => undefined);
+      setPlaying(false);
+    });
+    return () => registerPlaybackStopper(null);
+  }, [registerPlaybackStopper]);
 
   const toggle = useCallback(() => {
     if (playing) {
@@ -210,6 +303,9 @@ export function ListenPanel({
     (id: string) => {
       onReciterChange(id);
       setPickerOpen(false);
+      // a surah still loading for the old reciter must not start afterwards
+      playToken.current++;
+      setLoading(false);
       void unload().then(() => {
         setPlaying(false);
         setPosition(0);
@@ -255,13 +351,17 @@ export function ListenPanel({
         </View>
 
         <View style={styles.transport}>
+          {/* Disabled at the two ends rather than tappable into nothing: play(0)
+              and play(115) return without a sound or a word. */}
           <Pressable
             onPress={() => void play(surah - 1)}
+            disabled={surah <= 1}
             accessibilityRole="button"
             accessibilityLabel={t('Previous surah')}
+            accessibilityState={{ disabled: surah <= 1 }}
             hitSlop={12}
           >
-            <Ionicons name="play-skip-back" size={26} color={palette.text} />
+            <Ionicons name="play-skip-back" size={26} color={surah <= 1 ? palette.textMuted : palette.text} />
           </Pressable>
 
           <Pressable
@@ -279,11 +379,17 @@ export function ListenPanel({
 
           <Pressable
             onPress={() => void play(surah + 1)}
+            disabled={surah >= TOTAL_SURAHS}
             accessibilityRole="button"
             accessibilityLabel={t('Next surah')}
+            accessibilityState={{ disabled: surah >= TOTAL_SURAHS }}
             hitSlop={12}
           >
-            <Ionicons name="play-skip-forward" size={26} color={palette.text} />
+            <Ionicons
+              name="play-skip-forward"
+              size={26}
+              color={surah >= TOTAL_SURAHS ? palette.textMuted : palette.text}
+            />
           </Pressable>
         </View>
 
@@ -311,7 +417,7 @@ export function ListenPanel({
         current={current.id}
         reciters={reciters}
         source={listSource}
-        error={listError}
+        failed={listFailed}
         refreshing={refreshing}
         onRefresh={() => void refresh(true)}
         palette={palette}
@@ -334,7 +440,7 @@ function ReciterPicker({
   current,
   reciters,
   source,
-  error,
+  failed,
   refreshing,
   onRefresh,
   palette,
@@ -345,7 +451,7 @@ function ReciterPicker({
   current: string;
   reciters: readonly Reciter[];
   source: 'builtin' | 'cached' | 'live';
-  error: string | null;
+  failed: boolean;
   refreshing: boolean;
   onRefresh: () => void;
   palette: Palette;
@@ -359,6 +465,7 @@ function ReciterPicker({
   const renderItem = useCallback(
     ({ item }: { item: Reciter }) => {
       const selected = item.id === current;
+      const style = styleLabel(item.style, arabic);
       return (
         <Pressable
           onPress={() => onPick(item.id)}
@@ -376,7 +483,7 @@ function ReciterPicker({
             </Text>
             <Text style={[styles.pickerArabic, { color: palette.textMuted }]} numberOfLines={1}>
               {arabic ? (item.arabicName === undefined ? item.path : item.name) : (item.arabicName ?? item.path)}
-              {item.style === undefined ? '' : ` · ${item.style}`}
+              {style === undefined ? '' : ` · ${style}`}
             </Text>
           </View>
           {selected ? <Ionicons name="checkmark" size={20} color={palette.primary} /> : null}
@@ -401,11 +508,11 @@ function ReciterPicker({
           <View>
             <Text style={[styles.sheetTitle, { color: palette.text }]}>{t('Reciter')}</Text>
             <Text
-              style={[styles.sheetSub, { color: error === null ? palette.textMuted : palette.error }]}
+              style={[styles.sheetSub, { color: failed ? palette.error : palette.textMuted }]}
               numberOfLines={2}
             >
-              {error !== null
-                ? t('{n} shown — {error}', { n: reciters.length, error })
+              {failed
+                ? t('{n} shown — {error}', { n: reciters.length, error: t('could not load the reciter list') })
                 : `${t('{n} available', { n: reciters.length })}${source === 'builtin' ? ` · ${t('built-in, tap refresh for all')}` : ''}${source === 'cached' ? ` · ${t('saved list')}` : ''}`}
             </Text>
           </View>

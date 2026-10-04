@@ -9,6 +9,7 @@ import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { radius, space, type Palette } from '../theme/theme';
+import type { SessionStatus } from '../engine/session';
 import { useT } from '../i18n/useT';
 
 // ---------------------------------------------------------------------------
@@ -109,8 +110,28 @@ export function IconToggle<T extends string>({ options, value, onChange, palette
 
 // ---------------------------------------------------------------------------
 
+/**
+ * What the mic button does, by session status.
+ *
+ * A PAUSED session resumes. It used to start afresh — the button only knew
+ * "listening or not" — which threw the paused session away: no summary, the
+ * figures reset to zero, the ayah in progress never graded. A pause comes from
+ * a phone call, the app going to the background, the recogniser failing or
+ * three minutes of silence, and the chip offering to resume clears itself
+ * after a few seconds, often while the app is still in the background. So
+ * coming back, this button was the only control on screen, and it destroyed
+ * the session it appeared to continue.
+ */
+export function micAction(status: SessionStatus): 'stop' | 'resume' | 'start' {
+  if (status === 'listening') return 'stop';
+  if (status === 'paused') return 'resume';
+  return 'start';
+}
+
 export interface MicButtonProps {
   listening: boolean;
+  /** a session is paused: the button resumes it, and says so */
+  paused?: boolean;
   /** 0..1 voice level; the button pulses with your ACTUAL voice, not a timer */
   level: Animated.Value;
   onPress: () => void;
@@ -121,6 +142,7 @@ export interface MicButtonProps {
 
 export const MicButton = memo(function MicButton({
   listening,
+  paused = false,
   level,
   onPress,
   palette,
@@ -149,11 +171,15 @@ export const MicButton = memo(function MicButton({
         onPress={onPress}
         disabled={disabled}
         accessibilityRole="button"
-        accessibilityLabel={listening ? t('Stop reciting') : t('Start reciting')}
+        accessibilityLabel={
+          listening ? t('Stop reciting') : paused ? t('Resume reciting') : t('Start reciting')
+        }
         accessibilityHint={
           listening
             ? t('Ends the session and shows your summary')
-            : t('Starts listening and follows your recitation on the page')
+            : paused
+              ? t('Carries on the paused session from where you stopped')
+              : t('Starts listening and follows your recitation on the page')
         }
         style={({ pressed }) => [
           styles.mic,
@@ -168,7 +194,7 @@ export const MicButton = memo(function MicButton({
         ]}
       >
         <Ionicons
-          name={listening ? 'stop' : 'mic'}
+          name={listening ? 'stop' : paused ? 'play' : 'mic'}
           size={30}
           color={listening ? palette.text : palette.paper}
         />

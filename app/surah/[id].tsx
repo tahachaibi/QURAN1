@@ -9,8 +9,9 @@
  * the cursor, the deck follows, and this screen never navigates. That is why
  * there is no router call anywhere below.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Alert,
   Animated,
   Pressable,
   StyleSheet,
@@ -41,6 +42,7 @@ import {
   Chip,
   HeardPill,
   IconToggle,
+  micAction,
   MicButton,
   OfflineBadge,
   StatsColumn,
@@ -84,7 +86,6 @@ export default function SurahScreen() {
     setMode,
     viewedPage,
     setViewedPage,
-    awayFromPlace,
     returnToMyPlace,
     hintLevelOf,
     requestHint,
@@ -127,6 +128,49 @@ export default function SurahScreen() {
   const seeded = useRef(false);
 
   const listening = session.status === 'listening';
+  const paused = session.status === 'paused';
+
+  /**
+   * The latest session, selection and start/stop, for callbacks that must not
+   * change identity.
+   *
+   * The word callbacks go to every word on every mounted page, and both the
+   * page and the word memo compare them by identity. Built on
+   * `session.matched`, `session.mistakes` and a `start` that itself changes
+   * with the cursor, they were new functions on every recognised word, so each
+   * word repainted about three pages of words instead of one (§5.7). Read
+   * through refs, they keep one identity for as long as the mode does.
+   */
+  const sessionRef = useRef(session);
+  sessionRef.current = session;
+  const selectingRef = useRef(selecting);
+  selectingRef.current = selecting;
+  const startRef = useRef(start);
+  startRef.current = start;
+  const stopRef = useRef(stop);
+  stopRef.current = stop;
+
+  /**
+   * Leaving the screen ends the recitation.
+   *
+   * The session lives in the provider, above the router, so popping this
+   * screen left the microphone transcribing with nothing on screen to show it
+   * or stop it: the screen kept awake, Android's microphone dot lit, and the
+   * adhan held back for as long as the room stayed loud enough to keep the
+   * silence timeout from firing. On unmount rather than on blur, so opening
+   * Settings on top does not end it, while Back — the arrow, the replace path
+   * and the hardware key, which pops the screen without going through goBack —
+   * does. Stopped, not paused: a paused session nobody can see is the same
+   * problem, quieter. stop() builds the summary as usual; it is shown when a
+   * surah is next opened rather than lost.
+   */
+  useEffect(
+    () => () => {
+      const status = sessionRef.current.status;
+      if (status === 'listening' || status === 'paused') stopRef.current();
+    },
+    [],
+  );
 
   // --- seed the cursor once, from the route, or from where we left off (§6.7)
   useEffect(() => {
@@ -182,37 +226,59 @@ export default function SurahScreen() {
   const viewedSurah = surahOf(pageWordRange(viewedPage)[0]);
   const info = surahInfo(viewedSurah);
   const liveAyah = ayahByGlobal(globalAyahOf(session.livePos));
+  /**
+   * The juz of the page in view, beside that page's number. It was the juz of
+   * the VOICE position, so browsing away from your place printed "page 300 ·
+   * juz 1". Taken from the page's LAST word: four pages hold the end of one
+   * juz and the start of the next (62, 121, 201, 502), and the printed mushaf
+   * and juzStartPage both count those as the later juz.
+   */
+  const pageJuz = ayahByGlobal(globalAyahOf(pageWordRange(viewedPage)[1] - 1)).juz;
+  /**
+   * "Return to my place" is for a voice that is live, or paused and coming
+   * back. The provider's flag holds for any status but idle, and a session
+   * never returns to idle once stopped, so after the first recitation every
+   * ordinary page swipe raised the chip over the page.
+   */
+  const awayFromPlace = (listening || paused) && viewedPage !== pageOf(session.livePos);
 
   const onWordPress = useCallback(
     (index: number) => {
-      if (selecting === null && session.mistakes.some((m) => m.word === index)) {
+      const current = sessionRef.current;
+      const selection = selectingRef.current;
+      if (selection === null && current.mistakes.some((m) => m.word === index)) {
         // a word with a red dot: tapping it answers "what did I do wrong here"
         setMistakeFocus(index);
         setMistakesOpen(true);
         return;
       }
-      if (mode === 'hidden' && !session.matched.has(index)) {
-        // in Hidden mode a tap is the hint ladder, not a seek (§6.2)
+      // In Hidden mode a tap on a CONCEALED word is the hint ladder, not a seek
+      // (§6.2). Everything below the cursor is already shown in full, matched
+      // or not (a seeded position, a jump), and a tap there is a seek like
+      // anywhere else; as a hint it filed a word the reciter never needed help
+      // with under "Needed a hint", "Shaky" and that ayah's grade.
+      if (mode === 'hidden' && index >= current.cursor && !current.matched.has(index)) {
         requestHint(index);
         return;
       }
-      if (selecting !== null) {
-        setRange({ from: Math.min(selecting, index), to: Math.max(selecting, index) });
+      if (selection !== null) {
+        // practiseRange, not the bare setter: it also puts the cursor on the
+        // range's FIRST word. With the bare setter, a last word tapped before
+        // your position left the cursor at the range's end, so the mic began
+        // aligning from the wrong end of the very passage being practised.
+        practiseRange(Math.min(selection, index), Math.max(selection, index));
         setSelecting(null);
         return;
       }
       seekTo(index);
     },
-    [mode, requestHint, seekTo, selecting, session.matched, session.mistakes, setRange],
+    [mode, practiseRange, requestHint, seekTo],
   );
 
-  const onWordLongPress = useCallback(
-    (index: number) => {
-      // long press = start reciting from here (§6.7)
-      start(index);
-    },
-    [start],
-  );
+  const onWordLongPress = useCallback((index: number) => {
+    // long press = start reciting from here (§6.7)
+    startRef.current(index);
+  }, []);
 
   const modeOptions = useMemo(
     () =>
@@ -234,9 +300,24 @@ export default function SurahScreen() {
   );
 
   const onToggleMic = useCallback(() => {
-    if (listening) stop();
+    const action = micAction(session.status);
+    if (action === 'stop') stop();
+    else if (action === 'resume') resumeSession();
     else start();
-  }, [listening, start, stop]);
+  }, [resumeSession, session.status, start, stop]);
+
+  /**
+   * The reset icon is 13 px beside the timer, and what it wipes — the time,
+   * the matched words, the mistakes since the last checkpoint — cannot be
+   * brought back. A stray tap mid-recitation is the likeliest way to reach
+   * it, so it asks first.
+   */
+  const confirmReset = useCallback(() => {
+    Alert.alert(t('Reset session stats?'), t('This clears the time and mistakes for this session.'), [
+      { text: t('Cancel'), style: 'cancel' },
+      { text: t('Reset'), style: 'destructive', onPress: resetStats },
+    ]);
+  }, [resetStats, t]);
 
   /**
    * The non-voice way into the revision deck, from the page itself.
@@ -291,39 +372,191 @@ export default function SurahScreen() {
   const nextHintTarget = session.livePos;
 
   const bottomPad = Math.max(insets.bottom, space.sm);
+  /**
+   * The bottom bar's real height, so the floating notice sits ON the status
+   * strip. A guessed 96 px put it 12 px up inside the page.
+   */
+  const [barHeight, setBarHeight] = useState<number | null>(null);
+  const floatingBottom =
+    tab === 'read' ? (barHeight ?? bottomPad + 84) + STATUS_STRIP_HEIGHT : bottomPad;
+
+  /**
+   * ONE notice at a time, the most urgent. They float over the foot of the
+   * page, and stacked they covered its last line — the very thing the status
+   * strip was built to stop — with the ones that stay up for good (a practice
+   * range, the offline pack) adding a chip each. Most urgent first: something
+   * is broken, then something needs an answer, then where you are, then the
+   * standing reminders. Read view only: in Listen they sat on the reciter row.
+   */
+  let notice: ReactNode = null;
+  if (recognizer.status === 'unavailable') {
+    notice = <OfflineBadge palette={palette} label={t('Recitation needs the dev-client build')} />;
+  } else if (recognizer.status === 'error' && recognizer.lastError !== null) {
+    // A dead recognizer used to fail in complete silence: the microphone
+    // opened, the level meter moved, and nothing was ever recognised, with no
+    // indication why. Every one of these states is now visible.
+    notice = (
+      <Chip
+        label={recognizerErrorText(recognizer.lastError, t)}
+        icon="alert-circle-outline"
+        tone="error"
+        palette={palette}
+        onPress={() => router.push('/settings')}
+        accessibilityHint={t('Opens settings, where you can change the recognizer locale')}
+      />
+    );
+  } else if (micPermission === 'denied' || micPermission === 'blocked') {
+    // The microphone was refused, and this is the only place the user finds
+    // out. Before this the button opened the recogniser, the Kotlin failed,
+    // and the message named a settings screen the app never offered to open.
+    //
+    // Two states, not one: 'denied' can still be asked for, so tapping the
+    // mic again is the fix and the chip just says so. 'blocked' cannot —
+    // Android stops showing the dialog after a second refusal — so the chip
+    // opens the system settings page instead, because offering "Allow" there
+    // would be a button that does nothing.
+    notice = (
+      <Chip
+        label={
+          micPermission === 'blocked'
+            ? t('Microphone blocked — open settings')
+            : t('Microphone needed to follow along')
+        }
+        icon="mic-off-outline"
+        tone="accent"
+        palette={palette}
+        onPress={micPermission === 'blocked' ? openAppSettings : () => start()}
+        accessibilityHint={
+          micPermission === 'blocked'
+            ? t('Opens this app’s permissions in Android settings, the only way to turn the microphone back on')
+            : t('Asks for microphone access again so following along can listen')
+        }
+      />
+    );
+  } else if (interruption !== null) {
+    notice = (
+      <Chip
+        label={t('Paused: {reason}. Tap to resume', { reason: tr(interruption) })}
+        icon="play"
+        tone="accent"
+        palette={palette}
+        onPress={() => {
+          clearInterruption();
+          resumeSession();
+        }}
+      />
+    );
+  } else if (silenceTimedOut) {
+    notice = (
+      <Chip label={t('Still there? Tap to carry on')} icon="ear-outline" tone="accent" palette={palette} onPress={resumeSession} />
+    );
+  } else if (selecting !== null) {
+    notice = (
+      <Chip label={t('Now tap the last word of the range')} icon="hand-left-outline" palette={palette} onPress={() => setSelecting(null)} />
+    );
+  } else if (listening && !recognizer.heardSomething) {
+    notice = (
+      <Chip
+        label={t('Listening — nothing recognised yet')}
+        icon="ellipsis-horizontal"
+        palette={palette}
+        onPress={() => setTranscriptOpen(true)}
+        accessibilityHint={t('The microphone is open but the recognizer has not returned any words yet')}
+      />
+    );
+  } else if (awayFromPlace) {
+    notice = (
+      <Chip
+        label={t('Return to my place · {ref}', { ref: `${liveAyah.surah}:${liveAyah.ayah}` })}
+        icon="return-down-back-outline"
+        tone="accent"
+        palette={palette}
+        onPress={() => {
+          returnToMyPlace();
+          deck.current?.goToPage(pageOf(session.livePos), !reduceMotion);
+        }}
+        accessibilityHint={t('Scrolls back to the page your voice is on')}
+      />
+    );
+  } else if (range !== null) {
+    notice = (
+      <Chip
+        label={t('Practising {range} · tap to clear', { range: rangeLabel(range.from, range.to) })}
+        icon="repeat"
+        tone="accent"
+        palette={palette}
+        onPress={() => setRange(null)}
+      />
+    );
+  } else if (recognizer.offlineDropped) {
+    notice = (
+      <Chip
+        label={t('No offline Arabic — recognising online')}
+        icon="cloud-outline"
+        palette={palette}
+        onPress={() => void recognizer.requestLanguagePack()}
+        accessibilityHint={t('Downloads the on-device Arabic model so recitation stays on your phone')}
+      />
+    );
+  } else if (
+    recognizer.languageStatus !== null &&
+    recognizer.languageStatus.supported &&
+    recognizer.languageStatus.localeInstalled === false
+  ) {
+    notice = (
+      <Chip
+        label={t('Install Arabic offline pack')}
+        icon="cloud-download-outline"
+        tone="accent"
+        palette={palette}
+        onPress={() => void recognizer.requestLanguagePack()}
+        accessibilityHint={t('Downloads the on-device Arabic model so recitation works without a network')}
+      />
+    );
+  }
 
   return (
     <View style={[styles.root, { backgroundColor: palette.background }]}>
       <SafeAreaView edges={['top']} style={styles.safeTop}>
-        {headerVisible ? (
-          <View style={styles.header}>
-            <Pressable
-              onPress={goBack}
-              hitSlop={12}
-              accessibilityRole="button"
-              accessibilityLabel={t('Back')}
-            >
-              <Ionicons name="chevron-back" size={24} color={palette.text} />
-            </Pressable>
-            <View style={styles.headerCentre}>
-              <Text style={[styles.headerArabic, { color: palette.text }]}>{info.name}</Text>
-              <Text style={[styles.headerLatin, { color: palette.textMuted }]}>
-                {arabic
-                  ? t('page {page} · juz {juz}', { page: viewedPage, juz: liveAyah.juz })
-                  : `${info.transliteration} · ${t('page {page} · juz {juz}', { page: viewedPage, juz: liveAyah.juz })}`}
-              </Text>
-            </View>
-            <Pressable
-              onPress={() => router.push('/settings')}
-              hitSlop={12}
-              accessibilityRole="button"
-              accessibilityLabel={t('Settings')}
-            >
-              <Ionicons name="options-outline" size={22} color={palette.text} />
-            </Pressable>
+        {/*
+          Hidden by fading, never by removing. Unmounted, it handed its ~65 dp
+          to the page, the page is fitted to its box, so two seconds into every
+          recitation the text blanked for a measuring pass and came back at a
+          different size, under the eyes of somebody reading it — and jumped
+          back when they stopped. Same reasoning as the status strip below:
+          constant space, constant page. Hidden from touch and TalkBack too,
+          so nobody lands on an invisible Back button.
+        */}
+        <View
+          style={[styles.header, !headerVisible && styles.headerHidden]}
+          pointerEvents={headerVisible ? 'auto' : 'none'}
+          importantForAccessibility={headerVisible ? 'auto' : 'no-hide-descendants'}
+        >
+          <Pressable
+            onPress={goBack}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel={t('Back')}
+          >
+            <Ionicons name="chevron-back" size={24} color={palette.text} />
+          </Pressable>
+          <View style={styles.headerCentre}>
+            <Text style={[styles.headerArabic, { color: palette.text }]}>{info.name}</Text>
+            <Text style={[styles.headerLatin, { color: palette.textMuted }]}>
+              {arabic
+                ? t('page {page} · juz {juz}', { page: viewedPage, juz: pageJuz })
+                : `${info.transliteration} · ${t('page {page} · juz {juz}', { page: viewedPage, juz: pageJuz })}`}
+            </Text>
           </View>
-        ) : null}
-
+          <Pressable
+            onPress={() => router.push('/settings')}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel={t('Settings')}
+          >
+            <Ionicons name="options-outline" size={22} color={palette.text} />
+          </Pressable>
+        </View>
       </SafeAreaView>
 
       {/* One tap anywhere brings the header back (§6.4) */}
@@ -350,8 +583,9 @@ export default function SurahScreen() {
             reciter={prefs.reciter}
             onReciterChange={(reciter) => setPrefs({ reciter })}
             onFollowWord={seekTo}
-            cursor={session.livePos}
+            initialSurah={seedSurah}
             fontStep={fontStep}
+            registerPlaybackStopper={registerPlaybackStopper}
           />
         )}
       </Pressable>
@@ -420,143 +654,8 @@ export default function SurahScreen() {
       ) : null}
 
       {/* floating affordances, all inside the bottom third */}
-      {/* Recitation notices belong to the Read view. In Listen they sat on top of
-          the reciter row, which is what made them feel like they never left. */}
-      <View
-        style={[styles.floating, { bottom: bottomPad + 96 + (tab === 'read' ? STATUS_STRIP_HEIGHT : 0) }]}
-        pointerEvents="box-none"
-      >
-       {tab === 'read' ? (
-        <>
-        {awayFromPlace ? (
-          <Chip
-            label={t('Return to my place · {ref}', { ref: `${liveAyah.surah}:${liveAyah.ayah}` })}
-            icon="return-down-back-outline"
-            tone="accent"
-            palette={palette}
-            onPress={() => {
-              returnToMyPlace();
-              deck.current?.goToPage(pageOf(session.livePos), !reduceMotion);
-            }}
-            accessibilityHint={t('Scrolls back to the page your voice is on')}
-          />
-        ) : null}
-
-        {interruption !== null ? (
-          <Chip
-            label={t('Paused: {reason}. Tap to resume', { reason: tr(interruption) })}
-            icon="play"
-            tone="accent"
-            palette={palette}
-            onPress={() => {
-              clearInterruption();
-              resumeSession();
-            }}
-          />
-        ) : null}
-
-        {silenceTimedOut ? (
-          <Chip label={t('Still there? Tap to carry on')} icon="ear-outline" tone="accent" palette={palette} onPress={resumeSession} />
-        ) : null}
-
-        {range !== null ? (
-          <Chip
-            label={t('Practising {range} · tap to clear', { range: rangeLabel(range.from, range.to) })}
-            icon="repeat"
-            tone="accent"
-            palette={palette}
-            onPress={() => setRange(null)}
-          />
-        ) : null}
-
-        {selecting !== null ? (
-          <Chip label={t('Now tap the last word of the range')} icon="hand-left-outline" palette={palette} onPress={() => setSelecting(null)} />
-        ) : null}
-
-
-        {recognizer.status === 'unavailable' ? (
-          <OfflineBadge palette={palette} label={t('Recitation needs the dev-client build')} />
-        ) : null}
-
-        {/* A dead recognizer used to fail in complete silence: the microphone
-            opened, the level meter moved, and nothing was ever recognised, with
-            no indication why. Every one of these states is now visible. */}
-        {recognizer.status === 'error' && recognizer.lastError !== null ? (
-          <Chip
-            label={recognizerErrorText(recognizer.lastError, t)}
-            icon="alert-circle-outline"
-            tone="error"
-            palette={palette}
-            onPress={() => router.push('/settings')}
-            accessibilityHint={t('Opens settings, where you can change the recognizer locale')}
-          />
-        ) : null}
-
-        {listening && !recognizer.heardSomething ? (
-          <Chip
-            label={t('Listening — nothing recognised yet')}
-            icon="ellipsis-horizontal"
-            palette={palette}
-            onPress={() => setTranscriptOpen(true)}
-            accessibilityHint={t('The microphone is open but the recognizer has not returned any words yet')}
-          />
-        ) : null}
-
-        {/*
-          The microphone was refused, and this is the only place the user finds
-          out. Before this the button opened the recogniser, the Kotlin failed,
-          and the message named a settings screen the app never offered to open.
-
-          Two states, not one: 'denied' can still be asked for, so tapping the
-          mic again is the fix and the chip just says so. 'blocked' cannot —
-          Android stops showing the dialog after a second refusal — so the chip
-          opens the system settings page instead, because offering "Allow" there
-          would be a button that does nothing.
-        */}
-        {micPermission === 'denied' || micPermission === 'blocked' ? (
-          <Chip
-            label={
-              micPermission === 'blocked'
-                ? t('Microphone blocked — open settings')
-                : t('Microphone needed to follow along')
-            }
-            icon="mic-off-outline"
-            tone="accent"
-            palette={palette}
-            onPress={micPermission === 'blocked' ? openAppSettings : () => start()}
-            accessibilityHint={
-              micPermission === 'blocked'
-                ? t('Opens this app’s permissions in Android settings, the only way to turn the microphone back on')
-                : t('Asks for microphone access again so following along can listen')
-            }
-          />
-        ) : null}
-
-        {recognizer.offlineDropped ? (
-          <Chip
-            label={t('No offline Arabic — recognising online')}
-            icon="cloud-outline"
-            palette={palette}
-            onPress={() => void recognizer.requestLanguagePack()}
-            accessibilityHint={t('Downloads the on-device Arabic model so recitation stays on your phone')}
-          />
-        ) : null}
-
-        {recognizer.languageStatus !== null &&
-        recognizer.languageStatus.supported &&
-        recognizer.languageStatus.localeInstalled === false ? (
-          <Chip
-            label={t('Install Arabic offline pack')}
-            icon="cloud-download-outline"
-            tone="accent"
-            palette={palette}
-            onPress={() => void recognizer.requestLanguagePack()}
-            accessibilityHint={t('Downloads the on-device Arabic model so recitation works without a network')}
-          />
-        ) : null}
-
-        </>
-       ) : null}
+      <View style={[styles.floating, { bottom: floatingBottom }]} pointerEvents="box-none">
+        {tab === 'read' ? notice : null}
 
         {/* Only the EXPANDED transcript floats, and only because it was asked
             for: somebody tapped the line below to read what was heard. The
@@ -583,65 +682,77 @@ export default function SurahScreen() {
         ) : null}
       </View>
 
-      <View
-        style={[
-          styles.bottomBar,
-          { paddingBottom: bottomPad, backgroundColor: palette.background, borderColor: palette.border },
-        ]}
-      >
-        <StatsColumn
-          listening={session.status === 'listening'}
-          startedAt={session.startedAt}
-          baseMs={session.elapsedMs}
-          mistakeCount={session.mistakes.length}
-          onReset={resetStats}
-          onOpenMistakes={() => {
-            setMistakeFocus(null);
-            setMistakesOpen(true);
-          }}
-          palette={palette}
-        />
-
-        <View style={styles.bottomActions}>
-          {tab === 'read' ? (
-            <IconToggle options={modeOptions} value={mode} onChange={setMode} palette={palette} />
-          ) : null}
-
-          {mode === 'hidden' && tab === 'read' ? (
-            <Pressable
-              onPress={() => requestHint(nextHintTarget)}
-              accessibilityRole="button"
-              accessibilityLabel={t('Hint')}
-              accessibilityHint={t("First tap shows the word's first letter, second tap shows the whole word")}
-              style={[styles.hintButton, { borderColor: palette.accent, backgroundColor: palette.accentSoft }]}
-            >
-              <Ionicons name="bulb-outline" size={18} color={palette.primary} />
-              <Text style={[styles.hintLabel, { color: palette.primary }]}>
-                {hintLevelOf(nextHintTarget) === 0 ? t('Hint') : hintLevelOf(nextHintTarget) === 1 ? t('Reveal') : t('Shown')}
-              </Text>
-            </Pressable>
-          ) : tab === 'read' ? (
-            <Pressable
-              onPress={() => setSelecting(session.livePos)}
-              accessibilityRole="button"
-              accessibilityLabel={t('Practise an ayah range')}
-              accessibilityHint={t('Select a first and last word to loop')}
-              style={[styles.hintButton, { borderColor: palette.border }]}
-            >
-              <Ionicons name="repeat" size={18} color={palette.textMuted} />
-            </Pressable>
-          ) : null}
-
-          <MicButton
-            listening={listening}
-            level={level}
-            onPress={onToggleMic}
+      {/*
+        The bottom bar is the RECITATION's controls, so it belongs to Read.
+        On the Listen screen the mic recorded over the reciter — the stopper
+        that was meant to pause playback had stopped being registered — and
+        followed someone else's voice, and every notice that could explain a
+        refused microphone or a failed recognizer is Read-only, so it failed
+        in silence there. Listen keeps only the inset the bar used to pad.
+      */}
+      {tab === 'read' ? (
+        <View
+          onLayout={(e) => setBarHeight(e.nativeEvent.layout.height)}
+          style={[
+            styles.bottomBar,
+            { paddingBottom: bottomPad, backgroundColor: palette.background, borderColor: palette.border },
+          ]}
+        >
+          <StatsColumn
+            listening={session.status === 'listening'}
+            startedAt={session.startedAt}
+            baseMs={session.elapsedMs}
+            mistakeCount={session.mistakes.length}
+            onReset={confirmReset}
+            onOpenMistakes={() => {
+              setMistakeFocus(null);
+              setMistakesOpen(true);
+            }}
             palette={palette}
-            reduceMotion={reduceMotion}
-            disabled={recognizer.status === 'unavailable'}
           />
+
+          <View style={styles.bottomActions}>
+            <IconToggle options={modeOptions} value={mode} onChange={setMode} palette={palette} />
+
+            {mode === 'hidden' ? (
+              <Pressable
+                onPress={() => requestHint(nextHintTarget)}
+                accessibilityRole="button"
+                accessibilityLabel={t('Hint')}
+                accessibilityHint={t("First tap shows the word's first letter, second tap shows the whole word")}
+                style={[styles.hintButton, { borderColor: palette.accent, backgroundColor: palette.accentSoft }]}
+              >
+                <Ionicons name="bulb-outline" size={18} color={palette.primary} />
+                <Text style={[styles.hintLabel, { color: palette.primary }]}>
+                  {hintLevelOf(nextHintTarget) === 0 ? t('Hint') : hintLevelOf(nextHintTarget) === 1 ? t('Reveal') : t('Shown')}
+                </Text>
+              </Pressable>
+            ) : (
+              <Pressable
+                onPress={() => setSelecting(session.livePos)}
+                accessibilityRole="button"
+                accessibilityLabel={t('Practise an ayah range')}
+                accessibilityHint={t('Starts at your current word; then tap the last word of the range')}
+                style={[styles.hintButton, { borderColor: palette.border }]}
+              >
+                <Ionicons name="repeat" size={18} color={palette.textMuted} />
+              </Pressable>
+            )}
+
+            <MicButton
+              listening={listening}
+              paused={paused}
+              level={level}
+              onPress={onToggleMic}
+              palette={palette}
+              reduceMotion={reduceMotion}
+              disabled={recognizer.status === 'unavailable'}
+            />
+          </View>
         </View>
-      </View>
+      ) : (
+        <View style={{ height: bottomPad }} />
+      )}
 
       <MistakeSheet
         visible={mistakesOpen}
@@ -662,6 +773,9 @@ export default function SurahScreen() {
           const ayah = ayahByGlobal(globalAyahOf(word));
           const [from, to] = ayahWordRange(ayah.surah, ayah.ayah);
           practiseRange(from, to - 1);
+          // The deck only moves when told to; practiseRange relabels the page
+          // but cannot turn it, and with the mic off nothing else would.
+          deck.current?.goToPage(pageOf(from), !reduceMotion);
           setMistakesOpen(false);
         }}
         onPlayWord={(word) => {
@@ -700,6 +814,7 @@ export default function SurahScreen() {
             if (target !== null) {
               const [from, to] = ayahWordRange(target.surah, target.ayah);
               practiseRange(from, to - 1);
+              deck.current?.goToPage(pageOf(from), !reduceMotion);
             }
           }
           dismissSummary();
@@ -709,12 +824,16 @@ export default function SurahScreen() {
   );
 }
 
+/**
+ * "2:255", "2:255–257", or "1:7–2:3". A selection can cross a surah — it
+ * survives a swipe onto the next page — and the end's surah used to be
+ * dropped, so 1:7 to 2:3 read "1:7–3", naming an ayah that was not in it.
+ */
 function rangeLabel(from: number, to: number): string {
   const a = ayahByGlobal(globalAyahOf(from));
   const b = ayahByGlobal(globalAyahOf(to));
-  return a.surah === b.surah && a.ayah === b.ayah
-    ? `${a.surah}:${a.ayah}`
-    : `${a.surah}:${a.ayah}–${b.ayah}`;
+  if (a.surah !== b.surah) return `${a.surah}:${a.ayah}–${b.surah}:${b.ayah}`;
+  return a.ayah === b.ayah ? `${a.surah}:${a.ayah}` : `${a.surah}:${a.ayah}–${b.ayah}`;
 }
 
 const clampSurah = (n: number): number => (Number.isFinite(n) && n >= 1 && n <= 114 ? Math.floor(n) : 1);
@@ -729,6 +848,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.md,
     paddingVertical: space.sm,
   },
+  headerHidden: { opacity: 0 },
   headerCentre: { alignItems: 'center' },
   headerArabic: { fontFamily: 'Amiri_700Bold', fontSize: 22 },
   headerLatin: { fontSize: 11, marginTop: 1 },
