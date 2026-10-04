@@ -21,6 +21,19 @@ export interface AlignOptions {
   heard: readonly string[];
   /** 3 when locked on, 8 when not (fresh session or just after a jump) */
   lookAhead: number;
+  /**
+   * Narrow the look-ahead to LOOK_AHEAD_LOCKED once the walk itself has made
+   * this many matches. Default: never.
+   *
+   * Locking on used to happen BETWEEN partials: the third match flipped the
+   * session to look-ahead 3, and the next partial re-aligned the whole growing
+   * utterance with it. Words the wide window had already matched were now out
+   * of reach and nearer look-alikes were matched instead — "الحمد لله" started
+   * at 1:1 painted the basmala's الله and left العالمين unpainted. Narrowing
+   * inside the walk, after its own third match, depends only on the words heard
+   * so far, so every partial of an utterance is aligned the same way.
+   */
+  lockAfter?: number;
   /** how far back to hunt for a breath-restart re-anchor; ~24 words */
   backtrack?: number;
   /** exclusive upper bound on expected indices (ayah-range practice, EOF) */
@@ -48,7 +61,10 @@ export interface AlignResult {
   /** expected index the winning walk started from */
   anchor: number;
   matches: AlignMatch[];
-  /** expected indices stepped over between two matches */
+  /**
+   * expected indices stepped over before a match: between two matches, and
+   * also between the starting cursor and the FIRST match
+   */
   skipped: number[];
   /** indices into `heard` that matched nothing */
   unmatchedHeard: number[];
@@ -90,6 +106,7 @@ function walk(
   anchor: number,
   lookAhead: number,
   limit: number,
+  lockAfter: number,
 ): Walk {
   const matches: AlignMatch[] = [];
   const skipped: number[] = [];
@@ -103,7 +120,8 @@ function walk(
     let bestCost = Infinity;
     let bestDistance = 0;
     let bestRatio = 0;
-    for (let d = 0; d <= lookAhead; d++) {
+    const window = matches.length >= lockAfter ? Math.min(lookAhead, LOOK_AHEAD_LOCKED) : lookAhead;
+    for (let d = 0; d <= window; d++) {
       const p = pos + d;
       if (p >= limit) break;
       const cmp = compareWords(token, words[p]);
@@ -171,8 +189,13 @@ export function align(options: AlignOptions): AlignResult {
   const startCursor = Math.min(Math.max(options.startCursor, floor), limit);
   const lookAhead = Math.max(0, options.lookAhead);
   const backtrack = options.backtrack ?? DEFAULT_BACKTRACK;
+  const lockAfter = options.lockAfter ?? Infinity;
 
-  if (heard.length === 0 || startCursor >= limit) {
+  // A cursor AT the limit still aligns: walk() matches nothing forwards, but
+  // the breath-restart backtrack can find the reciter going over the range
+  // again. Returning early here is what made a finished practice range deaf to
+  // a second pass.
+  if (heard.length === 0) {
     return {
       cursor: startCursor,
       livePos: startCursor,
@@ -190,12 +213,12 @@ export function align(options: AlignOptions): AlignResult {
 
   // The forward walk from startCursor is the baseline. A backwards anchor may
   // only displace it by explaining strictly more of the transcript.
-  const forward = walk(words, heard, startCursor, lookAhead, limit);
+  const forward = walk(words, heard, startCursor, lookAhead, limit, lockAfter);
   let best = forward;
   let bestAnchor = startCursor;
   for (const anchor of anchors) {
     if (anchor === startCursor) continue;
-    const w = walk(words, heard, anchor, lookAhead, limit);
+    const w = walk(words, heard, anchor, lookAhead, limit, lockAfter);
     const backwards = anchor < startCursor;
     if (backwards) {
       if (w.matches.length < MIN_BACKWARD_MATCHES) continue;

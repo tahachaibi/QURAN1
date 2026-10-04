@@ -16,11 +16,12 @@ import {
   promotePending,
   retractMatched,
   MIN_ALTERNATIVE_VOTES,
+  MIN_WORDS_PAST,
   type Mistake,
   type PendingSkip,
 } from './mistakes';
 import { compareWords, weightedDistance } from './distance';
-import { normalizeHeard } from './normalize';
+import { leadingIstiadhaLength, normalizeHeardSpans, trailingClosingLength } from './normalize';
 
 export type SessionStatus = 'idle' | 'listening' | 'paused' | 'stopped';
 
@@ -61,10 +62,36 @@ export interface SessionState {
   lockedOn: boolean;
   /** cursor the current utterance aligns from; align() is re-run from here */
   utteranceStart: number;
+  /**
+   * `lockedOn` as it was when the current utterance began. Every partial of an
+   * utterance re-aligns all of it, so the look-ahead it uses must not change
+   * half-way through (see AlignOptions.lockAfter).
+   */
+  utteranceLockedOn: boolean;
+  /**
+   * True from start, seek or jump until the first final that matched anything.
+   * Words between the starting cursor and the reciter's first word were never
+   * skipped: the reciter simply began further on, which is the natural thing to
+   * do when the saved place is the last word of an ayah.
+   */
+  utteranceFresh: boolean;
+  /**
+   * The unmatched words that ENDED the last final, after its last match, and the
+   * word the cursor was waiting on. A wrong ayah ending said before a pause
+   * (للمؤمنين for للمتقين) is only found to be a skip in the NEXT utterance,
+   * which no longer contains it; this is where "you said" finds it.
+   */
+  lastTail: { from: number; tokens: readonly string[]; spelled: readonly string[] } | null;
   /** normalized words of the current utterance so far */
   utteranceHeard: readonly string[];
   /** every normalized word heard this session (the grace pass corpus) */
   sessionHeard: readonly string[];
+  /**
+   * The same words as the recognizer SPELLED them, for the transcript on
+   * screen. sessionHeard is folded for matching (على -> علي, الصلاة -> الصلاه,
+   * إسرائيل -> اسراييل) and reads as misspelt Arabic.
+   */
+  sessionHeardRaw: readonly string[];
   matched: ReadonlySet<number>;
   hinted: ReadonlySet<number>;
   /** words the user permanently dismissed with "I said it right" */
@@ -84,6 +111,7 @@ export interface SessionState {
    * turns over half the work of following a reciter into a string comparison.
    */
   lastPartialSig: string;
+  /** the last result's words as the recognizer spelled them, for display */
   lastHeard: string;
   startedAt: number;
   /** accumulated listening time, ms, excluding pauses */
@@ -101,6 +129,10 @@ export type SessionEvent =
   | { type: 'seek'; to: number; at: number }
   | { type: 'hint'; word: number }
   | { type: 'dismiss'; word: number }
+  /** take back a dismissal; `mistake` is put back on the list when given */
+  | { type: 'undismiss'; word: number; mistake?: Mistake }
+  /** forget every dismissal, from Settings */
+  | { type: 'clearDismissed' }
   | { type: 'restoreDismissed'; words: readonly number[] }
   | { type: 'pause'; at: number }
   | { type: 'resume'; at: number }
@@ -137,8 +169,12 @@ export function initialSession(cursor: number): SessionState {
     livePos: cursor,
     lockedOn: false,
     utteranceStart: cursor,
+    utteranceLockedOn: false,
+    utteranceFresh: true,
+    lastTail: null,
     utteranceHeard: [],
     sessionHeard: [],
+    sessionHeardRaw: [],
     matched: EMPTY_SET,
     hinted: EMPTY_SET,
     dismissed: EMPTY_SET,
@@ -184,7 +220,10 @@ function withAddedOne(set: ReadonlySet<number>, item: number): ReadonlySet<numbe
 }
 
 interface Scored {
+  /** normalized tokens: what is matched, explained and logged */
   heard: string[];
+  /** raw[i] is how the recognizer spelled heard[i]: what is shown */
+  raw: string[];
   result: AlignResult;
 }
 
@@ -194,19 +233,27 @@ function scoreAlternatives(
   state: SessionState,
   config: SessionConfig,
   alternatives: readonly string[],
-  lookAhead: number,
+  isFinal: boolean,
 ): Scored[] {
   const out: Scored[] = [];
   for (const alt of alternatives.slice(0, 5)) {
-    const heard = normalizeHeard(alt, config.vocabulary);
-    if (heard.length === 0) continue;
+    const spans = normalizeHeardSpans(alt, config.vocabulary);
+    // The isti'adha and the closing صدق الله العظيم are said around the
+    // recitation, not in it (see normalize.ts). Only an utterance's own first
+    // and last words can be them, and every partial is the whole utterance.
+    const from = leadingIstiadhaLength(spans.tokens);
+    const to = spans.tokens.length - trailingClosingLength(spans.tokens, !isFinal);
+    if (to <= from) continue;
+    const heard = spans.tokens.slice(from, to);
     out.push({
       heard,
+      raw: spans.raw.slice(from, to),
       result: align({
         words: config.words,
         startCursor: state.utteranceStart,
         heard,
-        lookAhead,
+        lookAhead: lookAheadFor(state.utteranceLockedOn),
+        lockAfter: state.utteranceLockedOn ? Infinity : LOCK_ON_PROGRESS,
         floor: config.floor,
         limit: config.limit,
       }),
@@ -237,7 +284,6 @@ function applyResult(
   state: SessionState,
   config: SessionConfig,
   scored: readonly Scored[],
-  lookAhead: number,
   at: number,
   emittedAt: number | undefined,
   isFinal: boolean,
@@ -257,7 +303,19 @@ function applyResult(
   // --- pending skips are created on FINAL results only (§5.6 gate 1) ---
   let pending = state.pending;
   if (isFinal && r.skipped.length > 0) {
-    const votes = skipVotes(scored, r.skipped);
+    /**
+     * align() counts the words between the starting cursor and the first match
+     * as skipped. Right after start, seek or a jump that is wrong: the saved
+     * place is often the last word of an ayah the recognizer cut short, and a
+     * reciter who begins at the next ayah — the natural thing to do — was shown
+     * a red "Skipped" for a word they never meant to say. So the first final
+     * that matches anything only counts skips after its first match.
+     */
+    const candidates =
+      state.utteranceFresh && r.matches.length > 0
+        ? r.skipped.filter((w) => w > r.matches[0].word)
+        : r.skipped;
+    const votes = skipVotes(scored, candidates);
     const additions: PendingSkip[] = [];
     const known = new Set(pending.map((p) => p.word));
     for (const [word, n] of votes) {
@@ -265,12 +323,17 @@ function applyResult(
       if (known.has(word)) continue;
       if (state.dismissed.has(word)) continue;
       if (matched.has(word)) continue;
+      const said = saidInPlaceOf(best.heard, best.raw, r, word, (i) => config.words[i] ?? '', state.lastTail);
       additions.push({
         word,
         votes: n,
         ofAlternatives: scored.length,
         observedAtCursor: cursor,
-        heardInstead: heardInPlaceOf(best.heard, r, word, (i) => config.words[i] ?? ''),
+        // normalized: explainMistake, the letter hints and the confusion log
+        // compare it with the normalized expected word
+        heardInstead: said.heard,
+        // as spelled: what the review sheet shows under "You said"
+        heardRaw: said.spelled,
       });
     }
     if (additions.length > 0) pending = [...pending, ...additions];
@@ -284,6 +347,10 @@ function applyResult(
     matched,
     dismissed: state.dismissed,
     now: at,
+    // At the end of a practice range there is no further word to move on to,
+    // so "three words past" can never happen; the range being finished is the
+    // reciter being clear of every word in it.
+    minWordsPast: cursor >= config.limit ? 0 : MIN_WORDS_PAST,
   });
   pending = promotion.pending.length === pending.length && promotion.promoted.length === 0 && promotion.discarded.length === 0
     ? pending
@@ -303,13 +370,31 @@ function applyResult(
   const sessionHeard = isFinal
     ? capTail([...state.sessionHeard, ...best.heard], SESSION_HEARD_CAP)
     : state.sessionHeard;
+  const sessionHeardRaw = isFinal
+    ? capTail([...state.sessionHeardRaw, ...best.raw], SESSION_HEARD_CAP)
+    : state.sessionHeardRaw;
+
+  // What ended this final after its last match, kept for the next one (see
+  // SessionState.lastTail). Built AFTER this final's own skips used the old one.
+  let lastTail = state.lastTail;
+  if (isFinal) {
+    const lastMatched = r.matches.length > 0 ? r.matches[r.matches.length - 1].heard : -1;
+    const tail = r.unmatchedHeard.filter((h) => h > lastMatched).sort((a, b) => a - b);
+    lastTail =
+      tail.length === 0
+        ? null
+        : { from: cursor, tokens: tail.map((h) => best.heard[h]), spelled: tail.map((h) => best.raw[h]) };
+  }
 
   const debug: DebugInfo = {
     alternatives: scored.map((s) => s.heard.join(' ')),
-    lookAhead,
+    lookAhead: lookAheadFor(state.utteranceLockedOn),
     localScore: r.score,
     globalScore: state.debug.globalScore,
-    jumpReason: state.debug.jumpReason,
+    // Only the event that jumps says JUMPED. Carrying the label over let it sit
+    // on every frame of the cooldown that followed, where a backward move that
+    // was NOT a jump would have passed for one.
+    jumpReason: '',
     anchor: r.anchor,
     progress: r.progress,
     latencyMs: emittedAt === undefined ? 0 : Math.max(0, at - emittedAt),
@@ -326,15 +411,26 @@ function applyResult(
     currentCleanRun,
     longestCleanRun,
     sessionHeard,
+    sessionHeardRaw,
+    lastTail,
     utteranceHeard: best.heard,
     utteranceStart: isFinal ? cursor : state.utteranceStart,
+    utteranceLockedOn: isFinal ? lockedOn : state.utteranceLockedOn,
+    utteranceFresh: state.utteranceFresh && !(isFinal && r.matches.length > 0),
     lastResultAt: at,
-    lastHeard: best.heard.join(' '),
+    lastHeard: best.raw.join(' '),
     debug,
   };
 }
 
-/** Best guess at what was said in place of a skipped word, for the review sheet. */
+/** What was said in a word's place: normalized for comparing, spelled for showing. */
+interface Said {
+  heard: string;
+  spelled: string;
+}
+
+const NOTHING_SAID: Said = { heard: '', spelled: '' };
+
 /**
  * What the reciter said where `word` should have been, or '' if they said
  * nothing there. The review sheet reads it as "you said X": '' means the word
@@ -350,16 +446,24 @@ function applyResult(
  * من قالوا هلؤمن"). So if the word before the gap is said again inside it, only
  * what follows the LAST repeat counts: that is the attempt they settled on.
  *
+ * When nothing in this utterance comes before the word, the gap opens in the
+ * PREVIOUS one: a wrong ayah ending (غفور رحيم for سميع عليم) is said, then the
+ * reciter pauses, and the skip is only seen when the next utterance goes on
+ * without it. Those trailing words (`tail`) lead the gap, or the sheet would say
+ * "This word was not heard" about a word the reciter replaced.
+ *
  * If the gap holds exactly one token per missing word, they pair up in order.
  * Otherwise the token closest to the expected word is taken, because the one
  * that sounds like it is the likeliest attempt at it.
  */
-export function heardInPlaceOf(
+function saidInPlaceOf(
   heard: readonly string[],
+  spelled: readonly string[],
   result: AlignResult,
   word: number,
   wordText: (index: number) => string,
-): string {
+  tail: SessionState['lastTail'],
+): Said {
   const expected = wordText(word);
   let prevWord = -1;
   let prevHeard = -1;
@@ -375,34 +479,56 @@ export function heardInPlaceOf(
       nextHeard = m.heard;
     }
   }
-  let tokens = result.unmatchedHeard
+  let tokens: Said[] = result.unmatchedHeard
     .filter((h) => h > prevHeard && h < nextHeard && (heard[h] ?? '') !== '')
-    .sort((a, b) => a - b);
+    .sort((a, b) => a - b)
+    .map((h) => ({ heard: heard[h], spelled: spelled[h] || heard[h] }));
+  if (prevWord < 0 && tail !== null && word >= tail.from) {
+    tokens = [...tail.tokens.map((t, i) => ({ heard: t, spelled: tail.spelled[i] || t })), ...tokens];
+  }
   if (prevWord >= 0) {
     const before = wordText(prevWord);
     let lastRepeat = -1;
-    tokens.forEach((h, i) => {
-      if (compareWords(heard[h], before).ok) lastRepeat = i;
+    tokens.forEach((t, i) => {
+      if (compareWords(t.heard, before).ok) lastRepeat = i;
     });
     if (lastRepeat >= 0) tokens = tokens.slice(lastRepeat + 1);
   }
-  if (tokens.length === 0) return '';
+  if (tokens.length === 0) return NOTHING_SAID;
 
   const missing = result.skipped.filter((w) => w > prevWord && w < nextWord).sort((a, b) => a - b);
   const at = missing.indexOf(word);
-  if (tokens.length === missing.length && at >= 0) return heard[tokens[at]];
+  if (tokens.length === missing.length && at >= 0) return tokens[at];
 
-  let best = '';
+  let best = NOTHING_SAID;
   let bestScore = Infinity;
-  for (const h of tokens) {
-    const token = heard[h];
-    const score = weightedDistance(token, expected) / Math.max(token.length, expected.length, 1);
+  for (const t of tokens) {
+    const score = weightedDistance(t.heard, expected) / Math.max(t.heard.length, expected.length, 1);
     if (score < bestScore) {
       bestScore = score;
-      best = token;
+      best = t;
     }
   }
   return best;
+}
+
+/** saidInPlaceOf(), normalized form only. */
+export function heardInPlaceOf(
+  heard: readonly string[],
+  result: AlignResult,
+  word: number,
+  wordText: (index: number) => string,
+  tail: SessionState['lastTail'] = null,
+): string {
+  return saidInPlaceOf(heard, heard, result, word, wordText, tail).heard;
+}
+
+/**
+ * What a partial's result depends on besides its text: where the utterance
+ * aligns from, and the look-ahead it aligns with.
+ */
+function partialSig(state: SessionState, alternatives: readonly string[]): string {
+  return `${state.utteranceStart}\u0000${state.utteranceLockedOn ? 1 : 0}\u0000${alternatives.join('\u0001')}`;
 }
 
 function capTail<T>(arr: T[], cap: number): T[] {
@@ -425,6 +551,8 @@ function maybeJump(
     localScore: state.debug.localScore,
     viewSurah: config.viewSurah,
     surahOf: config.surahOf,
+    floor: config.floor,
+    limit: config.limit,
   });
 
   const debug: DebugInfo = {
@@ -458,6 +586,9 @@ function maybeJump(
     livePos: result.creditedCursor,
     lockedOn: false,
     utteranceStart: result.creditedCursor,
+    utteranceLockedOn: false,
+    utteranceFresh: true,
+    lastTail: null,
     utteranceHeard: [],
     pending: [],
     jumpCandidate: null,
@@ -473,11 +604,23 @@ export function sessionReducer(
 ): SessionState {
   switch (event.type) {
     case 'start': {
-      const cursor = event.cursor ?? state.cursor;
+      /**
+       * A finished practice range leaves the cursor AT its limit, where nothing
+       * can be matched. Starting again there made "practise this ayah" work
+       * exactly once: the second pass was not followed at all. Starting a range
+       * that is over means going round it again, so the cursor wraps to its
+       * first word.
+       */
+      const requested = event.cursor ?? state.cursor;
+      const ranged = config.floor > 0 || config.limit < config.words.length;
+      const cursor = ranged && requested >= config.limit ? config.floor : requested;
+      // Hints are NOT carried over: they are this session's, like its mistakes.
+      // Kept, they were counted again in every later summary ("Needed a hint: 3"
+      // with none used) and graded down ayahs recited perfectly. Dismissals are
+      // the user's permanent choice, so those stay.
       return {
         ...initialSession(cursor),
         dismissed: state.dismissed,
-        hinted: state.hinted,
         status: 'listening',
         startedAt: event.at,
         lastResultAt: event.at,
@@ -500,23 +643,15 @@ export function sessionReducer(
        * A final is never skipped: it commits the utterance even when its text is
        * identical to the partial before it.
        */
-      const sig = `${state.utteranceStart}\u0000${event.alternatives.join('\u0001')}`;
+      const sig = partialSig(state, event.alternatives);
       if (event.type === 'partial' && sig === state.lastPartialSig) {
         return state.lastResultAt === event.at ? state : { ...state, lastResultAt: event.at };
       }
 
-      const lookAhead = lookAheadFor(state.lockedOn);
-      const scored = scoreAlternatives(state, config, event.alternatives, lookAhead);
+      const isFinal = event.type === 'final';
+      const scored = scoreAlternatives(state, config, event.alternatives, isFinal);
       if (scored.length === 0) return state;
-      const applied = applyResult(
-        state,
-        config,
-        scored,
-        lookAhead,
-        event.at,
-        event.emittedAt,
-        event.type === 'final',
-      );
+      const applied = applyResult(state, config, scored, event.at, event.emittedAt, isFinal);
       const jumped = maybeJump(applied, config, event.at);
       /**
        * The stored signature describes the computation that would happen NOW, so
@@ -525,14 +660,20 @@ export function sessionReducer(
        * question. Skipping on a stale signature would be the one way this
        * optimisation could change an answer.
        */
-      const nextSig = `${jumped.utteranceStart}\u0000${event.alternatives.join('\u0001')}`;
+      const nextSig = partialSig(jumped, event.alternatives);
       return jumped.lastPartialSig === nextSig ? jumped : { ...jumped, lastPartialSig: nextSig };
     }
 
     case 'endOfSegment': {
       if (state.status !== 'listening') return state;
-      if (state.utteranceHeard.length === 0 && state.utteranceStart === state.cursor) return state;
-      return { ...state, utteranceStart: state.cursor, utteranceHeard: [] };
+      if (
+        state.utteranceHeard.length === 0 &&
+        state.utteranceStart === state.cursor &&
+        state.utteranceLockedOn === state.lockedOn
+      ) {
+        return state;
+      }
+      return { ...state, utteranceStart: state.cursor, utteranceLockedOn: state.lockedOn, utteranceHeard: [] };
     }
 
     case 'seek': {
@@ -544,6 +685,9 @@ export function sessionReducer(
         livePos: to,
         lockedOn: false,
         utteranceStart: to,
+        utteranceLockedOn: false,
+        utteranceFresh: true,
+        lastTail: null,
         utteranceHeard: [],
         pending: [],
         jumpCandidate: null,
@@ -575,6 +719,23 @@ export function sessionReducer(
       };
     }
 
+    /**
+     * "I said it right" is permanent, and it sits one button away from "Show on
+     * page". Without a way back, one mis-tap stopped the app checking that word
+     * in every future session — on every phone the backup reached.
+     */
+    case 'undismiss': {
+      if (!state.dismissed.has(event.word)) return state;
+      const dismissed = new Set(state.dismissed);
+      dismissed.delete(event.word);
+      const mistakes =
+        event.mistake === undefined ? state.mistakes : mergeMistakes(state.mistakes, [event.mistake]);
+      return { ...state, dismissed, mistakes };
+    }
+
+    case 'clearDismissed':
+      return state.dismissed.size === 0 ? state : { ...state, dismissed: EMPTY_SET };
+
     case 'restoreDismissed': {
       const dismissed = withAdded(state.dismissed, event.words);
       return dismissed === state.dismissed ? state : { ...state, dismissed };
@@ -588,6 +749,7 @@ export function sessionReducer(
         elapsedMs: state.elapsedMs + Math.max(0, event.at - state.startedAt),
         utteranceHeard: [],
         utteranceStart: state.cursor,
+        utteranceLockedOn: state.lockedOn,
       };
     }
 
@@ -602,7 +764,31 @@ export function sessionReducer(
         state.status === 'listening'
           ? state.elapsedMs + Math.max(0, event.at - state.startedAt)
           : state.elapsedMs;
-      return { ...state, status: 'stopped', elapsedMs, utteranceHeard: [] };
+      /**
+       * The last words of a session can only be confirmed by words that come
+       * after them, and at stop none will. Left pending they were dropped
+       * silently, so a skip in the last three words of "practise this ayah" was
+       * never reported. Stopping IS moving past them: every pending skip was
+       * seen with a later word matched, so the "words past" gate is waived and
+       * every other gate still applies.
+       */
+      const promotion = promotePending(state.pending, {
+        cursor: state.cursor,
+        sessionHeard: state.sessionHeard,
+        wordText: (i) => config.words[i],
+        matched: state.matched,
+        dismissed: state.dismissed,
+        now: event.at,
+        minWordsPast: 0,
+      });
+      return {
+        ...state,
+        status: 'stopped',
+        elapsedMs,
+        utteranceHeard: [],
+        pending: state.pending.length === 0 ? state.pending : [],
+        mistakes: mergeMistakes(state.mistakes, promotion.promoted),
+      };
     }
 
     case 'resetStats': {

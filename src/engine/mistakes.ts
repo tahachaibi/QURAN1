@@ -16,15 +16,27 @@ export interface PendingSkip {
   ofAlternatives: number;
   /** cursor when the skip was observed, for the "moved 3 words past" gate */
   observedAtCursor: number;
-  /** best guess at what the reciter said instead, for the review sheet */
+  /** best guess at what the reciter said instead, normalized */
   heardInstead: string;
+  /** the same word as the recognizer spelled it (see Mistake.heardRaw) */
+  heardRaw?: string;
 }
 
 export interface Mistake {
   /** index into the global word array — the stable identity of this mistake */
   word: number;
-  /** what the recognizer heard in its place, '' when it heard nothing */
+  /**
+   * what the recognizer heard in its place, '' when it heard nothing.
+   * NORMALIZED (فيران, not فئران): the letter hints and the confusion log
+   * compare it with the normalized expected word, so it must stay folded.
+   */
   heardInstead: string;
+  /**
+   * The same word as the recognizer SPELLED it, hamza, ة and ى intact: what
+   * "You said" shows. Optional because mistakes saved before it existed have
+   * none; show heardInstead then.
+   */
+  heardRaw?: string;
   /** when it was confirmed, ms epoch, for stable ordering */
   at: number;
 }
@@ -53,6 +65,11 @@ export interface PromotionContext {
   /** words the user permanently dismissed with "I said it right" (§5.6) */
   dismissed: ReadonlySet<number>;
   now: number;
+  /**
+   * Gate 3's threshold, MIN_WORDS_PAST unless the reciter can go no further:
+   * at the end of a practice range, or at stop, 0.
+   */
+  minWordsPast?: number;
 }
 
 /**
@@ -107,7 +124,7 @@ export function promotePending(
       continue;
     }
     // Gate 3: has the reciter actually moved past it yet?
-    if (ctx.cursor - p.word - 1 < MIN_WORDS_PAST) {
+    if (ctx.cursor - p.word - 1 < (ctx.minWordsPast ?? MIN_WORDS_PAST)) {
       stillPending.push(p);
       continue;
     }
@@ -116,7 +133,11 @@ export function promotePending(
       discarded.push(p.word);
       continue;
     }
-    promoted.push({ word: p.word, heardInstead: p.heardInstead, at: ctx.now });
+    promoted.push(
+      p.heardRaw === undefined
+        ? { word: p.word, heardInstead: p.heardInstead, at: ctx.now }
+        : { word: p.word, heardInstead: p.heardInstead, heardRaw: p.heardRaw, at: ctx.now },
+    );
   }
 
   promoted.sort((a, b) => a.word - b.word);

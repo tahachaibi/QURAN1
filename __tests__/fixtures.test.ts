@@ -111,7 +111,8 @@ const DEVICE_RUN: Record<string, { end: number; maxMistakes: number }> = {
   '01': { end: 30, maxMistakes: 0 },
   '02': { end: 88, maxMistakes: 0 },
   '03': { end: 173, maxMistakes: 2 },
-  '04': { end: 259, maxMistakes: 5 },
+  // 5 until a reciter starting at 2:16 stopped being blamed for 2:15's last word
+  '04': { end: 259, maxMistakes: 4 },
   '05': { end: 360, maxMistakes: 2 },
   '06': { end: 460, maxMistakes: 0 },
   '07': { end: 528, maxMistakes: 0 },
@@ -148,22 +149,50 @@ for (const [id, { end, maxMistakes }] of Object.entries(DEVICE_RUN)) {
  * "heard: وا" (a segment's leftover tail). A reciter shown a word they never
  * said in that place cannot tell what they did wrong. '' means "skipped".
  */
-const HEARD_IN_PLACE: Record<string, [surah: number, ayah: number, offset: number, heard: string][]> = {
-  '03': [[2, 8, 10, ''], [2, 13, 8, 'هلومن']],
-  '04': [[2, 19, 0, ''], [2, 19, 1, ''], [2, 19, 4, 'في'], [2, 20, 3, '']],
-  '05': [[2, 22, 4, 'فيران'], [2, 22, 20, '']],
-  '08': [[2, 36, 8, '']],
+/**
+ * Two forms of each. `heard` is normalized — it is what the letter hints and
+ * the confusion log compare with the normalized word. `shown` is what the
+ * sheet prints under "You said": the recognizer's own spelling. Printing the
+ * normalized form showed فيران for فئران and هلومن for هلؤمن, misspelt Arabic
+ * that made the app look as if it could not spell.
+ */
+const HEARD_IN_PLACE: Record<string, [surah: number, ayah: number, offset: number, heard: string, shown: string][]> = {
+  '03': [[2, 8, 10, '', ''], [2, 13, 8, 'هلومن', 'هلؤمن']],
+  '04': [[2, 19, 0, '', ''], [2, 19, 1, '', ''], [2, 19, 4, 'في', 'في'], [2, 20, 3, '', '']],
+  '05': [[2, 22, 4, 'فيران', 'فئران'], [2, 22, 20, '', '']],
+  '08': [[2, 36, 8, '', '']],
 };
 for (const [id, expected] of Object.entries(HEARD_IN_PLACE)) {
   const baseline = EXPECTATIONS[`device-2026-09-26-${id}`];
   EXPECTATIONS[`device-2026-09-26-${id}`] = (out) => {
     baseline(out);
-    const said = new Map(out.final.mistakes.map((m) => [m.word, m.heardInstead]));
-    for (const [surah, ayah, offset, heard] of expected) {
-      expect([surah, ayah, offset, said.get(wordIndexOf(surah, ayah) + offset)]).toEqual([surah, ayah, offset, heard]);
+    const said = new Map(out.final.mistakes.map((m) => [m.word, [m.heardInstead, m.heardRaw]]));
+    for (const [surah, ayah, offset, heard, shown] of expected) {
+      expect([surah, ayah, offset, said.get(wordIndexOf(surah, ayah) + offset)]).toEqual([surah, ayah, offset, [heard, shown]]);
     }
   };
 }
+
+/**
+ * Session 01 started at 1:1 and the reciter began at الحمد. The session locked
+ * on part-way through that first utterance, and the look-ahead used to shrink
+ * from 8 to 3 for the rest of it: the next partial re-aligned "الحمد لله" onto
+ * the basmala's الله, painting 1:1, which was never said, and leaving 1:2's
+ * العالمين and 1:3 unpainted, which were.
+ */
+const baseline01 = EXPECTATIONS['device-2026-09-26-01'];
+EXPECTATIONS['device-2026-09-26-01'] = (out) => {
+  baseline01(out);
+  for (const w of [7, 8, 9]) expect(out.final.matched.has(w)).toBe(true);
+  for (const w of [1, 2, 3]) expect(out.final.matched.has(w)).toBe(false);
+};
+
+/** Session 04 began on 2:15's last word, يعمهون, and the reciter began at 2:16. */
+const baseline04 = EXPECTATIONS['device-2026-09-26-04'];
+EXPECTATIONS['device-2026-09-26-04'] = (out) => {
+  baseline04(out);
+  expect(out.mistakes).not.toContain(wordIndexOf(2, 16) - 1);
+};
 
 const baseline09 = EXPECTATIONS['device-2026-09-26-09'];
 EXPECTATIONS['device-2026-09-26-09'] = (out) => {
@@ -219,7 +248,9 @@ describe('replay fixtures', () => {
       it('only moves the cursor backwards by relocating', () => {
         for (let i = 1; i < out.cursorPath.length; i++) {
           if (out.cursorPath[i] < out.cursorPath[i - 1]) {
-            expect(out.frames[i].jumpReason).toMatch(/^JUMPED/);
+            // the frame's own flag: the JUMPED label used to linger for a
+            // second after a jump, long enough to cover for a real regression
+            expect(out.frames[i].jumped).toBe(true);
           }
         }
       });

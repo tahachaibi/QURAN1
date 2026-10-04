@@ -39,6 +39,11 @@ export interface ReplayFrame {
   pending: number[];
   matchedCount: number;
   jumpReason: string;
+  /**
+   * true on the one event that relocated the cursor. Read this, not the
+   * jumpReason text, to tell a relocation from a backward move that is a bug.
+   */
+  jumped: boolean;
   localScore: number;
   globalScore: number;
 }
@@ -85,6 +90,7 @@ export function replay(fixture: ReplayFixture, config: SessionConfig): ReplayOut
         event = { type: 'resume', at: now };
         break;
     }
+    const lastJumpAt = state.lastJumpAt;
     state = sessionReducer(state, event, config);
     frames.push({
       index,
@@ -96,6 +102,7 @@ export function replay(fixture: ReplayFixture, config: SessionConfig): ReplayOut
       pending: state.pending.map((p) => p.word),
       matchedCount: state.matched.size,
       jumpReason: state.debug.jumpReason,
+      jumped: state.lastJumpAt !== lastJumpAt && state.debug.jumpReason.startsWith('JUMPED'),
       localScore: Number(state.debug.localScore.toFixed(3)),
       globalScore: Number(state.debug.globalScore.toFixed(3)),
     });
