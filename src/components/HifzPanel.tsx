@@ -36,10 +36,12 @@ export interface HifzPanelProps {
    * will not recite aloud on a bus or in a masjid. "Recite an ayah or two" is
    * not advice they can take, so the panel now carries the other door too.
    *
-   * Optional and nullable so the panel still renders with no reading position
-   * and in tests that do not care about it.
+   * Optional and nullable so the panel still renders in tests that do not care
+   * about it. `hint` replaces the spoken description when the button does
+   * something other than add the page — the tracker's way in for somebody who
+   * has never recited, which can only take them to the mushaf.
    */
-  selfReport?: { label: string; onPress: () => void } | null;
+  selfReport?: { label: string; onPress: () => void; hint?: string } | null;
 }
 
 const QUEUE_LIMIT = 8;
@@ -55,7 +57,23 @@ export const HifzPanel = memo(function HifzPanel({
 }: HifzPanelProps) {
   const summary = useMemo(() => summarize(deck, now), [deck, now]);
   const due = useMemo(() => dueQueue(deck, now, QUEUE_LIMIT), [deck, now]);
-  const runs = useMemo(() => contiguousRuns(due), [due]);
+  /**
+   * The passage the revise button practises: the run holding the WEAKEST due
+   * ayah, the one at the top of "Weakest first".
+   *
+   * It used to be `runs[0]`, and `contiguousRuns` sorts by position in the
+   * mushaf, so the button drilled whichever due passage came first in the
+   * Quran — while its label counted every due ayah. With 1:1, 2:255 and 67:1–5
+   * due it said "Revise 7 due ayahs" and practised Al-Fatiha 1:1 alone.
+   * A practice session is one passage, so the label now counts that passage.
+   */
+  const target = useMemo(() => {
+    if (due.length === 0) return null;
+    const runs = contiguousRuns(due);
+    const weakest = due[0].ayah;
+    return runs.find((r) => r.from <= weakest && weakest <= r.to) ?? runs[0];
+  }, [due]);
+  const targetSize = target === null ? 0 : target.to - target.from + 1;
   const { t, lang } = useT();
   const patterns = useMemo(() => actionablePatterns(profile, t), [profile, t]);
 
@@ -79,7 +97,9 @@ export const HifzPanel = memo(function HifzPanel({
               onPress={selfReport.onPress}
               accessibilityRole="button"
               accessibilityLabel={selfReport.label}
-              accessibilityHint={t('Adds those ayahs to your revision schedule as read, without using the microphone')}
+              accessibilityHint={
+                selfReport.hint ?? t('Adds those ayahs to your revision schedule as read, without using the microphone')
+              }
               style={[styles.cta, { backgroundColor: palette.primary }]}
             >
               <Ionicons name="book-outline" size={16} color={palette.paper} />
@@ -123,19 +143,16 @@ export const HifzPanel = memo(function HifzPanel({
                 })}
           </Text>
 
-          {runs.length > 0 ? (
+          {target !== null ? (
             <Pressable
-              onPress={() => {
-                const first = runs[0];
-                onPractise(ayahStartWord[first.from], ayahStartWord[first.to + 1] - 1);
-              }}
+              onPress={() => onPractise(ayahStartWord[target.from], ayahStartWord[target.to + 1] - 1)}
               accessibilityRole="button"
-              accessibilityLabel={due.length === 1 ? t('Revise 1 due ayah') : t('Revise {n} due ayahs', { n: due.length })}
+              accessibilityLabel={targetSize === 1 ? t('Revise 1 due ayah') : t('Revise {n} due ayahs', { n: targetSize })}
               style={[styles.cta, { backgroundColor: palette.primary }]}
             >
               <Ionicons name="repeat" size={16} color={palette.paper} />
               <Text style={[styles.ctaLabel, { color: palette.paper }]}>
-                {due.length === 1 ? t('Revise 1 due ayah') : t('Revise {n} due ayahs', { n: due.length })}
+                {targetSize === 1 ? t('Revise 1 due ayah') : t('Revise {n} due ayahs', { n: targetSize })}
               </Text>
             </Pressable>
           ) : (
@@ -149,7 +166,9 @@ export const HifzPanel = memo(function HifzPanel({
               onPress={selfReport.onPress}
               accessibilityRole="button"
               accessibilityLabel={selfReport.label}
-              accessibilityHint={t('Adds those ayahs to your revision schedule as read, without using the microphone')}
+              accessibilityHint={
+                selfReport.hint ?? t('Adds those ayahs to your revision schedule as read, without using the microphone')
+              }
               style={[styles.secondaryCta, { borderColor: palette.border }]}
             >
               <Ionicons name="book-outline" size={15} color={palette.primary} />
@@ -213,9 +232,16 @@ export const HifzPanel = memo(function HifzPanel({
               style={[styles.patternRow, { backgroundColor: palette.surface, borderColor: palette.border }]}
             >
               <View style={styles.patternHead}>
+                {/* A LEFTWARDS arrow, on purpose. Both letters are Arabic, so
+                    the whole line, arrow included, is laid out right to left:
+                    the expected letter lands on the right and the heard one on
+                    the left. "→" is not a mirrored character, so it used to
+                    point from the heard letter back at the expected one, the
+                    opposite of the advice beneath it. "←" points from the
+                    expected letter to what was heard. */}
                 <Text style={[styles.patternGlyph, { color: palette.ink }]}>
                   {pattern.kind === 'substitution'
-                    ? `${pattern.expected} → ${pattern.heard}`
+                    ? `${pattern.expected} ← ${pattern.heard}`
                     : pattern.expected}
                 </Text>
                 <View

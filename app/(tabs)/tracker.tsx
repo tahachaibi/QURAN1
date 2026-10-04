@@ -8,14 +8,15 @@
  * worth having if you know exactly what breaks it. This one breaks when you do
  * not recite.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 
 import { ayahByGlobal, globalAyahOf, pageOf, pageWordRange, surahs } from '../../src/data/quran';
 import {
   lastPosition,
+  loadDismissed,
   loadHifzDeck,
   loadMistakeLog,
   loadSessions,
@@ -55,7 +56,15 @@ export default function TrackerScreen() {
     setNow(Date.now());
     setLogged(await loadSessions());
     setDeck(await loadHifzDeck());
-    setProfile(buildProfile(await loadMistakeLog()));
+    /**
+     * Without the words the reciter has said were right. Mistakes reach this
+     * log when a session is flushed — every 30 s and at stop — which is nearly
+     * always BEFORE anybody opens the review and taps "I said it right", and a
+     * dismissal never touches the log. So a false positive the reciter had
+     * explicitly rejected kept counting towards "{expected} is being dropped".
+     */
+    const dismissed = new Set(await loadDismissed());
+    setProfile(buildProfile((await loadMistakeLog()).filter((r) => !dismissed.has(r.word))));
     setLastRead(await lastPosition());
   }, []);
 
@@ -64,10 +73,10 @@ export default function TrackerScreen() {
    *
    * A session that is abandoned — backgrounded, then killed from recents — is
    * logged when it goes away, and logged again if the reciter comes back and
-   * finishes it. Both rows carry the session's start time as their id, because
-   * storage can only append and superseding is the only way the tail of a
-   * resumed session ever reaches the streak. The later row wins. Rows written
-   * before ids were session-stable all have unique ids, so they pass through.
+   * finishes it, both rows under the session's start time as their id.
+   * `logSession` now replaces the earlier row, but logs written before it did
+   * still hold both, so the later row wins here too. Rows written before ids
+   * were session-stable all have unique ids, so they pass through.
    */
   const sessions = useMemo(() => {
     const byId = new Map<string, LoggedSession>();
@@ -75,9 +84,19 @@ export default function TrackerScreen() {
     return [...byId.values()];
   }, [logged]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  /**
+   * Every time the tab comes into view, not once. A tab stays mounted after its
+   * first visit, so this loaded when the Tracker was first opened and never
+   * again: recite, tap "Log to streak", come back, and the streak, the heatmap,
+   * the totals and the revision panel all still showed the earlier state, as if
+   * the session had not been saved. Only a pull-to-refresh nobody knew about
+   * fixed it. `load` also moves `now` on, so what is due is current too.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
   /** A day counts when something was recited on it. Nothing else. */
   const activeDays = useMemo(() => {
@@ -131,7 +150,7 @@ export default function TrackerScreen() {
       <View style={styles.statRow}>
         <Stat label={t('Words recited')} value={String(totals.words)} palette={palette} />
         <Stat label={t('Verses')} value={String(totals.verses)} palette={palette} />
-        <Stat label={t('Time')} value={formatDuration(totals.ms)} palette={palette} />
+        <Stat label={t('Time')} value={formatLongDuration(totals.ms)} palette={palette} />
       </View>
 
       <HifzPanel
@@ -141,7 +160,19 @@ export default function TrackerScreen() {
         now={now}
         selfReport={
           lastRead === null
-            ? null
+            ? /**
+               * Nobody has recited yet, so there is no page to offer. A reading
+               * position is only saved while a recitation runs, which means the
+               * people this button was built for — no Arabic speech pack,
+               * reading silently — never have one, and the empty panel promised
+               * them a way in with nothing to press. The mushaf has the same
+               * button on every page, so send them there.
+               */
+              {
+                label: t('Open the Quran and mark a page as read'),
+                hint: t('Opens the Quran, where you can add the page you read without the microphone'),
+                onPress: () => router.navigate('/(tabs)/quran'),
+              }
             : {
                 label: t('I read page {page} — add it', { page: pageOf(lastRead.cursor) }),
                 onPress: () => {
@@ -225,7 +256,7 @@ export default function TrackerScreen() {
                 {t('best run {n}', { n: s.longestCleanRun })}
               </Text>
             </View>
-            <Text style={[styles.sessionTime, { color: palette.textMuted }]}>{formatDuration(s.durationMs)}</Text>
+            <Text style={[styles.sessionTime, { color: palette.textMuted }]}>{formatLongDuration(s.durationMs)}</Text>
           </View>
         ))
       )}
@@ -240,6 +271,24 @@ function Stat({ label, value, palette }: { label: string; value: string; palette
       <Text style={[styles.statLabel, { color: palette.textMuted }]}>{label}</Text>
     </View>
   );
+}
+
+/**
+ * A duration that may run to hundreds of hours: h:mm:ss once it passes an
+ * hour, the session timer's mm:ss below that.
+ *
+ * The lifetime total used the session timer's format, whose minutes never
+ * roll over, so a few weeks of recitation read "754:12" — easy to take for 754
+ * hours, or for hours and minutes. Digits and colons only, so it needs no
+ * translation and reads the same in both languages.
+ */
+function formatLongDuration(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(total / 3600);
+  if (h === 0) return formatDuration(ms);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
 function currentStreak(activeDays: ReadonlySet<string>): number {

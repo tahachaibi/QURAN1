@@ -5,6 +5,10 @@
 import type { ArabicForms } from '../i18n';
 
 export const HIFZ: Record<string, string | ArabicForms> = {
+  // tracker
+  "Open the Quran and mark a page as read": "افتح المصحف وسجّل صفحة قرأتها",
+  "Opens the Quran, where you can add the page you read without the microphone": "يفتح المصحف لتضيف الصفحة التي قرأتها دون الميكروفون",
+
   // settings: recognizer
   "Standard recognition": "التعرّف العادي",
 
