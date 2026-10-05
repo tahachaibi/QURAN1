@@ -84,7 +84,6 @@ export const BASE: Record<string, string | ArabicForms> = {
 
   // adhan scheduling
   "Notifications are turned off for Tasmee Hifz, so there is no call to prayer. Turn them on in Settings > Apps > Tasmee Hifz > Notifications.": "الإشعارات معطّلة لهذا التطبيق، فلن يُرفع الأذان. فعّلها من: الإعدادات ← التطبيقات ← Tasmee Hifz ← الإشعارات.",
-  "Today’s prayer times have all passed, or the saved times are out of date. Open the Prayer tab while online to refresh them.": "انقضت كل صلوات اليوم، أو أن الأوقات المحفوظة قديمة. افتح تبويب الصلاة وأنت متصل بالإنترنت لتحديثها.",
 
   // adhan banner
   "Stop the adhan": "أوقف الأذان",
@@ -321,7 +320,6 @@ export const BASE: Record<string, string | ArabicForms> = {
   "Reveal": "أظهِر",
   "Shown": "ظاهرة",
   "Practise an ayah range": "تدرّب على مقطع من الآيات",
-  "Select a first and last word to loop": "اختر أول كلمة وآخر كلمة لتكرار المقطع",
   "The microphone is in use elsewhere": "الميكروفون مستعمل في تطبيق آخر",
   "Tasmee Hifz went to the background": "انتقل التطبيق إلى الخلفية",
   "Microphone permission was denied. Grant it in Settings > Apps > Tasmee Hifz > Permissions > Microphone.": "رُفض إذن الميكروفون. اسمح به من: الإعدادات ← التطبيقات ← Tasmee Hifz ← الأذونات ← الميكروفون.",
@@ -388,8 +386,6 @@ export const BASE: Record<string, string | ArabicForms> = {
   "Heard alternatives, local vs global score, cursor and jump decisions. Dev builds only.": "البدائل المسموعة، والنتيجة المحلية مقابل العامة، وقرارات المؤشر والقفز. لنسخ التطوير فقط.",
   "Tasmee Hifz keeps everything on your device. There is no account, no analytics and no backend. Only prayer times and optional audio playback reach the network.": "يحفظ تسميع الحفظ كل شيء على جهازك. لا حساب ولا تحليلات ولا خادم. لا يتصل بالإنترنت إلا لجلب مواقيت الصلاة وتشغيل التلاوات إن اخترت ذلك.",
   "Backup ready — {size}.": "النسخة الاحتياطية جاهزة، {size}.",
-  "Restored 1 item. Close and reopen Tasmee Hifz to see all of it.": "استُرجع عنصر واحد. أغلق التطبيق وأعد فتحه لترى كل شيء.",
-  "Restored {n} items. Close and reopen Tasmee Hifz to see all of it.": {"two": "استُرجع عنصران. أغلق التطبيق وأعد فتحه لترى كل شيء.", "few": "استُرجعت {n} عناصر. أغلق التطبيق وأعد فتحه لترى كل شيء.", "other": "استُرجع {n} عنصرًا. أغلق التطبيق وأعد فتحه لترى كل شيء."},
   "Nothing was changed.": "لم يتغيّر شيء.",
   "That file is empty. The copy may have failed — try sharing the backup to yourself again.": "هذا الملف فارغ. ربما فشل النسخ، فجرّب مشاركة النسخة الاحتياطية مع نفسك مرة أخرى.",
   "That file is not a Tasmee Hifz backup — it is not even JSON. A photo or a truncated download looks like this.": "هذا الملف ليس نسخة احتياطية من التطبيق، بل ليس ملف JSON أصلًا. هكذا تبدو صورة أو ملف لم يكتمل تنزيله.",
