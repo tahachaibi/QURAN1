@@ -68,7 +68,7 @@ export const SummaryCard = memo(function SummaryCard({
             <Stat label={t('Words recited')} value={String(summary.wordsRecited)} palette={palette} />
             <Stat label={t('Verses covered')} value={String(summary.versesCovered)} palette={palette} />
             <Stat label={t('Accuracy')} value={`${Math.round(summary.accuracy * 100)}%`} palette={palette} />
-            <Stat label={t('Longest clean run')} value={t('{n} words', { n: summary.longestCleanRun })} palette={palette} />
+            <Stat label={t('Longest clean run')} value={summary.longestCleanRun === 1 ? t('1 word') : t('{n} words', { n: summary.longestCleanRun })} palette={palette} />
             <Stat label={t('Needed a hint')} value={String(summary.hintedWords.length)} palette={palette} />
             <Stat label={t('Time')} value={formatDuration(summary.durationMs)} palette={palette} />
           </ScrollView>
@@ -95,7 +95,7 @@ export const SummaryCard = memo(function SummaryCard({
             <>
               <Text style={[styles.hifz, { color: palette.textMuted }]}>
                 {t(
-                  'Nothing was matched clearly enough to schedule for revision. That is the recogniser, not your recitation — if you did recite this, add it yourself. It goes in as read rather than verified.',
+                  'Nothing was matched clearly enough to schedule for revision. That is the recognizer, not your recitation — if you did recite this, add it yourself. It goes in as read rather than verified.',
                 )}
               </Text>
               <Pressable
@@ -138,11 +138,11 @@ export const SummaryCard = memo(function SummaryCard({
               <Pressable
                 onPress={onPractise}
                 accessibilityRole="button"
-                accessibilityLabel={t('Practise the weakest ayah from this session')}
+                accessibilityLabel={t('Practice the weakest ayah from this session')}
                 style={[styles.secondaryButton, { borderColor: palette.border }]}
               >
                 <Text style={[styles.secondaryLabel, { color: palette.text }]}>
-                  {worst === null ? t('Practise shaky words') : t('Practise {ref}', { ref: worst.ref })}
+                  {worst === null ? t('Practice shaky words') : t('Practice {ref}', { ref: worst.ref })}
                 </Text>
               </Pressable>
             ) : null}
@@ -203,9 +203,13 @@ function describeProgress(summary: SessionSummary, t: T): string {
     return t('First time reciting this surah here — this is your baseline.');
   }
   const delta = summary.furthestWord - summary.previousFurthest;
-  if (delta > 0) return t('You got {n} words further than last time in this surah.', { n: delta });
-  if (delta === 0) return t('You reached exactly where you did last time in this surah.');
-  return t('{n} words short of your best run in this surah.', { n: Math.abs(delta) });
+  // previousFurthest is the furthest any earlier session reached (bestPreviousFor),
+  // not the most recent one, so every sentence names that same point.
+  if (delta === 1) return t('You got 1 word further than your previous best in this surah.');
+  if (delta > 0) return t('You got {n} words further than your previous best in this surah.', { n: delta });
+  if (delta === 0) return t('You matched your previous best in this surah.');
+  if (delta === -1) return t('1 word short of your previous best in this surah.');
+  return t('{n} words short of your previous best in this surah.', { n: -delta });
 }
 
 const styles = StyleSheet.create({

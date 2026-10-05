@@ -233,7 +233,7 @@ function MistakeRow({
               ref: `${ayah.surah}:${ayah.ayah}`,
             })
       }
-      accessibilityHint={t('Tap to jump to this word on the page, long press to practise this ayah')}
+      accessibilityHint={t('Tap to jump to this word on the page, long press to practice this ayah')}
       style={[
         styles.row,
         { borderColor: focused ? palette.primary : palette.border, borderWidth: focused ? 2 : StyleSheet.hairlineWidth },

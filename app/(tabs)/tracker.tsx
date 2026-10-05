@@ -217,7 +217,7 @@ export default function TrackerScreen() {
               <View
                 key={cell.day}
                 accessible
-                accessibilityLabel={`${cell.day}: ${cell.intensity === 0 ? t('nothing recited') : t('{n} words', { n: cell.words })}`}
+                accessibilityLabel={`${cell.day}: ${cell.intensity === 0 ? t('nothing recited') : cell.words === 1 ? t('1 word') : t('{n} words', { n: cell.words })}`}
                 style={[
                   styles.cell,
                   {
@@ -252,7 +252,7 @@ export default function TrackerScreen() {
                 {surahs[s.surah - 1] === undefined ? t('Surah {n}', { n: s.surah }) : surahName(s.surah, lang)}
               </Text>
               <Text style={[styles.sessionMeta, { color: palette.textMuted }]}>
-                {s.day} · {t('{n} words', { n: s.wordsRecited })} · {Math.round(s.accuracy * 100)}% ·{' '}
+                {s.day} · {s.wordsRecited === 1 ? t('1 word') : t('{n} words', { n: s.wordsRecited })} · {Math.round(s.accuracy * 100)}% ·{' '}
                 {t('best run {n}', { n: s.longestCleanRun })}
               </Text>
             </View>

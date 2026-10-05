@@ -180,10 +180,12 @@ export const HifzPanel = memo(function HifzPanel({
               worth of this schedule is that it reports what happened. */}
           {summary.verified < summary.tracked ? (
             <Text style={[styles.hint, { color: palette.textMuted }]}>
-              {t(
-                '{n} of these you added by hand. They are scheduled the same way, but nothing has heard them — recite one and it counts as verified.',
-                { n: summary.tracked - summary.verified },
-              )}
+              {summary.tracked - summary.verified === 1
+                ? t('One of these you added by hand. It is scheduled the same way, but nothing has heard it — recite it and it counts as verified.')
+                : t(
+                    '{n} of these you added by hand. They are scheduled the same way, but nothing has heard them — recite one and it counts as verified.',
+                    { n: summary.tracked - summary.verified },
+                  )}
             </Text>
           ) : null}
         </View>

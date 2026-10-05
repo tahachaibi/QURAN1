@@ -465,7 +465,7 @@ describe('the upgrade screen', () => {
     mockRecognizer.languageStatus = { supported: false, detail: 'no Arabic model' };
     const tree = await renderUpgrade();
     const rendered = text(tree);
-    expect(rendered).toContain('cannot recognise Arabic');
+    expect(rendered).toContain('cannot recognize Arabic');
     expect(rendered).toContain('nothing in the app is locked');
     expect(buttonsLabelled(tree, /^Buy/)).toHaveLength(0);
     tree.unmount();

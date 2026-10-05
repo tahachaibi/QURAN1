@@ -96,7 +96,7 @@ export function recitationReadiness(input: {
   if (languageStatus !== null && !languageStatus.supported) {
     return {
       level: 'blocked',
-      headline: 'This phone cannot recognise Arabic.',
+      headline: 'This phone cannot recognize Arabic.',
       detail:
         (languageStatus.detail ?? 'The recognizer does not list Arabic among the languages it supports.') +
         ' The coach has nothing to work from on this device, so it is not for sale here.',
@@ -342,7 +342,7 @@ export default function Upgrade() {
       {monetisationEnabled && state.active ? (
         <Text style={[styles.body, { color: palette.textMuted }]}>
           {state.reason === 'grace'
-            ? `Your ${planLabel(state.plan)} could not be confirmed with Google Play recently, so it is being honoured from this phone's own record. Nothing is locked.`
+            ? `Your ${planLabel(state.plan)} could not be confirmed with Google Play recently, so it is being honored from this phone's own record. Nothing is locked.`
             : `Active: ${planLabel(state.plan)}.`}
         </Text>
       ) : null}

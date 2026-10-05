@@ -184,7 +184,7 @@ export default function AdhkarScreen() {
         ListFooterComponent={
           <Text style={[styles.footer, { color: palette.textMuted }]}>
             {t(
-              "The du'as are the list from islambook.com, stored exactly as supplied — nothing here is reworded, and no tashkeel is added. Where the wording matches a narration bundled in this app closely enough to be certain, the card shows that hadith and its number instead of the website; where it does not, it says islambook.com and claims nothing more. The Qur'an passages are read from the app's own mushaf text and cited by surah and ayah.",
+              "The du'as are the list from islambook.com, stored exactly as supplied — nothing here is reworded, and no tashkeel is added. Where the wording matches a narration bundled in this app closely enough to be certain, the card shows that hadith and its number instead of the website; where it does not, it says islambook.com and claims nothing more. The Quran passages are read from the app's own mushaf text and cited by surah and ayah.",
             )}
           </Text>
         }

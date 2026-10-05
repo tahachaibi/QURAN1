@@ -112,7 +112,7 @@ export default function Settings() {
         </Text>
         <Toggle
           label={t('Prefer on-device recognition')}
-          hint={t('Lower latency, works with no network, and your recitation never leaves the phone.')}
+          hint={t('Lower latency, and works with no network when the Arabic offline pack is installed. Your recitation then stays on the phone.')}
           value={prefs.preferOnDevice}
           onChange={(preferOnDevice) => setPrefs({ preferOnDevice })}
           palette={palette}
@@ -225,7 +225,7 @@ export default function Settings() {
             <Text style={[styles.rowLabel, { color: palette.text }]}>{t('Save a backup')}</Text>
             <Text style={[styles.hint, { color: palette.textMuted }]}>
               {t(
-                'Your memorisation schedule, streak, mistakes and reading positions, as one plain JSON file you keep. Nothing is uploaded anywhere — you choose where it goes.',
+                'Your memorization schedule, streak, mistakes and reading positions, as one plain JSON file you keep. Nothing is uploaded anywhere — you choose where it goes.',
               )}
             </Text>
           </View>
@@ -243,7 +243,7 @@ export default function Settings() {
             <Text style={[styles.rowLabel, { color: palette.text }]}>{t('Restore from a backup')}</Text>
             <Text style={[styles.hint, { color: palette.textMuted }]}>
               {t(
-                'Merged with what is already here, never replacing it — you will be told exactly what changes before anything is written.',
+                'Your progress is merged with what is already here, never replaced. Settings are taken from the file. You will be told exactly what changes before anything is written.',
               )}
             </Text>
           </View>
@@ -310,7 +310,7 @@ export default function Settings() {
 
       <Text style={[styles.footer, { color: palette.textMuted }]}>
         {t(
-          'Tasmee Hifz keeps everything on your device. There is no account, no analytics and no backend. Only prayer times and optional audio playback reach the network.',
+          'Tasmee Hifz keeps your data on your device. There is no account, no analytics and no backend. The app goes online only for prayer times, the reciter list and audio you choose to play. Speech recognition goes online only when the Arabic offline pack is not installed.',
         )}
       </Text>
     </ScrollView>
@@ -455,14 +455,14 @@ function describeLines(p: PendingRestore, t: T): string[] {
   if (p.createdAt > 0) lines.push(t('Backup made on {date}.', { date: today(new Date(p.createdAt)) }));
   if (s.hifz.added > 0 || s.hifz.recovered > 0) {
     lines.push(
-      t('Memorisation: {added} ayahs added, {updated} updated from the file, {kept} left as they are.', {
+      t('Memorization, in ayahs: {added} added, {updated} updated from the file, {kept} left as they are.', {
         added: s.hifz.added,
         updated: s.hifz.recovered,
         kept: s.hifz.kept,
       }),
     );
   } else {
-    lines.push(t('Memorisation: nothing in the file is newer than what is here.'));
+    lines.push(t('Memorization: nothing in the file is newer than what is here.'));
   }
   if (s.sessions.merged > 0) {
     lines.push(t('Sessions: {recovered} recovered, {total} in total.', { recovered: s.sessions.recovered, total: s.sessions.merged }));
@@ -487,7 +487,13 @@ function describeLines(p: PendingRestore, t: T): string[] {
         : t('The {n} oldest mistakes will not be kept: the history is full.', { n: s.mistakes.dropped }),
     );
   }
-  if (s.skipped.length > 0) lines.push(t('{n} thing(s) in the file are deliberately not restored.', { n: s.skipped.length }));
+  if (s.skipped.length > 0) {
+    lines.push(
+      s.skipped.length === 1
+        ? t('1 item in the file is deliberately not restored.')
+        : t('{n} items in the file are deliberately not restored.', { n: s.skipped.length }),
+    );
+  }
   if (p.damaged) lines.push(t('Part of this file could not be read, so not everything in it can be restored.'));
   return lines;
 }

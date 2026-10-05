@@ -315,7 +315,7 @@ describe('the upgrade screen with the switch on', () => {
     expect(buyLabels(tree)).toEqual([]);
     expect(pressableLabels(tree).has('Restore purchases')).toBe(false);
     const rendered = text(tree);
-    expect(rendered).toContain('cannot recognise Arabic');
+    expect(rendered).toContain('cannot recognize Arabic');
     expect(rendered).toContain('nothing in the app is locked');
     // no price may be drawn next to a refusal
     expect(rendered).not.toContain('MAD 199,00');

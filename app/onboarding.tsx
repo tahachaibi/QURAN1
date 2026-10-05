@@ -45,7 +45,7 @@ const steps = (t: T): Step[] => [
     icon: 'mic-outline',
     title: t('Try it on Al-Fatiha'),
     body: t(
-      'Tasmee Hifz needs the microphone to follow along. Your recitation is processed on the device by Android’s own recognizer and is never uploaded.',
+      'Tasmee Hifz needs the microphone to follow along. Your recitation goes to Android’s own speech recognizer: on the device when the Arabic offline pack is installed, otherwise through Android’s online service. Tasmee Hifz itself never records or stores it.',
     ),
     cta: t('Allow microphone and try'),
   },
