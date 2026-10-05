@@ -285,8 +285,25 @@ function trackerEntry(state: SessionState, startedAt: number, now: number): Logg
 }
 
 export function RecitationProvider({ children }: { children: ReactNode }) {
-  const { prefs } = useTheme();
-  const [mode, setMode] = useState<ReadMode>(prefs.hiddenMode ? 'hidden' : 'follow');
+  const { prefs, setPrefs } = useTheme();
+  const [mode, setModeState] = useState<ReadMode>(prefs.hiddenMode ? 'hidden' : 'follow');
+  /**
+   * The mode is remembered across launches. It was read from prefs.hiddenMode
+   * here and never written back, so somebody who always tests from memory
+   * opened the app every morning to the whole page in plain view — which
+   * spoils the test before they remember to switch. ThemeProvider renders
+   * nothing until prefs have loaded, so the initial read above sees the saved value.
+   *
+   * setPrefs is reached through a ref because its identity changes with every
+   * prefs change, and a setter that changed with it would re-render every
+   * consumer of this context whenever any setting moved.
+   */
+  const setPrefsRef = useRef(setPrefs);
+  setPrefsRef.current = setPrefs;
+  const setMode = useCallback((next: ReadMode) => {
+    setModeState(next);
+    setPrefsRef.current({ hiddenMode: next === 'hidden' });
+  }, []);
   const [viewedPage, setViewedPage] = useState(1);
   const [range, setRange] = useState<AyahRange | null>(null);
   const [hints, setHints] = useState<Map<number, 1 | 2>>(() => new Map());
@@ -432,18 +449,19 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
    * only ayahs the voice has already left are graded — `collectEvidence` emits
    * an ayah at 50% coverage, so grading one still being recited would score a
    * perfect recitation as a partial one.
+   *
+   * `sessionId` and `revealed` are passed in rather than read off the refs,
+   * because a flush can run after the next session has already begun.
    */
-  const foldSession = useCallback(async (state: SessionState, final: boolean): Promise<void> => {
-    if (sessionStartedAt.current === 0) return;
-    if (foldedSessionAt.current !== sessionStartedAt.current) {
-      foldedSessionAt.current = sessionStartedAt.current;
+  const foldSession = useCallback(async (state: SessionState, final: boolean, sessionId: number, revealed: ReadonlySet<number>): Promise<void> => {
+    if (sessionId === 0) return;
+    if (foldedSessionAt.current !== sessionId) {
+      foldedSessionAt.current = sessionId;
       gradedAyahs.current = new Map();
       loggedMistakes.current = new Set();
     }
     if (hifzLoaded.current !== null) await hifzLoaded.current;
 
-    const revealed = new Set<number>();
-    for (const [word, level] of hintsRef.current) if (level === 2) revealed.add(word);
     const evidence = collectEvidence({
       matched: state.matched,
       missed: state.mistakes.map((m) => m.word),
@@ -485,8 +503,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
    * button: an abandoned session has to clear a floor before it counts, a
    * person tapping "Log to streak" has already decided that it does.
    */
-  const logSessionRow = useCallback(async (state: SessionState, minWords: number): Promise<boolean> => {
-    const startedAt = sessionStartedAt.current;
+  const logSessionRow = useCallback(async (state: SessionState, minWords: number, startedAt: number): Promise<boolean> => {
     if (startedAt === 0) return false;
     if (state.matched.size < minWords) return false;
     // Re-logging is allowed only when the session has actually advanced, so a
@@ -508,17 +525,25 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
    */
   const flush = useCallback(
     (opts: { final: boolean; autoLog: boolean; state?: SessionState }): Promise<void> => {
+      // Which session this flush is FOR is settled now, when it is asked for,
+      // not when its turn on the chain comes. start() flushes the outgoing
+      // session and then begins a new one in the same tick; read later, the
+      // state, its id and its hints would all belong to the new session, and
+      // the old one's last stretch would be graded under the wrong bookkeeping
+      // or not at all.
+      // stop() applies the reducer itself and hands the resulting state
+      // straight here, because React has not committed it yet.
+      const state = opts.state ?? sessionRef.current;
+      const sessionId = sessionStartedAt.current;
+      const revealed = new Set<number>();
+      for (const [word, level] of hintsRef.current) if (level === 2) revealed.add(word);
+      // the position too: by the time this runs it may be the new session's
+      const position = unsavedPosition.current;
+      unsavedPosition.current = null;
       const run = async (): Promise<void> => {
-        // stop() applies the reducer itself and hands the resulting state
-        // straight here, because React has not committed it yet.
-        const state = opts.state ?? sessionRef.current;
-        const position = unsavedPosition.current;
-        if (position !== null) {
-          unsavedPosition.current = null;
-          await saveProgress(position.surah, position.cursor);
-        }
-        await foldSession(state, opts.final);
-        if (opts.autoLog) await logSessionRow(state, AUTO_LOG_MIN_WORDS);
+        if (position !== null) await saveProgress(position.surah, position.cursor);
+        await foldSession(state, opts.final, sessionId, revealed);
+        if (opts.autoLog) await logSessionRow(state, AUTO_LOG_MIN_WORDS, sessionId);
       };
       const next = flushChain.current.then(run, run);
       // Keep the chain alive even if one flush throws; a failed write must not
@@ -590,6 +615,12 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       },
       [dispatch],
     ),
+    // A recognizer that has given up leaves a session nobody can hear. Paused,
+    // it stops counting time and stops holding the screen awake; the error
+    // chip says why, and the mic button starts afresh, as after a lost mic.
+    onFailed: useCallback(() => {
+      dispatch({ type: 'pause', at: Date.now() });
+    }, [dispatch]),
   });
 
   /**
@@ -767,11 +798,54 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
     void Linking.openSettings().catch(() => undefined);
   }, []);
 
+  /**
+   * Coming back from the settings page the 'blocked' chip sent them to.
+   *
+   * Android does not restart an app when a permission is GRANTED (only when
+   * one is revoked), and nothing else re-read it, so the chip still said
+   * blocked and tapping it opened settings again, in a loop, beside a session
+   * listening in silence. Only 'blocked' is re-checked here: the 'denied' chip
+   * asks again through start(), and doing it here too would race that path
+   * into starting the recognizer twice.
+   */
+  const micPermissionRef = useRef(micPermission);
+  micPermissionRef.current = micPermission;
+  const recognizerRef = useRef(recognizer);
+  recognizerRef.current = recognizer;
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next: AppStateStatus) => {
+      if (next !== 'active' || micPermissionRef.current !== 'blocked') return;
+      void Audio.getPermissionsAsync().then((p) => {
+        if (!p.granted || micGranted.current) return;
+        micGranted.current = true;
+        setMicPermission('granted');
+        // the session that started without a microphone gets one now
+        if (sessionRef.current.status === 'listening') recognizerRef.current.start();
+      });
+    });
+    return () => sub.remove();
+  }, []);
+
   const start = useCallback(
     (fromWord?: number) => {
       // Reciting and listening at once would feed the reciter's own audio back
       // into the recognizer (§4).
       playbackStopper.current?.();
+      /**
+       * A session still running, or paused, is being REPLACED: long-press a
+       * word mid-recitation to restart there, or tap the mic on a paused one.
+       * It used to simply vanish — no tracker row, the ayahs since the last
+       * checkpoint and the one in progress never graded, the mistakes since
+       * then never logged — because 'start' wipes the statistics and the
+       * status never leaves 'listening', so no flush is triggered. It is
+       * finished here exactly as backgrounding finishes one, except that it is
+       * final: this session will not be resumed. flush() captures the session,
+       * its id and its hints now, before the dispatch below replaces them.
+       */
+      const outgoing = sessionRef.current;
+      if (outgoing.status === 'listening' || outgoing.status === 'paused') {
+        void flush({ final: true, autoLog: true, state: outgoing });
+      }
       const cursor = fromWord ?? session.cursor;
       capture.current = { name: `session-${new Date().toISOString()}`, startCursor: cursor, events: [] };
       lastEventAt.current = 0;
@@ -796,7 +870,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
         if (ok) recognizer.start();
       });
     },
-    [dispatch, ensureMic, recognizer, session.cursor],
+    [dispatch, ensureMic, flush, recognizer, session.cursor],
   );
 
   const buildSummary = useCallback(
@@ -911,7 +985,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
    */
   const logSummaryToTracker = useCallback(async () => {
     if (summary === null) return;
-    await logSessionRow(sessionRef.current, 0);
+    await logSessionRow(sessionRef.current, 0, sessionStartedAt.current);
   }, [logSessionRow, summary]);
 
   /**
@@ -1024,6 +1098,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       session,
       recognizer,
       mode,
+      setMode,
       viewedPage,
       awayFromPlace,
       hintLevelOf,

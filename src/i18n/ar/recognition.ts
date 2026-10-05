@@ -4,4 +4,22 @@
  */
 import type { ArabicForms } from '../i18n';
 
-export const RECOGNITION: Record<string, string | ArabicForms> = {};
+export const RECOGNITION: Record<string, string | ArabicForms> = {
+  // src/recognition/errorText.ts
+  'The recognition service stopped responding. Tap the microphone to try again.':
+    'توقفت خدمة التعرّف عن الاستجابة. اضغط الميكروفون لتعيد المحاولة.',
+  'No speech recognition service is installed on this phone. Install or enable the Google app, then try again.':
+    'لا توجد على هذا الهاتف خدمة للتعرّف على الكلام. ثبّت تطبيق Google أو فعّله، ثم أعد المحاولة.',
+  'The speech recognizer could not be started. Check that the microphone permission is granted.':
+    'تعذّر تشغيل أداة التعرّف على الكلام. تأكّد من منح إذن الميكروفون.',
+  'The speech recognizer could not start listening. Tap the microphone to try again.':
+    'تعذّر على أداة التعرّف بدء الاستماع. اضغط الميكروفون لتعيد المحاولة.',
+  'The speech recognition service keeps failing to start. Close other apps using voice input, or check that Google speech services are installed and enabled, then tap the microphone again.':
+    'تتعثّر خدمة التعرّف على الكلام كلما بدأت. أغلق التطبيقات الأخرى التي تستعمل الإدخال الصوتي، أو تأكّد من تثبيت خدمات Google للكلام وتفعيلها، ثم اضغط الميكروفون من جديد.',
+  'Speech recognition error ({name}).': 'خطأ في التعرّف على الكلام ({name}).',
+
+  // src/recognition/useRecitationRecognizer.ts
+  'The Arabic offline pack could not be requested. Try again from Settings.':
+    'تعذّر طلب حزمة العربية دون اتصال. أعد المحاولة من الإعدادات.',
+  'Offline Arabic is not available on this phone.': 'العربية دون اتصال غير متاحة على هذا الهاتف.',
+};

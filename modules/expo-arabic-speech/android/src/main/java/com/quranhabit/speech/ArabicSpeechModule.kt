@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Bundle
 import expo.modules.kotlin.Promise
 import expo.modules.kotlin.exception.CodedException
+import expo.modules.kotlin.functions.Queues
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import expo.modules.kotlin.records.Field
@@ -69,13 +70,24 @@ class ArabicSpeechModule : Module() {
 
     AsyncFunction("capabilities") { engine().capabilities() }
 
+    /**
+     * Both of these build a throwaway on-device SpeechRecognizer, and from
+     * Android 13 creating one anywhere but the main thread throws ("should be
+     * used only from the application's main thread"). AsyncFunctions run on
+     * expo's own HandlerThread by default, so without runOnQueue(MAIN) the
+     * offline-pack check and the download rejected on every device that could
+     * have used them, the rejection was swallowed in JS, and the Install chip
+     * the error text points to never appeared. On the main queue a throw still
+     * rejects the promise rather than crashing, which a main.post inside the
+     * engine would not.
+     */
     AsyncFunction("languageStatus") { locale: String, promise: Promise ->
       engine().languageStatus(locale) { promise.resolve(it) }
-    }
+    }.runOnQueue(Queues.MAIN)
 
     AsyncFunction("requestLanguageDownload") { locale: String ->
       engine().requestLanguageDownload(locale)
-    }
+    }.runOnQueue(Queues.MAIN)
 
     AsyncFunction("start") { options: StartOptions ->
       engine().start(options.toOptions())

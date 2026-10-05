@@ -88,6 +88,7 @@ interface RecognizerCallbacks {
   onEndOfSegment: () => void;
   onSilenceTimeout: () => void;
   onInterrupted: (reason: string) => void;
+  onFailed: () => void;
 }
 
 jest.mock('../src/recognition/useRecitationRecognizer', () => {
@@ -299,6 +300,81 @@ describe('a session that is abandoned rather than stopped', () => {
 
     expect(sessionsInStorage()).toEqual([]);
     expect(deckInStorage()).toEqual({});
+    tree.unmount();
+  });
+});
+
+/**
+ * THE REGRESSION: long-pressing a word mid-recitation called start() again,
+ * and 'start' wiped the statistics without anything being written first. The
+ * status went from 'listening' to 'listening', so no flush fired either: the
+ * session never reached the streak, and everything since the last 30 s
+ * checkpoint — the ayah in progress included — was never graded.
+ */
+describe('a session replaced by a new one', () => {
+  it('is finished, not discarded, when a word is long-pressed mid-recitation', async () => {
+    const tree = await mount();
+    act(() => api?.start(0));
+    await reciteFatiha(FATIHA);
+    expect(sessionsInStorage()).toEqual([]);
+    expect(deckInStorage()).toEqual({});
+
+    // long-press = start reciting from here
+    act(() => api?.start(10));
+    await act(async () => undefined);
+
+    const rows = sessionsInStorage();
+    expect(rows).toHaveLength(1);
+    expect(rows[0].wordsRecited).toBeGreaterThanOrEqual(5);
+    expect(Object.keys(deckInStorage()).length).toBeGreaterThan(0);
+    // and the new session is the one now running, from where it was asked to
+    expect(api?.session.status).toBe('listening');
+    expect(api?.session.cursor).toBe(10);
+    tree.unmount();
+  });
+
+  it('is finished when the mic restarts a paused one', async () => {
+    const tree = await mount();
+    act(() => api?.start(0));
+    await reciteFatiha(FATIHA);
+    act(() => api?.pauseSession());
+    await act(async () => undefined);
+
+    act(() => api?.start());
+    await act(async () => undefined);
+    expect(sessionsInStorage()).toHaveLength(1);
+    tree.unmount();
+  });
+
+  it('does not log a second row for the new session it starts', async () => {
+    const tree = await mount();
+    act(() => api?.start(0));
+    await reciteFatiha(FATIHA);
+    act(() => api?.start(0));
+    await act(async () => undefined);
+    // nothing recited into the new one yet
+    await background();
+    expect(sessionsInStorage()).toHaveLength(1);
+    tree.unmount();
+  });
+});
+
+/**
+ * THE REGRESSION: when the recognizer gave up, the session was never told. It
+ * stayed 'listening' — the clock counting, the screen held awake — beside a red
+ * chip, for as long as the app stayed open.
+ */
+describe('a recognizer that gives up', () => {
+  it('pauses the session it was listening for', async () => {
+    const tree = await mount();
+    act(() => api?.start(0));
+    await reciteFatiha(FATIHA.slice(0, 2));
+    expect(api?.session.status).toBe('listening');
+
+    await act(async () => mockCallbacks?.onFailed());
+    expect(api?.session.status).toBe('paused');
+    // paused, not stopped: nothing is torn down and no summary appears
+    expect(api?.summary).toBeNull();
     tree.unmount();
   });
 });
