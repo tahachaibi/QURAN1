@@ -54,7 +54,7 @@ directory is a complete GitHub Pages site.
 | `listing/ar.md` | The same in Arabic, rewritten rather than translated — **read its first paragraph before publishing** |
 | `listing/keywords.md` | The keyword hypothesis, and an explicit statement of what could not be verified |
 | `listing/locales.md` | Which locales to add, in what order, and why |
-| `assets/screenshots.md` | The 8 screenshots with captions, the feature graphic, and the missing app icon |
+| `assets/screenshots.md` | The 8 screenshots with captions, the feature graphic, and the app icon |
 | `web/` | The GitHub Pages landing page: EN + AR, JSON-LD, OG, sitemap, robots, privacy policy |
 | `ranking-reality.md` | How long ranking takes, what moves it, what does not |
 | `check-lengths.mjs` | Asserts Play's 30/80/4000 character limits on the listing files |
@@ -65,10 +65,10 @@ directory is a complete GitHub Pages site.
 node store/check-lengths.mjs
 ```
 
-Current state: EN title 28/30, short 71/80, full 3988/4000; AR title 22/30,
-short 54/80, full 3659/4000. Worth wiring into `.github/workflows/android.yml`
-next to the other generators-and-verifiers, so an edit that overflows a Play
-field fails in CI rather than in Play Console.
+CI runs this script in the `checks` job, so an edit that overflows a Play
+field fails there rather than in Play Console. Headroom is tight: the AR title
+is at 30/30 and the EN full description close to 4000, so run it after any
+edit.
 
 ## Publishing the landing page
 
@@ -123,21 +123,19 @@ URL hard-coded in the pages. Three things to know about that URL:
 3. **Submit the sitemap** in Google Search Console after the first deploy, and
    verify ownership with the HTML-tag method (add one `<meta>` to both pages).
 
-## Images the pages reference and that do not exist yet
+## Images the pages reference
 
-`og-cover.png` (1200×630), `og-cover-ar.png`, `favicon.png`,
-`apple-touch-icon.png`. They belong in `store/web/`. Until they exist, a shared
-link renders with no preview image, which measurably reduces click-through.
-See `assets/screenshots.md` for the art direction — the same mark serves the app
-icon, the feature graphic and these.
+`og-cover.png` (1200×630, shared by the English and Arabic pages, since it has
+no text), `favicon.png` and `apple-touch-icon.png` are all in `store/web/`,
+drawn by `scripts/gen-icons.mjs`. The Pages workflow fails if any page links to
+an image that does not exist, including the `og:image` URLs.
 
 ## The two hard prerequisites
 
 Neither is copywriting, and both outrank everything in this directory:
 
-1. **There is no app icon in the repo at all** — `app.json` sets an adaptive-icon
-   background colour with no foreground image. `assets/screenshots.md` opens
-   with this.
+1. ~~There is no app icon in the repo~~ **Done:** `src/assets/brand/`, drawn by
+   `scripts/gen-icons.mjs` and wired in `app.json`.
 2. **`docs/acceptance-log.md` has ten acceptance tests and zero results.** The
    recitation follow-along has never run on a device. Ratings are a ranking
    input; a core mechanic that fails on the first reviewer's phone cannot be

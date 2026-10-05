@@ -1,6 +1,6 @@
 # Tasmee Hifz
 
-An Android-first Islamic habit companion whose centrepiece is a recitation
+An Android-first Islamic habit companion whose centerpiece is a recitation
 follow-along that tracks your voice through the Quran.
 
 Everything works offline except prayer times and optional audio playback. There
@@ -10,7 +10,7 @@ layout and the verse-search index are all bundled at build time.
 ## The one architectural idea
 
 The reciter's position is **a single integer index into a flat array of every
-word in the Quran** (77,428 words). Not a position within a surah — a position
+word in the Quran** (77,432 words). Not a position within a surah — a position
 in the Quran.
 
 ```
@@ -46,7 +46,7 @@ __tests__/               unit, alignment, session, fixture and render tests
 
 ## Revision that knows what you are weak on
 
-The follow-along is the centrepiece; this is the part that makes it a habit app
+The follow-along is the centerpiece; this is the part that makes it a habit app
 rather than a reading aid, and it is the clearest gap versus Tarteel.
 
 Every session already produces, per ayah, which words matched, which were missed

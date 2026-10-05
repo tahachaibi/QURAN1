@@ -1,61 +1,12 @@
 # Screenshots, feature graphic and icon
 
-## Blocker first: there is no app icon in this repo
+## Icon: done
 
-`find . -name "*.png" -o -name "*.svg"` outside `node_modules` returns **nothing**.
-`app.json` declares:
-
-```json
-"adaptiveIcon": { "backgroundColor": "#1B4332" }
-```
-
-— a background colour with **no `foregroundImage`**, no top-level `icon`, no
-`splash`, and no notification icon, while `expo-notifications` is configured
-with a colour and a channel. So the APK CI builds today ships Expo's default
-icon.
-
-On Play, the icon is the single largest conversion lever in a search result: it
-is what a person compares against Muslim Pro's and Quran.com's before they read
-one word of your title. **Nothing else in this document matters until this is
-fixed.**
-
-What is needed, all from the palette already in `src/theme/theme.ts`:
-
-| Asset | Size | Spec |
-|---|---|---|
-| `assets/icon.png` | 1024×1024 | full-bleed, no transparency, no rounded corners (Play rounds them) |
-| `assets/adaptive-icon.png` | 1024×1024 | foreground only, artwork inside the central 66% safe zone |
-| `assets/notification-icon.png` | 96×96 | pure white silhouette on transparent, tinted `#1B4332` by the config |
-| `assets/splash.png` | 1284×2778 | centred mark on `#F6F2E9` |
-
-Design direction, and the reason for it: **the mark should be a page with a
-line of light moving across it, not a mosque dome and not a crescent.** Every
-competitor's icon in this category is a dome, a crescent, a lantern or an open
-book in gold-on-green — a search result page of them is indistinguishable. The
-one thing this app does that none of them do is *follow your voice across a
-page*. An icon that shows a mushaf page with one line lit, in `#1B4332` deep
-green with the `#C9A227` gold accent as the lit line, is both on-brand and the
-only icon in the result set that is not a dome.
-
-Then add to `app.json`:
-
-```json
-"icon": "./assets/icon.png",
-"splash": { "image": "./assets/splash.png", "resizeMode": "contain", "backgroundColor": "#F6F2E9" },
-"android": {
-  "adaptiveIcon": {
-    "foregroundImage": "./assets/adaptive-icon.png",
-    "backgroundColor": "#1B4332"
-  }
-}
-```
-
-and a CI assertion that `assets/icon.png` exists, next to the existing
-`verify-fonts.mjs` style checks in `.github/workflows/android.yml` — the same
-class of "silently missing and invisible from a container" failure that
-`docs/decisions.md` already documents twice.
-
----
+The launcher icon, adaptive icon, notification icon and splash are in
+`src/assets/brand/`, drawn by `scripts/gen-icons.mjs` from the palette in
+`src/theme/theme.ts` and wired in `app.json`. The 512×512 Play icon and the
+feature graphic are in `store/assets/`. CI fails if a committed image differs
+from what the generator draws.
 
 ## The 8 phone screenshots
 

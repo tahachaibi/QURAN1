@@ -70,8 +70,9 @@ restrictions". There is no login.
 - Ticking any age under 13 puts the app under the Families policy, which
   brings more paperwork. It can be widened later.
 - If asked whether the app could unintentionally appeal to children, answer
-  honestly. It is a Quran app, so "Yes" is defensible. The app collects
-  nothing from anyone, so there is nothing to change either way.
+  honestly. It is a Quran app, so "Yes" is defensible. The only data the app
+  collects is approximate location for prayer times, which is optional, so
+  there is nothing to change either way.
 
 **News app:** No. **Government app:** No. **Financial features:** none.
 **Health:** none.
@@ -95,7 +96,7 @@ Then data types: tick only **Location → Approximate location**.
 | Collected | Yes |
 | Shared | **No**. Aladhan receives the coordinates only to answer the request. That makes it a service provider, which Play does not count as sharing. |
 | Processed ephemerally | **Yes** |
-| Required or optional | **Optional**: users can turn prayer times off |
+| Required or optional | **Optional**: location is requested only when the user opens the Prayer tab, and they can deny it. The rest of the app works without it. |
 | Purpose | **App functionality** |
 
 Do **not** tick audio. The app never sends audio anywhere itself; the speech
@@ -163,6 +164,18 @@ me as files and I'll return them cropped to 1080×2160.
 5. Back on the track, copy the **"Join on Android"** link and send it to your
    12 testers. Each one opens it, taps **Become a tester**, then installs
    from Play.
+
+**A phone that already has the test APK from the GitHub link** (yours, at
+least) cannot install the Play version over it: the two are signed with
+different keys, and Play shows "App not installed". On that phone:
+
+1. Open Settings → **Save a backup** (Arabic: احفظ نسخة احتياطية) and keep the
+   file somewhere outside the app, e.g. Drive or WhatsApp to yourself.
+2. Uninstall the app, then install it from Play.
+3. Open Settings → **Restore from a backup** (Arabic: استرجع من نسخة
+   احتياطية) and pick that file.
+
+From then on, testers should use only the Play version, not the GitHub APK.
 
 **The 14 days only count while at least 12 testers are opted in.** Ask them to
 keep the app installed and open it now and then. Google also looks at

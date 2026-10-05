@@ -95,7 +95,7 @@ recorded in the README.
 ## What I will verify before trusting it
 
 The load-bearing risk is word alignment. QUL's `word_id` is a global 1-based
-index over their `words` table; mine is a 0-based index over my own 77,428-word
+index over their `words` table; mine is a 0-based index over my own 77,432-word
 array. If the two tokenise identically, `mine = word_id - 1` — and if they do
 not, pages would silently render the wrong words on the wrong lines, which is
 worse than approximate line breaks.
@@ -104,7 +104,7 @@ So the generator will fail the build unless all of these hold:
 
 1. exactly 604 pages, every one non-empty;
 2. each page's distinct line count equals its `lines_count`;
-3. every one of my 77,428 words is assigned a page and line exactly once;
+3. every one of my 77,432 words is assigned a page and line exactly once;
 4. the page each word lands on matches the page my own verified table already
    gives it (scripts/verify-pages.mjs checks that table against a printed
    mushaf, so a disagreement means the word mapping is off, not the pages);

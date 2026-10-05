@@ -53,7 +53,7 @@
   "downloadUrl": "https://play.google.com/store/apps/details?id=com.tasmeehifz.app",
   "softwareVersion": "1.0.0",
   "inLanguage": ["ar", "en"],
-  "description": "An Android Quran app whose centrepiece is a recitation follow-along: you recite aloud and the app tracks your voice through the Madani mushaf, word by word. Hidden mode for memorization, spaced-repetition revision built from your real mistakes, prayer times by your country's own calculation authority, full adhan playback, Sahih al-Bukhari and Sahih Muslim, and morning and evening adhkar. The Quran works offline, with no account and no ads.",
+  "description": "An Android Quran app whose centerpiece is a recitation follow-along: you recite aloud and the app tracks your voice through the Madani mushaf, word by word. Hidden mode for memorization, spaced-repetition revision built from your real mistakes, prayer times by your country's own calculation authority, full adhan playback, Sahih al-Bukhari and Sahih Muslim, and morning and evening adhkar. The Quran works offline, with no account and no ads.",
   "featureList": [
     "Real-time recitation follow-along, word by word on the printed page",
     "Hidden mode for memorization with a two-step hint ladder",
@@ -63,7 +63,7 @@
     "Full adhan playback with a five-minute warning",
     "Sahih al-Bukhari and Sahih Muslim, 14,734 narrations",
     "Morning and evening adhkar quoted verbatim from bundled sources",
-    "Works entirely offline"
+    "Quran, hadith and adhkar work fully offline"
   ],
   "offers": {
     "@type": "Offer",
@@ -117,7 +117,7 @@
       "name": "Is my recitation recorded or uploaded?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "No. There is no account, no sign-up and no analytics in the app. Your recitation is processed by the speech recognizer on your own device and is never stored or sent anywhere by Tasmee Hifz."
+        "text": "No. There is no account, no sign-up and no analytics in the app. Your recitation is processed by Android's speech recognizer (on the device once the Arabic language pack is installed) and is never stored or sent anywhere by Tasmee Hifz."
       }
     },
     {
@@ -192,7 +192,7 @@ a{color:var(--green)}
 
 <h2>An app that listens while you recite</h2>
 <p>Most Quran apps show you the page. This one watches you read it. Open any surah, start reciting, and the highlight moves across the printed mushaf with your voice. When you reach the last line, the page turns on its own.</p>
-<p>You never tell it where you are. Begin in the middle of another surah, with or without the basmala, and it locates you across the whole Quran in about a second — because the app tracks a single position in a flat array of all 77,428 words of the Quran, not a position inside one surah.</p>
+<p>You never tell it where you are. Begin in the middle of another surah, with or without the basmala, and it locates you across the whole Quran in about a second — because the app tracks a single position in a flat array of all 77,432 words of the Quran, not a position inside one surah.</p>
 
 <h2>Hidden mode: memorize with a page that does not move</h2>
 <p>Hidden mode blanks the page and reveals each word only when you say it. The geometry never shifts: the ghost of every hidden word holds its exact place, so the page you memorized looks the same whether the words are shown or hidden. A hafiz memorizes the shape of a page as much as its sound, and an app that reflows the line when a word appears has destroyed the thing being memorized.</p>
@@ -226,13 +226,14 @@ a{color:var(--green)}
 <p class="rule">The Quran, the mushaf, the recitation follow-along, prayer times, the adhan, the adhkar and the hadith collections are free, and will stay free.</p>
 <p>Worship does not belong behind a paywall. Every part of this app is free today, with no ads, no account and no tracking.</p>
 
-<h2>Privacy: nothing to sign up for, nothing collected</h2>
-<p>No account, no sign-up, no ads, no analytics, no tracking, no profile. Your recitation is processed by the speech recognizer on your own device and is never recorded or uploaded by this app. The only two things that use the network at all are the prayer-time lookup and optional reciter audio; the entire Quran works in airplane mode. Full <a href="privacy.html">privacy policy</a>.</p>
+<h2>Privacy: nothing to sign up for, no tracking</h2>
+<p>No account, no sign-up, no ads, no analytics, no tracking, no profile. Your recitation is processed by Android's speech recognizer (on the device once the Arabic language pack is installed) and is never recorded or uploaded by this app. The only two things this app fetches from the network are the prayer-time lookup and optional reciter audio; the entire Quran works in airplane mode. Full <a href="privacy.html">privacy policy</a>.</p>
 
 <h2>Honest limits</h2>
 <ul>
   <li>Android only for now. There is no iOS build.</li>
-  <li>Arabic text only — no translation and no tafsir in this version.</li>
+  <li>The Quran is Arabic text only — no translation and no tafsir in this version.</li>
+  <li>The interface is in English or Arabic, chosen on first launch and changeable in Settings.</li>
   <li>The follow-along uses Android's own Arabic speech recognition. Install the offline Arabic language pack for the best results, and expect it to be less accurate than a human listener.</li>
   <li>It does not grade tajweed or makharij. It follows <em>which</em> word you said, not how you said it.</li>
 </ul>
@@ -251,7 +252,7 @@ a{color:var(--green)}
 
 <footer>
   <p><a href="ar/">بالعربية</a> · <a href="privacy.html">Privacy</a> · <a href="https://github.com/tahachaibi/QURAN1">GitHub</a></p>
-  <p>Quran text from quran-json (CC-BY-4.0). Madani page and juz metadata from quran-meta (MIT). Mushaf layout from the QUL QPC V2 (1421H) dataset. Typeface: KFGQPC Uthmanic Script HAFS, King Fahd Glorious Quran Printing Complex, used free of cost and unmodified under its own licence.</p>
+  <p>Quran text from quran-json (CC-BY-4.0). Madani page and juz metadata from quran-meta (MIT). Mushaf layout from the QUL QPC V2 (1421H) dataset. Typeface: KFGQPC Uthmanic Script HAFS, King Fahd Glorious Quran Printing Complex, used free of cost and unmodified under its own license.</p>
 </footer>
 
 </div>

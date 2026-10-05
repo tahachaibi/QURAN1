@@ -68,10 +68,10 @@ THE FOLLOW-ALONG
 • Recite aloud and watch the page keep up, word by word.
 • Start anywhere in the Quran. There is no "select the ayah first" step.
 • Missed and misread words are marked as you go and collected into a review sheet at the end — never in red on the sacred text.
-• Your voice is processed on your own device by Android's Arabic speech recognizer. Nothing is recorded, nothing is uploaded.
+• Android's own speech recognizer follows your voice. Tasmee Hifz records nothing and uploads nothing.
 
-HIDDEN MODE, FOR MEMORISATION (HIFZ)
-• The page holds its exact shape while the words stay hidden, and each word appears as you say it. Nothing reflows — the page you memorised looks the same hidden or shown.
+HIDDEN MODE, FOR MEMORIZATION (HIFZ)
+• The page holds its exact shape while the words stay hidden, and each word appears as you say it. Nothing reflows — the page you memorized looks the same hidden or shown.
 • Stuck? Tap once for the first letter. Tap again for the whole word.
 • Every hint is remembered, so the app knows which words you lean on.
 
@@ -109,11 +109,11 @@ Your voice goes to Android's own speech recognition — on the device when the A
 
 HONEST LIMITS, BEFORE YOU INSTALL
 • Android only for now.
-• Arabic text only. No translation or tafsir in this version.
+• The Quran is in Arabic only, no translation or tafsir. Menus in English or Arabic.
 • The follow-along uses Android's own Arabic speech recognition. Install the offline Arabic language pack for best results.
 • It does not grade tajweed. It follows which word you said, not how you said it.
 
-Quran, mushaf, hifz, memorize Quran, recitation, prayer times, adhan, azan, hadith, Bukhari, Muslim, morning and evening azkar, offline Quran.
+Quran, mushaf, hifz, memorize Quran, recitation, prayer times, adhan, hadith, Bukhari, Muslim, azkar, offline Quran.
 ```
 
 ### Notes on the copy

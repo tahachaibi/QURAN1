@@ -88,9 +88,6 @@ jobs:
 
   apk:
     runs-on: ubuntu-latest
-    # write, only so the last step can publish the phone download below
-    permissions:
-      contents: write
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
@@ -214,8 +211,13 @@ jobs:
         # The alternative — failing the build until somebody creates a keystore —
         # punishes every contributor for a release step.
         id: keystore
+        # Secrets reach the shell as environment variables, never pasted into
+        # the script text: GitHub substitutes ${{ }} before bash parses the
+        # line, so a password containing $, `, " or \ used to arrive mangled
+        # and the error blamed the keystore.
         env:
           KEYSTORE_BASE64: ${{ secrets.UPLOAD_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.UPLOAD_KEYSTORE_PASSWORD }}
         run: |
           if [ -z "$KEYSTORE_BASE64" ]; then
             echo "signed=false" >> "$GITHUB_OUTPUT"
@@ -227,7 +229,7 @@ jobs:
           # really a keystore before handing it to Gradle, where the error would
           # be forty lines of Java stack trace.
           keytool -list -keystore "$RUNNER_TEMP/upload.jks" \
-            -storepass "${{ secrets.UPLOAD_KEYSTORE_PASSWORD }}" >/dev/null || {
+            -storepass:env STORE_PASSWORD >/dev/null || {
             echo "::error::UPLOAD_KEYSTORE_BASE64 did not decode to a keystore readable with UPLOAD_KEYSTORE_PASSWORD"
             exit 1
           }
@@ -249,12 +251,16 @@ jobs:
         # been the fragile way to do this.
         if: steps.keystore.outputs.signed == 'true'
         working-directory: android
+        env:
+          STORE_PASSWORD: ${{ secrets.UPLOAD_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.UPLOAD_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.UPLOAD_KEY_PASSWORD }}
         run: |
           ./gradlew :app:bundleRelease --stacktrace \
             -Pandroid.injected.signing.store.file="$RUNNER_TEMP/upload.jks" \
-            -Pandroid.injected.signing.store.password="${{ secrets.UPLOAD_KEYSTORE_PASSWORD }}" \
-            -Pandroid.injected.signing.key.alias="${{ secrets.UPLOAD_KEY_ALIAS }}" \
-            -Pandroid.injected.signing.key.password="${{ secrets.UPLOAD_KEY_PASSWORD }}"
+            -Pandroid.injected.signing.store.password="$STORE_PASSWORD" \
+            -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
+            -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
 
       - name: Prove the bundle is signed with the upload key, not the debug key
         # The failure this catches is the expensive one: an AAB that builds,
@@ -365,7 +371,24 @@ jobs:
             echo "no adhan recording bundled in this build"
           fi
 
-      - name: Name the artifacts something recognisable
+      - name: Native libraries are 16 KB page aligned
+        # Play refuses an update targeting Android 15+ whose 64-bit native
+        # libraries are aligned for 4 KB pages, and it says so only at upload.
+        # Two halves: the ELF segments inside each .so, and where zip puts the
+        # uncompressed .so inside the APK.
+        run: |
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          python3 scripts/check-elf-alignment.py "$APK"
+          ZIPALIGN=$(ls "$ANDROID_HOME"/build-tools/*/zipalign 2>/dev/null | sort | tail -1)
+          if [ -z "$ZIPALIGN" ]; then
+            echo "::error::zipalign not found under $ANDROID_HOME/build-tools"
+            exit 1
+          fi
+          "$ZIPALIGN" -c -P 16 4 "$APK" \
+            || { echo "::error::the APK's native libraries are not 16 KB aligned inside the zip"; exit 1; }
+          echo "zip alignment: 16 KB"
+
+      - name: Name the artifacts something recognizable
         run: |
           mkdir -p out
           cp android/app/build/outputs/apk/release/app-release.apk \
@@ -386,6 +409,23 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  publish:
+    # Its own job, so it waits for BOTH: a build whose tests failed must never
+    # replace the APK on the phone link or the AAB the Play guide says to
+    # upload. The apk job still starts at once, in parallel with checks.
+    # Only from the development branch, so a pull request can never replace it.
+    needs: [checks, apk]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/claude/quran-habit-android-jr6hwv'
+    runs-on: ubuntu-latest
+    # write, only so this job can publish the phone download
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: tasmee-hifz-apk
+          path: out
+
       - name: Publish the APK at one fixed link a phone can open
         # An artifact arrives as a zip, needs a GitHub login, and moves to a new
         # URL on every run. Installing from a phone should be one tap on a link
@@ -393,10 +433,10 @@ jobs:
         #   https://github.com/<owner>/<repo>/releases/download/test-build/tasmee-hifz.apk
         # A pre-release, so nobody mistakes it for a store launch. Only from
         # the development branch, so a pull request can never replace it.
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/claude/quran-habit-android-jr6hwv'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          ls -la out
           cp "out/tasmee-hifz-${GITHUB_SHA::7}.apk" out/tasmee-hifz.apk
           files=(out/tasmee-hifz.apk)
           # The signed bundle too, so uploading to Play is also one link:
@@ -405,8 +445,8 @@ jobs:
             cp "out/tasmee-hifz-${GITHUB_SHA::7}.aab" out/tasmee-hifz.aab
             files+=(out/tasmee-hifz.aab)
           fi
-          gh release delete test-build --yes --cleanup-tag 2>/dev/null || true
-          gh release create test-build "${files[@]}" \
+          gh release delete test-build --yes --cleanup-tag -R "$GITHUB_REPOSITORY" 2>/dev/null || true
+          gh release create -R "$GITHUB_REPOSITORY" test-build "${files[@]}" \
             --prerelease --target "$GITHUB_SHA" \
             --title "Test build ${GITHUB_SHA::7}" \
             --notes "Latest build of Tasmee Hifz from commit ${GITHUB_SHA::7}. On a phone: download tasmee-hifz.apk and open it. For Play Console: upload tasmee-hifz.aab."

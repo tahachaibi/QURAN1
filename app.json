@@ -65,7 +65,7 @@
       [
         "expo-av",
         {
-          "microphonePermission": "Tasmee Hifz listens while you recite so it can follow along on the page. On phones with an Arabic speech pack installed it is recognised entirely on your device; otherwise Android sends it to its own speech service to transcribe. Nothing is recorded, kept or uploaded by Tasmee Hifz."
+          "microphonePermission": "Tasmee Hifz listens while you recite so it can follow along on the page. On phones with an Arabic speech pack installed it is recognized entirely on your device; otherwise Android sends it to its own speech service to transcribe. Nothing is recorded, kept or uploaded by Tasmee Hifz."
         }
       ],
       [

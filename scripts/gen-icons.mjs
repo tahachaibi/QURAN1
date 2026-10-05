@@ -70,21 +70,28 @@ function chunk(type, data) {
   return Buffer.concat([len, body, crc]);
 }
 
-/** RGBA pixel buffer -> a PNG file. Colour type 6, 8 bits, no interlacing. */
-function encodePng(width, height, rgba) {
+/**
+ * RGBA pixel buffer -> a PNG file. 8 bits, no interlacing. Colour type 6 (RGBA),
+ * or 2 (RGB, alpha dropped) when `opaque`: Play takes the feature graphic only
+ * as JPEG or a 24-bit PNG with no alpha channel, even a fully opaque one.
+ */
+function encodePng(width, height, rgba, opaque = false) {
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(width, 0);
   ihdr.writeUInt32BE(height, 4);
   ihdr[8] = 8; // bit depth
-  ihdr[9] = 6; // RGBA
+  ihdr[9] = opaque ? 2 : 6; // RGB : RGBA
+  const bpp = opaque ? 3 : 4;
   // Every scanline is prefixed with filter type 0 (none). Filtering would
   // compress better; these files are small and reproducibility is worth more
   // than the kilobytes.
-  const raw = Buffer.alloc(height * (width * 4 + 1));
+  const raw = Buffer.alloc(height * (width * bpp + 1));
   for (let y = 0; y < height; y++) {
-    const at = y * (width * 4 + 1);
+    const at = y * (width * bpp + 1);
     raw[at] = 0;
-    rgba.copy(raw, at + 1, y * width * 4, (y + 1) * width * 4);
+    for (let x = 0; x < width; x++) {
+      rgba.copy(raw, at + 1 + x * bpp, (y * width + x) * 4, (y * width + x) * 4 + bpp);
+    }
   }
   return Buffer.concat([
     Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
@@ -180,12 +187,14 @@ function drawMark(width, height, { background, ink, scale, ring = true }) {
  * Decode one of OUR PNGs back to pixels.
  *
  * Not a general decoder and does not pretend to be: it only handles what
- * `encodePng` writes — 8-bit RGBA, no interlacing, filter 0 on every scanline.
+ * `encodePng` writes — 8-bit RGBA or RGB, no interlacing, filter 0 on every
+ * scanline. RGB comes back with alpha 255, so both compare as RGBA.
  * It exists for --check below.
  */
 function decodeOurPng(buf) {
   const width = buf.readUInt32BE(16);
   const height = buf.readUInt32BE(20);
+  const bpp = buf[25] === 2 ? 3 : 4;
   const idat = [];
   let at = 8;
   while (at < buf.length) {
@@ -195,12 +204,14 @@ function decodeOurPng(buf) {
     at += 12 + len;
   }
   const raw = inflateSync(Buffer.concat(idat));
-  const rgba = Buffer.alloc(width * height * 4);
+  const rgba = Buffer.alloc(width * height * 4, 255);
   for (let y = 0; y < height; y++) {
-    const from = y * (width * 4 + 1) + 1;
-    raw.copy(rgba, y * width * 4, from, from + width * 4);
+    const from = y * (width * bpp + 1) + 1;
+    for (let x = 0; x < width; x++) {
+      raw.copy(rgba, (y * width + x) * 4, from + x * bpp, from + x * bpp + bpp);
+    }
   }
-  return { width, height, rgba };
+  return { width, height, rgba, opaque: bpp === 3 };
 }
 
 /**
@@ -216,7 +227,7 @@ function decodeOurPng(buf) {
 const CHECK = process.argv.includes('--check');
 let mismatched = 0;
 
-function write(relative, width, height, rgba) {
+function write(relative, width, height, rgba, opaque = false) {
   const path = join(ROOT, relative);
   if (CHECK) {
     let found;
@@ -227,13 +238,17 @@ function write(relative, width, height, rgba) {
       mismatched++;
       return;
     }
-    const same = found.width === width && found.height === height && found.rgba.equals(rgba);
+    const same =
+      found.width === width &&
+      found.height === height &&
+      found.opaque === opaque &&
+      found.rgba.equals(rgba);
     console.log(`${same ? 'ok      ' : 'DIFFERS '} ${relative.padEnd(44)} ${found.width}x${found.height}`);
     if (!same) mismatched++;
     return;
   }
   mkdirSync(dirname(path), { recursive: true });
-  const png = encodePng(width, height, rgba);
+  const png = encodePng(width, height, rgba, opaque);
   writeFileSync(path, png);
   console.log(`${relative.padEnd(44)} ${width}x${height}  ${String(png.length).padStart(7)} bytes`);
 }
@@ -309,7 +324,8 @@ function banner(W, H, relative) {
       rgba[at + 3] = 255;
     }
   }
-  write(relative, W, H, rgba);
+  // Opaque: no alpha channel at all, which is what Play asks of a feature graphic.
+  write(relative, W, H, rgba, true);
 }
 
 banner(1024, 500, 'store/assets/feature-graphic-1024x500.png');

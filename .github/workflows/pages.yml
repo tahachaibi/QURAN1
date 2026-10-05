@@ -58,7 +58,13 @@ jobs:
           # check deleted.
           for page in index.html privacy.html ar/index.html; do
             base=$(dirname "$page")
-            grep -ohE '(href|src)="[^"#]+"' "$page" \
+            # Plus this site's own absolute URLs, which og:image and
+            # twitter:image must use: rewritten to /QURAN1/… so they are
+            # checked like any other path instead of skipped as external.
+            { grep -ohE '(href|src)="[^"#]+"' "$page"
+              grep -ohE '(href|src|content)="https://tahachaibi\.github\.io/QURAN1/[^"#]*"' "$page" \
+                | sed -E 's#https://tahachaibi\.github\.io##'
+            } \
               | sed -E 's/.*="([^"]+)"/\1/' \
               | grep -vE '^(https?:|mailto:|data:|//)' \
               | sort -u \
