@@ -30,12 +30,18 @@ export const CHANNEL_WARNING = 'prayer-warning';
  */
 export const CHANNEL_SILENT = 'prayer-silent';
 /**
- * The most days ahead worth scheduling. Android caps concurrent alarms, so keep
- * it modest.
+ * The most days ahead worth scheduling, today included. Android caps concurrent
+ * alarms, so keep it modest: seven days is seventy notifications at most.
  *
- * This is a ceiling for whoever FETCHES the times, not a licence to invent them:
- * `planNotifications` schedules exactly the days it is handed and no more. The
- * difference is the whole point of this file's rewrite — see `days` below.
+ * This is a ceiling on days somebody actually FETCHED, not a licence to invent
+ * them: `upcomingDays` applies it to the saved days, and `planNotifications`
+ * schedules exactly the days it is handed and no more. The difference is the
+ * whole point of this file's rewrite — see `days` below.
+ *
+ * It is also why there are several days at all. With only today's times saved,
+ * nothing could be scheduled past Isha, so tomorrow's Fajr — the one prayer that
+ * always falls while the phone is asleep — was never scheduled unless somebody
+ * happened to open the app between midnight and dawn.
  */
 export const MAX_DAYS_AHEAD = 7;
 
@@ -81,7 +87,7 @@ export interface ScheduleOptions {
   bells?: PrayerBells;
   /** current time; injected so the scheduler is testable */
   now?: Date;
-  /** the interface language, for the notification titles; English if unset */
+  /** the interface language, for the notification titles and texts; English if unset */
   lang?: 'en' | 'ar';
 }
 
@@ -171,7 +177,11 @@ export function planNotifications(options: ScheduleOptions): PlannedNotification
           at,
           // In Arabic the English name would only repeat the Arabic one.
           title: options.lang === 'ar' ? PRAYER_ARABIC[prayer] : `${PRAYER_ARABIC[prayer]} · ${prayer}`,
-          body: 'حان الآن وقت الصلاة',
+          // The sentence follows the interface like the title does. It used to
+          // be Arabic in both, which left an English reader with a notification
+          // whose only sentence they could not read. The prayer's Arabic NAME
+          // stays in the English title; this is a sentence, not a name.
+          body: options.lang === 'ar' ? 'حان الآن وقت الصلاة' : `It is time for ${prayer} prayer`,
           data: { kind: 'adhan', prayer, at: at.toISOString() },
         });
       }
@@ -200,11 +210,92 @@ export function planNotifications(options: ScheduleOptions): PlannedNotification
 
 
 /**
- * The common case: the times we have, filed under the day they belong to.
+ * One day's times, filed under the day they belong to.
  *
- * Most of the time the app holds exactly one day's times — the ones it fetched
- * today — and this is how you say so honestly. One day in, one day scheduled.
+ * One day in, one day scheduled. The app now saves several days at a time (see
+ * `cachedDays`), but a caller holding just one still says so honestly with this.
  */
 export function singleDay(timings: Record<string, string>, now = new Date()): PrayerDayTimes[] {
   return [{ date: localDayKey(now), timings }];
+}
+
+/**
+ * The parts of the saved prayer-times cache this file reads.
+ *
+ * Structural rather than storage's own PrayerCache type, because what is read
+ * back from storage is whatever an older build wrote, and every field is
+ * checked before it is believed.
+ */
+export interface SavedDays {
+  /** the day `timings` belong to, as YYYY-MM-DD */
+  day?: unknown;
+  timings?: unknown;
+  /** every day fetched, each with its own times; absent in caches older than it */
+  days?: unknown;
+}
+
+/**
+ * Every day a saved cache holds, oldest first, each with its own times.
+ *
+ * A cache written before several days were saved holds exactly one — `day` and
+ * `timings` — and reads as that one day, so an update keeps working offline on
+ * the day it is installed. An entry whose date is not a real YYYY-MM-DD day, or
+ * whose times are not text, is dropped: a day can only be scheduled if its
+ * times are known, never guessed.
+ */
+export function cachedDays(cache: SavedDays | null | undefined): PrayerDayTimes[] {
+  if (cache === null || cache === undefined) return [];
+  const byDate = new Map<string, Record<string, string>>();
+  const add = (date: unknown, timings: unknown) => {
+    if (typeof date !== 'string' || localMidnight(date) === null || byDate.has(date)) return;
+    const clean = textTimings(timings);
+    if (clean !== null) byDate.set(date, clean);
+  };
+  if (Array.isArray(cache.days)) {
+    for (const entry of cache.days as unknown[]) {
+      if (entry === null || typeof entry !== 'object') continue;
+      const { date, timings } = entry as { date?: unknown; timings?: unknown };
+      add(date, timings);
+    }
+  }
+  add(cache.day, cache.timings);
+  return [...byDate.keys()].sort().map((date) => ({ date, timings: byDate.get(date) as Record<string, string> }));
+}
+
+/** The text-valued entries of a timings object, or null when no prayer is among them. */
+function textTimings(value: unknown): Record<string, string> | null {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return null;
+  const out: Record<string, string> = {};
+  for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof raw === 'string') out[key] = raw;
+  }
+  return PRAYERS.some((prayer) => out[prayer] !== undefined) ? out : null;
+}
+
+/**
+ * The days worth scheduling at `now`: today and the days after it, oldest
+ * first, no further out than MAX_DAYS_AHEAD calendar days (today is the first).
+ *
+ * Yesterday is never "upcoming", however recently it was fetched. Its times
+ * have passed, and treating them as today's is the mistake this file was
+ * rewritten to rule out. A day missing from the middle stays missing.
+ */
+export function upcomingDays(
+  days: readonly PrayerDayTimes[],
+  now = new Date(),
+  max = MAX_DAYS_AHEAD,
+): PrayerDayTimes[] {
+  const first = localDayKey(now);
+  // Exclusive bound. Date arithmetic on the local calendar, so a daylight-saving
+  // change inside the window cannot shift it by a day.
+  const end = localDayKey(new Date(now.getFullYear(), now.getMonth(), now.getDate() + max));
+  const seen = new Set<string>();
+  return days
+    .filter((day) => {
+      if (localMidnight(day.date) === null || day.date < first || day.date >= end) return false;
+      if (seen.has(day.date)) return false;
+      seen.add(day.date);
+      return true;
+    })
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 }

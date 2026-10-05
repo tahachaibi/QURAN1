@@ -15,8 +15,9 @@
  * created, and that sound must be a resource inside the APK — a file in the app's
  * private storage is not readable by the system process that plays notification
  * sounds. So a chosen file is the in-app adhan, with the Stop button, and the
- * closed-app notification keeps the default sound. Saying that plainly beats
- * discovering it at Fajr.
+ * closed-app notification keeps the built-in recording. Saying that plainly beats
+ * discovering it at Fajr — which is why the adhan screen says so once a chosen
+ * file is selected.
  */
 import * as DocumentPicker from 'expo-document-picker';
 // The classic path-based API. SDK 54 moved it to /legacy and made the
@@ -67,11 +68,18 @@ export async function pickAdhanFile(t: T = (s, p) => translate('en', s, p)): Pro
   // Keep the extension: Android's media stack sniffs content, but a correct
   // extension is one less thing that can differ between phones.
   const extension = extensionOf(asset.name) ?? extensionOf(asset.uri) ?? 'mp3';
-  const target = `${DIR}adhan-chosen.${extension}`;
+  /**
+   * A file of its own for every recording added.
+   *
+   * There used to be one name for all of them, from when the app kept a single
+   * chosen adhan: a second MP3 overwrote the first, so both rows played the
+   * second, and removing either row deleted the file the other still pointed
+   * at. Removing a row deletes its own file (forgetChosenAdhan), so nothing
+   * accumulates.
+   */
+  const target = `${DIR}adhan-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extension}`;
 
   try {
-    // Replace any previous choice rather than accumulating files.
-    await FileSystem.deleteAsync(target, { idempotent: true });
     await FileSystem.copyAsync({ from: asset.uri, to: target });
     // Size is always reported for an existing file; the option was removed.
     const info = await FileSystem.getInfoAsync(target);

@@ -30,26 +30,57 @@ import * as Notifications from 'expo-notifications';
 import { ADHAN_SOUND, hasAdhanSound } from '../data/adhan';
 import { selectedAdhan, type AdhanEntry } from '../data/adhanLibrary';
 import { playAdhan, stopAdhan } from '../data/adhanPlayer';
-import { adhanKey, dueAdhan, msUntilCheck, timingsAreUsable } from '../data/adhanTimer';
+import { adhanKey, dueAdhan, MAX_SLEEP_MS, msUntilCheck, timingsForToday } from '../data/adhanTimer';
 import {
+  cachedDays,
+  dismissPresentedAdhan,
   installForegroundBehaviour,
   payloadOf,
   requestPermission,
   rescheduleAll,
+  upcomingDays,
+  type PrayerDayTimes,
 } from '../data/notifications';
-import { loadPrayerCache } from '../data/storage';
+import { fetchPrayerTimes } from '../data/prayer';
+import { loadPrayerCache, today } from '../data/storage';
 import { adjustTimings } from '../data/prayerOffsets';
 import { type PrayerName } from '../data/prayerTimes';
 import { useRecitation } from './RecitationProvider';
 import { useTheme } from '../theme/ThemeProvider';
 import { useT } from '../i18n/useT';
 
-/** How late a TAP on the notification may still start the adhan. */
+/**
+ * How late a TAP on the notification may still start the adhan — and how long a
+ * banner that is not sounding anything stays up before taking itself away.
+ */
 const TAP_GRACE_MS = 10 * 60_000;
+
+/**
+ * Why there are no prayer notifications, in words for the user.
+ *
+ * Two different problems with two different ways out, so they say which they
+ * are. They used to be one string, and the tab drew both alike — so the saved
+ * times running out came with an "Open settings" button and a paragraph about
+ * notification permission, sending people to a settings page where nothing was
+ * wrong.
+ */
+export interface ScheduleProblem {
+  /** 'permission': notifications are refused; 'stale': no saved time is still to come */
+  kind: 'permission' | 'stale';
+  text: string;
+}
 
 export interface AdhanContextValue {
   /** the prayer being announced, or null when nothing is being announced */
   prayer: PrayerName | null;
+  /**
+   * True while the adhan is actually playing for `prayer`.
+   *
+   * The banner is also raised for a prayer whose bell is off, while the
+   * microphone is live, and when playback failed — and then there is nothing to
+   * stop, so the banner must not offer to.
+   */
+  sounding: boolean;
   /** silence the adhan and take the banner away */
   dismiss: () => void;
   /**
@@ -65,13 +96,22 @@ export interface AdhanContextValue {
   previewingId: string | null;
   stopPreview: () => void;
   /**
-   * Why there are no prayer notifications, in words for the user, or null when
-   * they are scheduled.
+   * Why there are no prayer notifications, or null when they are scheduled.
    *
    * Scheduling lives here rather than on the prayer tab, so the tab reads the
    * outcome instead of owning it — see the scheduling effect below.
    */
-  scheduleError: string | null;
+  scheduleError: ScheduleProblem | null;
+  /**
+   * Read the saved times again, and with them re-check the notification
+   * permission and rebuild the schedule.
+   *
+   * For the prayer tab to call once it has saved new times. Nothing told this
+   * provider before, so the first times ever fetched, or the new city's after
+   * "Refresh my location", were not scheduled until the app had been to the
+   * background and back — and "Check again" re-checked nothing.
+   */
+  refresh: () => Promise<void>;
 }
 
 const AdhanContext = createContext<AdhanContextValue | null>(null);
@@ -80,17 +120,19 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
   const { prefs } = useTheme();
   const { t, lang } = useT();
   const { session } = useRecitation();
-  const [timings, setTimings] = useState<Record<string, string> | null>(null);
   /**
-   * The calendar day `timings` are FOR, straight from the cache.
+   * Every saved day, each with its own date, already corrected by the user's
+   * offsets; null when nothing has ever been saved.
    *
-   * Not "today". The cache may hold yesterday's answer, and filing yesterday's
-   * times under today is the same mistake the scheduler was just rewritten to
-   * make impossible.
+   * Several days, not one. With only today's times there was nothing to
+   * schedule after Isha, so tomorrow's Fajr was never scheduled, and on a day
+   * the times were not fetched every prayer was filed under yesterday and
+   * dropped as past.
    */
-  const [timingsDay, setTimingsDay] = useState<string | null>(null);
+  const [days, setDays] = useState<PrayerDayTimes[] | null>(null);
   const [prayer, setPrayer] = useState<PrayerName | null>(null);
-  const [scheduleError, setScheduleError] = useState<string | null>(null);
+  const [sounding, setSounding] = useState(false);
+  const [scheduleError, setScheduleError] = useState<ScheduleProblem | null>(null);
   const [previewingId, setPreviewingId] = useState<string | null>(null);
 
   /** The adhan already sounded, so none is sounded twice. */
@@ -102,13 +144,20 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
    */
   const listening = useRef(false);
   listening.current = session.status === 'listening';
+  /** Takes down a banner that is not sounding anything; see `start`. */
+  const quietTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** `sounding`, for that timer to read when it fires rather than when it was set. */
+  const soundingRef = useRef(false);
+  soundingRef.current = sounding;
+  /** A background refresh in flight, so a quick return to the app does not start a second. */
+  const toppingUp = useRef(false);
 
   useEffect(() => {
     installForegroundBehaviour();
   }, []);
 
   /**
-   * Today's times, from the cache the prayer tab writes.
+   * The saved days, from the cache the prayer tab and `topUp` write.
    *
    * The cache holds the API's raw answer, so the user's per-prayer corrections
    * have to be applied HERE too. Miss this and the adhan sounds at the
@@ -117,36 +166,61 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
    */
   const refreshTimings = useCallback(async () => {
     const cache = await loadPrayerCache();
-    if (cache === null) {
-      setTimings(null);
-      setTimingsDay(null);
-      return;
-    }
-    if (!timingsAreUsable(cache.day, new Date())) {
-      setTimings(null);
-      setTimingsDay(null);
-      return;
-    }
-    setTimings(adjustTimings(cache.timings, prefs.prayerOffsets));
-    setTimingsDay(cache.day);
+    setDays(
+      cache === null
+        ? null
+        : cachedDays(cache).map((day) => ({ date: day.date, timings: adjustTimings(day.timings, prefs.prayerOffsets) })),
+    );
   }, [prefs.prayerOffsets]);
-
-  useEffect(() => {
-    void refreshTimings();
-    const sub = AppState.addEventListener('change', (state) => {
-      // Only 'background' means gone (Android reports 'inactive' transiently).
-      if (state === 'active') void refreshTimings();
-    });
-    return () => sub.remove();
-  }, [refreshTimings]);
+  /**
+   * The same, under one identity for the life of the provider. The prayer tab
+   * builds its loader on it, and a loader rebuilt on every minute-correction tap
+   * would fetch the times again on every tap.
+   */
+  const latestRefresh = useRef(refreshTimings);
+  latestRefresh.current = refreshTimings;
+  const refresh = useCallback(() => latestRefresh.current(), []);
 
   /**
-   * The one place playback is started, so the three ways in cannot drift apart.
+   * Keep the saved days topped up, from wherever the app is open.
    *
-   * `describe` asks for the diagnostic line — used by the Hear-it-now test, where
-   * the whole point is to find out what the phone did. A real adhan at a real
-   * prayer time stays quiet about internals unless something went wrong.
+   * The prayer tab used to be the only thing that ever fetched, and the app opens
+   * on the Quran tab — so somebody who recited every day but rarely pressed
+   * Prayer ran out of scheduled days, and kept the old city's times after
+   * travelling. Once a day, quietly: `quiet` never asks for a permission or
+   * shows a dialog. And only once the prayer tab has fetched at least once,
+   * because that first time is where the location and notification questions
+   * are asked, in context, rather than out of nowhere at launch.
    */
+  const topUp = useCallback(async () => {
+    if (toppingUp.current) return;
+    const cache = await loadPrayerCache();
+    if (cache === null || cache.day === today()) return;
+    toppingUp.current = true;
+    try {
+      await fetchPrayerTimes({ quiet: true, t, lang });
+    } catch {
+      // Nothing to say from here: the prayer tab explains problems when it is opened.
+    } finally {
+      toppingUp.current = false;
+    }
+    await refreshTimings();
+  }, [refreshTimings, t, lang]);
+
+  useEffect(() => {
+    void refreshTimings().then(topUp);
+    const sub = AppState.addEventListener('change', (state) => {
+      // Only 'background' means gone (Android reports 'inactive' transiently).
+      if (state === 'active') void refreshTimings().then(topUp);
+    });
+    return () => sub.remove();
+  }, [refreshTimings, topUp]);
+
+  const clearQuietTimer = useCallback(() => {
+    if (quietTimer.current !== null) clearTimeout(quietTimer.current);
+    quietTimer.current = null;
+  }, []);
+
   /**
    * The one place a prayer-time adhan is started, so the ways in cannot drift.
    *
@@ -156,20 +230,46 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
    * found, and fixed in the player. Instrumentation earns its place while
    * something is broken and becomes clutter the moment it is not.
    */
-  const begin = useCallback(
-    (entry?: AdhanEntry) => {
-      void playAdhan(
-        entry ?? selectedAdhan(prefs.addedAdhans, prefs.adhanSelectedId),
-        () => setPrayer(null),
-      );
-    },
-    [prefs.addedAdhans, prefs.adhanSelectedId],
-  );
+  const begin = useCallback(() => {
+    // A prayer-time adhan replaces any preview, so that row stops showing Stop —
+    // and the adhan screen, which stops a preview when it is left, does not
+    // silence the real adhan by mistake.
+    setPreviewingId(null);
+    setSounding(true);
+    void playAdhan(selectedAdhan(prefs.addedAdhans, prefs.adhanSelectedId), () => {
+      setSounding(false);
+      setPrayer(null);
+    }).then((result) => {
+      // Nothing came out: the banner stays as a silent notice, and goes the way
+      // every silent one does.
+      if (!result.ok) setSounding(false);
+    });
+  }, [prefs.addedAdhans, prefs.adhanSelectedId]);
 
   const start = useCallback(
     (which: PrayerName, key: string) => {
       sounded.current = key;
+      /**
+       * Whatever the system is already playing goes first. With the phone locked
+       * the notification sounds its own adhan and the app is never told; unlock
+       * within the grace window and the timer starts the app's adhan too — two at
+       * once, and Stop silenced only one. Before the bell and microphone checks,
+       * because a prayer that must stay quiet must not be left sounding either.
+       */
+      void dismissPresentedAdhan();
       setPrayer(which);
+      setSounding(false);
+      /**
+       * A banner that sounds nothing — bell off, microphone live, playback
+       * failed — used to stay over the header and the back button on every
+       * screen until tapped. It is a notice, so it takes itself away; a playing
+       * adhan clears it when it ends.
+       */
+      clearQuietTimer();
+      quietTimer.current = setTimeout(() => {
+        quietTimer.current = null;
+        setPrayer((current) => (current === which && !soundingRef.current ? null : current));
+      }, TAP_GRACE_MS);
       /**
        * The bell for this prayer decides whether it is HEARD, not whether it is
        * SEEN. A prayer with its bell off still raises the banner — the reciter
@@ -184,21 +284,33 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
       }
       begin();
     },
-    [begin, prefs.addedAdhans, prefs.bells],
+    [begin, clearQuietTimer, prefs.addedAdhans, prefs.bells],
   );
 
   const dismiss = useCallback(() => {
     void stopAdhan();
+    // The system's copy too, or Stop leaves the notification's adhan playing.
+    void dismissPresentedAdhan();
+    clearQuietTimer();
     setPrayer(null);
+    setSounding(false);
     setPreviewingId(null);
-  }, []);
+  }, [clearQuietTimer]);
 
-  const previewEntry = useCallback((entry: AdhanEntry) => {
-    setPreviewingId(entry.id);
-    void playAdhan(entry, () => setPreviewingId(null)).then((result) => {
-      if (!result.ok) setPreviewingId(null);
-    });
-  }, []);
+  const previewEntry = useCallback(
+    (entry: AdhanEntry) => {
+      // Playing anything stops whatever was playing, a prayer's adhan included,
+      // and its banner must not stay behind offering to stop a silence.
+      clearQuietTimer();
+      setPrayer(null);
+      setSounding(false);
+      setPreviewingId(entry.id);
+      void playAdhan(entry, () => setPreviewingId(null)).then((result) => {
+        if (!result.ok) setPreviewingId(null);
+      });
+    },
+    [clearQuietTimer],
+  );
 
   const stopPreview = useCallback(() => {
     setPreviewingId(null);
@@ -216,28 +328,30 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
    * router and already refreshes on every foreground, which is exactly the
    * lifetime a schedule wants.
    *
-   * The times are passed with the day they belong to, so a cache holding
-   * yesterday's answer schedules nothing rather than something an hour wrong —
-   * `planNotifications` drops times that have already passed, which makes a
-   * stale cache self-cancelling.
+   * Every saved day from today on is passed, each with the date it belongs to,
+   * up to MAX_DAYS_AHEAD — so tonight already holds tomorrow's Fajr, and a week
+   * without opening the app still has its adhan. A day is only scheduled if its
+   * own times were fetched: `planNotifications` never copies one day's times
+   * onto another, and drops anything already past.
    */
   useEffect(() => {
-    if (timings === null || timingsDay === null) return;
+    if (days === null) return;
     let cancelled = false;
     void (async () => {
       const granted = await requestPermission();
       if (cancelled) return;
       if (!granted) {
-        setScheduleError(
-          t(
+        setScheduleError({
+          kind: 'permission',
+          text: t(
             'Notifications are turned off for Tasmee Hifz, so there is no call to prayer. Turn them on in Settings > Apps > Tasmee Hifz > Notifications.',
           ),
-        );
+        });
         return;
       }
       const set = await rescheduleAll(
         {
-          days: [{ date: timingsDay, timings }],
+          days: upcomingDays(days),
           warnBefore: prefs.prayerWarning,
           // Always planned; the bells decide which of them make a sound.
           adhan: true,
@@ -246,37 +360,48 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
         },
         hasAdhanSound ? ADHAN_SOUND : null,
       );
-      if (cancelled) return;
+      // null: a newer rebuild replaced this one, and it reports for itself.
+      if (cancelled || set === null) return;
       setScheduleError(
         set === 0
-          ? t(
-              'Today’s prayer times have all passed, or the saved times are out of date. Open the Prayer tab while online to refresh them.',
-            )
+          ? {
+              kind: 'stale',
+              text: t(
+                'The saved prayer times have run out, so no prayer notifications are scheduled. Connect to the internet and refresh them.',
+              ),
+            }
           : null,
       );
     })();
     return () => {
       cancelled = true;
     };
-  }, [timings, timingsDay, prefs.prayerWarning, prefs.bells, lang, t]);
+  }, [days, prefs.prayerWarning, prefs.bells, lang, t]);
 
   /**
    * The timer. Re-armed after every check rather than set once per prayer: a
    * single long timeout is exactly what Android's doze mode does not honour.
+   *
+   * Each check takes the times for the day it is ON, so the timer follows the
+   * calendar across midnight by itself instead of applying yesterday's times to
+   * today until the app next comes to the foreground.
    */
   useEffect(() => {
     // No global on/off any more: a bell per prayer replaced it, and a prayer
     // with its bell off still raises a silent notice, so the timer always runs.
-    if (timings === null) return;
+    if (days === null) return;
     let cancelled = false;
     let handle: ReturnType<typeof setTimeout> | undefined;
 
     const tick = () => {
       if (cancelled) return;
       const now = new Date();
-      const due = dueAdhan(timings, now, sounded.current);
-      if (due !== null) start(due.prayer, due.key);
-      handle = setTimeout(tick, msUntilCheck(timings, now));
+      const timings = timingsForToday(days, now);
+      if (timings !== null) {
+        const due = dueAdhan(timings, now, sounded.current);
+        if (due !== null) start(due.prayer, due.key);
+      }
+      handle = setTimeout(tick, timings === null ? MAX_SLEEP_MS : msUntilCheck(timings, now));
     };
     tick();
 
@@ -284,7 +409,7 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       if (handle !== undefined) clearTimeout(handle);
     };
-  }, [timings, start]);
+  }, [days, start]);
 
   /** A notification arriving, or being tapped, is the other way in. */
   useEffect(() => {
@@ -324,8 +449,14 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
     };
   }, [start]);
 
-  /** Never leave audio running behind a closed app. */
-  useEffect(() => () => void stopAdhan(), []);
+  /** Never leave audio running, or a timer pending, behind a closed app. */
+  useEffect(
+    () => () => {
+      clearQuietTimer();
+      void stopAdhan();
+    },
+    [clearQuietTimer],
+  );
 
   /**
    * Memoised, and it has to be.
@@ -339,8 +470,17 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
    * recitation was simply being paid for twice.
    */
   const value = useMemo<AdhanContextValue>(
-    () => ({ prayer, dismiss, previewEntry, previewingId, stopPreview, scheduleError }),
-    [prayer, dismiss, previewEntry, previewingId, stopPreview, scheduleError],
+    () => ({
+      prayer,
+      sounding,
+      dismiss,
+      previewEntry,
+      previewingId,
+      stopPreview,
+      scheduleError,
+      refresh,
+    }),
+    [prayer, sounding, dismiss, previewEntry, previewingId, stopPreview, scheduleError, refresh],
   );
 
   return (

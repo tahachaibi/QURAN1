@@ -13,7 +13,7 @@
  * is true when the phone is in the user's hand at the moment of the adhan, and
  * false when the app is opened long afterwards.
  */
-import { PRAYERS, nextPrayer, parseTime, type PrayerName } from './prayerTimes';
+import { PRAYERS, localDayKey, nextPrayer, parseTime, type PrayerName } from './prayerTimes';
 
 /**
  * How late the adhan may still be sounded. Long enough to survive a slow wake-up
@@ -91,12 +91,55 @@ export function msUntilCheck(timings: Record<string, string>, now: Date): number
  */
 export const MAX_CACHE_AGE_DAYS = 2;
 
-/** `day` is a YYYY-MM-DD string, as written by storage.today(). */
+/**
+ * Whether times saved for `day` may stand in for today's.
+ *
+ * Close enough in date is not enough on its own. The times are wall-clock
+ * strings ("13:31 (+01)", and the suffix is not read), so they only carry over
+ * while the clock does. Morocco moves from UTC+1 to UTC+0 for Ramadan and back
+ * afterwards — and Europe and America change for daylight saving — and across
+ * that night yesterday's 13:31 is today's 12:31: the adhan would sound an hour
+ * late, or worse, an hour early. So a day on a different UTC offset from today
+ * is refused, and the app stays silent rather than wrong.
+ *
+ * The offset is compared at noon on each day: no clock changes at noon, and
+ * every prayer but Isha lies within a few hours of it.
+ *
+ * `day` is a YYYY-MM-DD string, as written by storage.today().
+ */
 export function timingsAreUsable(day: string, now: Date): boolean {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
   if (match === null) return false;
   const cached = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
   const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const ageDays = Math.round((midnight.getTime() - cached.getTime()) / 86_400_000);
-  return ageDays >= 0 && ageDays <= MAX_CACHE_AGE_DAYS;
+  if (ageDays < 0 || ageDays > MAX_CACHE_AGE_DAYS) return false;
+  return noonOffset(cached) === noonOffset(midnight);
+}
+
+const noonOffset = (date: Date): number =>
+  new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12).getTimezoneOffset();
+
+/**
+ * The times the in-app adhan follows right now.
+ *
+ * Today's own entry whenever the saved days include it — and with a week of
+ * days saved they nearly always do. Each of those was calculated by the API for
+ * its own date, clock changes included, so nothing about it is borrowed.
+ *
+ * Only when today is missing does an earlier day stand in, the most recent one,
+ * and only if `timingsAreUsable` accepts it.
+ */
+export function timingsForToday(
+  days: readonly { date: string; timings: Record<string, string> }[],
+  now: Date,
+): Record<string, string> | null {
+  const today = localDayKey(now);
+  const own = days.find((day) => day.date === today);
+  if (own !== undefined) return own.timings;
+  let standIn: { date: string; timings: Record<string, string> } | null = null;
+  for (const day of days) {
+    if (day.date < today && (standIn === null || day.date > standIn.date)) standIn = day;
+  }
+  return standIn !== null && timingsAreUsable(standIn.date, now) ? standIn.timings : null;
 }

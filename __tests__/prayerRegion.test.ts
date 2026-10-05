@@ -111,6 +111,29 @@ describe('describeRegion', () => {
     expect(describeRegion('Beni Mellal', null)).toBe('Beni Mellal');
     expect(describeRegion(null, null)).toBe('');
   });
+
+  /**
+   * In Arabic the line read "بني ملال, Morocco · وزارة الأوقاف…": one English
+   * word and a Latin comma in an otherwise Arabic line.
+   */
+  it('names the country in Arabic, with the Arabic comma, in the Arabic interface', () => {
+    expect(describeRegion('بني ملال', pickMethod('MA', METHODS), 'ar')).toBe(
+      'بني ملال، المغرب · وزارة الأوقاف والشؤون الإسلامية',
+    );
+    expect(describeRegion(null, pickMethod('MA', METHODS), 'ar')).toBe('المغرب · وزارة الأوقاف والشؤون الإسلامية');
+    expect(describeRegion('وهران', pickMethod('DZ', METHODS), 'ar')).toBe('وهران، الجزائر · Algeria');
+  });
+
+  it('leaves a country the table does not know as the phone named it', () => {
+    const named = pickMethod(null, [{ id: 23, name: 'Jordan' }], 'Jordan');
+    expect(describeRegion('Amman', named, 'ar')).toBe('Amman، الأردن · Jordan');
+    const unknown = pickMethod(null, [{ id: 30, name: 'Kingdom of Ruritania' }], 'Ruritania');
+    expect(describeRegion(null, unknown, 'ar')).toBe('Ruritania · Kingdom of Ruritania');
+  });
+
+  it('has an Arabic name for every country in the table', () => {
+    for (const rule of REGION_RULES) expect(rule.countryAr).toMatch(/^[؀-ۿ ]+$/);
+  });
 });
 
 /**

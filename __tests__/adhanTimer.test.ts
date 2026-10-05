@@ -14,6 +14,7 @@ import {
   MAX_SLEEP_MS,
   msUntilCheck,
   timingsAreUsable,
+  timingsForToday,
 } from '../src/data/adhanTimer';
 import { CHANNEL_ADHAN, CHANNEL_WARNING, soundFor } from '../src/data/prayerSchedule';
 
@@ -111,6 +112,88 @@ describe('timingsAreUsable', () => {
     expect(timingsAreUsable('2026-04-21', at(12, 0))).toBe(false);
     expect(timingsAreUsable('', at(12, 0))).toBe(false);
     expect(timingsAreUsable('20-04-2026', at(12, 0))).toBe(false);
+  });
+});
+
+/**
+ * Saved times are wall-clock strings, so they only carry over while the clock
+ * does. Morocco moves from UTC+1 to UTC+0 for Ramadan (7 February 2027) and back
+ * afterwards (14 March 2027): across that night, yesterday's "13:31" is an hour
+ * away from today's Dhuhr.
+ */
+describe('across a clock change', () => {
+  /**
+   * Jest hands each test file its own copy of process.env, so TZ cannot be
+   * switched from in here. Africa/Casablanca's rule is played instead, by local
+   * calendar day — UTC+1, except UTC+0 from 7 February to 13 March 2027 — which
+   * is all the code under test asks of the clock: the offset at noon on a day.
+   * Node's own tz data agrees, run with TZ=Africa/Casablanca: the offset at noon
+   * is -60 on 6 February, 0 on 7 February and on 13 March, and -60 again on
+   * 14 March 2027.
+   */
+  let offset: jest.SpyInstance;
+  beforeAll(() => {
+    offset = jest.spyOn(Date.prototype, 'getTimezoneOffset').mockImplementation(function (this: Date) {
+      const day = this.getFullYear() * 10_000 + (this.getMonth() + 1) * 100 + this.getDate();
+      return day >= 2027_02_07 && day < 2027_03_14 ? 0 : -60;
+    });
+  });
+  afterAll(() => offset.mockRestore());
+
+  const feb = (d: number, h: number, m = 0) => new Date(2027, 1, d, h, m);
+  const BEFORE = { ...TIMINGS, Dhuhr: '13:31 (+01)' };
+  const AFTER = { ...TIMINGS, Dhuhr: '12:31 (+00)' };
+
+  it('is playing a clock change', () => {
+    expect(feb(6, 12).getTimezoneOffset()).toBe(-60);
+    expect(feb(7, 12).getTimezoneOffset()).toBe(0);
+  });
+
+  it('will not let the day before the change stand in for the day after', () => {
+    expect(timingsAreUsable('2027-02-06', feb(7, 10))).toBe(false);
+    expect(timingsAreUsable('2027-02-05', feb(8, 10))).toBe(false);
+    expect(timingsForToday([{ date: '2027-02-06', timings: BEFORE }], feb(7, 10))).toBeNull();
+    // the night of the change itself, before the clocks move: today is already the new day
+    expect(timingsForToday([{ date: '2027-02-06', timings: BEFORE }], feb(7, 1))).toBeNull();
+    // and back again at the end of Ramadan
+    expect(timingsAreUsable('2027-03-13', new Date(2027, 2, 14, 10))).toBe(false);
+  });
+
+  it('still lets a recent day stand in when the clock has not changed', () => {
+    expect(timingsAreUsable('2027-02-07', feb(9, 10))).toBe(true);
+    expect(timingsForToday([{ date: '2027-02-07', timings: AFTER }], feb(9, 10))).toBe(AFTER);
+  });
+
+  it('uses the day’s own saved times across the change, which were calculated for it', () => {
+    const days = [
+      { date: '2027-02-06', timings: BEFORE },
+      { date: '2027-02-07', timings: AFTER },
+    ];
+    const timings = timingsForToday(days, feb(7, 12, 31));
+    expect(timings).toBe(AFTER);
+    expect(dueAdhan(timings as Record<string, string>, feb(7, 12, 31), null)?.prayer).toBe('Dhuhr');
+  });
+});
+
+describe('timingsForToday', () => {
+  const yesterday = { date: '2026-04-19', timings: { ...TIMINGS, Maghrib: '18:19' } };
+  const today = { date: '2026-04-20', timings: TIMINGS };
+  const tomorrow = { date: '2026-04-21', timings: { ...TIMINGS, Maghrib: '18:21' } };
+
+  it("picks today's own entry out of several days", () => {
+    expect(timingsForToday([yesterday, today, tomorrow], at(12, 0))).toBe(TIMINGS);
+  });
+
+  it('moves on to the next day at midnight, with no new fetch', () => {
+    expect(timingsForToday([today, tomorrow], new Date(2026, 3, 21, 0, 0, 1))).toBe(tomorrow.timings);
+  });
+
+  it('lets the most recent earlier day stand in only while it is recent', () => {
+    expect(timingsForToday([yesterday], at(12, 0))).toBe(yesterday.timings);
+    expect(timingsForToday([yesterday], new Date(2026, 3, 23, 12, 0))).toBeNull();
+    // a day still to come is never borrowed for today
+    expect(timingsForToday([tomorrow], at(12, 0))).toBeNull();
+    expect(timingsForToday([], at(12, 0))).toBeNull();
   });
 });
 

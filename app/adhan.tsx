@@ -6,7 +6,7 @@
  * an expander and pushed the prayer times off the screen the moment it opened,
  * which is the wrong trade: the times are what that tab is for.
  */
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -30,6 +30,25 @@ export default function AdhanScreen() {
   const { previewEntry, previewingId, stopPreview } = useAdhan();
   const [picking, setPicking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  /**
+   * A preview stops when the screen is left.
+   *
+   * The player lives above the router, and a preview raises no banner, so a
+   * recording started here and abandoned with Back played on through the rest
+   * of the app — three and a half minutes of it — with its only Stop button on
+   * the screen just left. Read through a ref so leaving checks what is playing
+   * then: a prayer-time adhan that took over meanwhile clears `previewingId`,
+   * and is not this screen's to stop.
+   */
+  const previewing = useRef(previewingId);
+  previewing.current = previewingId;
+  useEffect(
+    () => () => {
+      if (previewing.current !== null) stopPreview();
+    },
+    [stopPreview],
+  );
 
   const entries = library(prefs.addedAdhans);
   const selected = selectedAdhan(prefs.addedAdhans, prefs.adhanSelectedId);
@@ -150,6 +169,16 @@ export default function AdhanScreen() {
 
             {error !== null ? (
               <Text style={[styles.meta, { color: palette.error }]}>{error}</Text>
+            ) : null}
+
+            {/* Only when it matters: a recording the reader added plays inside
+                the app, but a notification's sound has to be built into the app,
+                so with the app closed the built-in adhan sounds instead. Said
+                here, once chosen, rather than discovered at Fajr. */}
+            {selected !== null && !selected.builtIn ? (
+              <Text style={[styles.meta, { color: palette.textMuted }]}>
+                {t('Plays when Tasmee Hifz is open. With the app closed, the notification uses the built-in adhan.')}
+              </Text>
             ) : null}
           </View>
         }

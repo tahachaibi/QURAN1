@@ -8,10 +8,13 @@
  * dropped, and both look like a bug.
  */
 import {
+  cachedDays,
   CHANNEL_ADHAN,
   CHANNEL_WARNING,
+  MAX_DAYS_AHEAD,
   planNotifications,
   singleDay,
+  upcomingDays,
   WARNING_MINUTES,
 } from '../src/data/prayerSchedule';
 
@@ -152,5 +155,114 @@ describe('planNotifications', () => {
     const fajr = plan.find((p) => p.channel === CHANNEL_ADHAN && p.prayer === 'Fajr');
     expect(fajr?.title).toContain('الفجر');
     expect(fajr?.title).toContain('Fajr');
+  });
+
+  /**
+   * The sentence under the title was Arabic in both languages, so an English
+   * reader got a prayer-time notification whose only sentence they could not
+   * read. It follows the interface now, as the title already did.
+   */
+  it('writes the adhan sentence in the interface language', () => {
+    const adhanIn = (lang: 'en' | 'ar') =>
+      planNotifications({ days: oneDay, warnBefore: false, adhan: true, now: at(4, 0), lang }).find(
+        (p) => p.prayer === 'Maghrib',
+      );
+    expect(adhanIn('en')?.body).toBe('It is time for Maghrib prayer');
+    expect(adhanIn('en')?.body).not.toMatch(/[؀-ۿ]/);
+    expect(adhanIn('ar')?.body).toBe('حان الآن وقت الصلاة');
+  });
+});
+
+/**
+ * Several days, each with its own times.
+ *
+ * The bug these pin: only today's times were ever saved, so after Isha there
+ * was nothing left to schedule, and tomorrow's Fajr — always asleep-time — was
+ * only ever scheduled if somebody opened the app between midnight and dawn.
+ */
+describe('the days the app schedules from', () => {
+  const TOMORROW = { ...TIMINGS, Fajr: '05:15 (+01)' };
+
+  it('after Isha, still schedules tomorrow’s Fajr, at tomorrow’s own time', () => {
+    const saved = {
+      day: DAY,
+      timings: TIMINGS,
+      days: [
+        { date: DAY, timings: TIMINGS },
+        { date: '2026-04-21', timings: TOMORROW },
+      ],
+    };
+    const now = at(21, 30);
+    const plan = planNotifications({
+      days: upcomingDays(cachedDays(saved), now),
+      warnBefore: true,
+      adhan: true,
+      now,
+    });
+    const fajr = plan.find((p) => p.channel === CHANNEL_ADHAN && p.prayer === 'Fajr');
+    expect(fajr?.at).toEqual(new Date(2026, 3, 21, 5, 15));
+    expect(plan.find((p) => p.channel === CHANNEL_WARNING && p.prayer === 'Fajr')?.at).toEqual(
+      new Date(2026, 3, 21, 5, 10),
+    );
+    expect(plan.filter((p) => p.channel === CHANNEL_ADHAN)).toHaveLength(5);
+  });
+
+  it('reads a cache written before several days were saved as its one day', () => {
+    const older = { day: DAY, latitude: 32.3, longitude: -6.4, timings: TIMINGS, fetchedAt: 1 };
+    expect(cachedDays(older)).toEqual([{ date: DAY, timings: TIMINGS }]);
+    expect(cachedDays(null)).toEqual([]);
+  });
+
+  it('drops what it cannot read rather than guessing, and sorts what it can', () => {
+    const days = cachedDays({
+      days: [
+        { date: '2026-04-22', timings: TIMINGS },
+        { date: '2026-02-31', timings: TIMINGS },
+        { date: 'tomorrow', timings: TIMINGS },
+        { date: '2026-04-21', timings: { Sunrise: '06:39' } },
+        { date: '2026-04-23', timings: 'not an object' },
+        null,
+        { date: DAY, timings: { ...TIMINGS, Fajr: 514 } },
+      ],
+    });
+    expect(days.map((d) => d.date)).toEqual([DAY, '2026-04-22']);
+    // a field that is not text is left out, the rest of the day is kept
+    expect(days[0].timings.Fajr).toBeUndefined();
+    expect(days[0].timings.Dhuhr).toBe(TIMINGS.Dhuhr);
+  });
+
+  it('keeps each date once, preferring the multi-day list', () => {
+    const days = cachedDays({
+      day: DAY,
+      timings: { ...TIMINGS, Fajr: '04:00' },
+      days: [{ date: DAY, timings: TIMINGS }],
+    });
+    expect(days).toEqual([{ date: DAY, timings: TIMINGS }]);
+  });
+
+  it('schedules today onwards, never yesterday, at most MAX_DAYS_AHEAD days out', () => {
+    const month = Array.from({ length: 20 }, (_, i) => ({
+      date: `2026-04-${String(10 + i).padStart(2, '0')}`,
+      timings: TIMINGS,
+    }));
+    const upcoming = upcomingDays(month, at(12, 0));
+    expect(upcoming[0].date).toBe(DAY);
+    expect(upcoming).toHaveLength(MAX_DAYS_AHEAD);
+    expect(upcoming[upcoming.length - 1].date).toBe('2026-04-26');
+    // nothing at all when every saved day has gone
+    expect(upcomingDays(month, new Date(2026, 4, 1, 12, 0))).toEqual([]);
+  });
+
+  it('crosses a month end on the calendar, not by adding hours', () => {
+    const days = ['2026-10-30', '2026-10-31', '2026-11-01', '2026-11-05', '2026-11-06'].map((date) => ({
+      date,
+      timings: TIMINGS,
+    }));
+    expect(upcomingDays(days, new Date(2026, 9, 30, 23, 0)).map((d) => d.date)).toEqual([
+      '2026-10-30',
+      '2026-10-31',
+      '2026-11-01',
+      '2026-11-05',
+    ]);
   });
 });
