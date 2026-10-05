@@ -10,7 +10,7 @@
  * surplus" to pile up.
  */
 import { align, DEFAULT_BACKTRACK, LOOK_AHEAD_SEEKING } from './align';
-import { stripLeadingBasmala } from './normalize';
+import { stripLeadingBasmala, stripLeadingIstiadha } from './normalize';
 import { candidateStarts, fullVoteCount } from './searchIndex';
 
 export interface LocalizeInput {
@@ -29,6 +29,15 @@ export interface LocalizeInput {
   tailSize?: number;
   /** map from word index to surah, for the view tie-break */
   surahOf?: (index: number) => number;
+  /**
+   * Inclusive lower and exclusive upper bound on where a jump may land, the
+   * session's practice range. Without them a slip into a similar passage
+   * relocated the cursor OUT of the range being practised, where align() is
+   * clamped to the range and matches nothing, so the session stopped
+   * following until the user tapped a word.
+   */
+  floor?: number;
+  limit?: number;
 }
 
 export interface LocalizeResult {
@@ -73,11 +82,14 @@ const NO_RESULT = (localScore: number, reason: string): LocalizeResult => ({
 export function localize(input: LocalizeInput): LocalizeResult {
   const { words, cursor, livePos, localScore } = input;
   const tailSize = input.tailSize ?? DEFAULT_TAIL;
+  const floor = Math.max(0, input.floor ?? 0);
+  const limit = Math.min(words.length, input.limit ?? words.length);
 
   // Nearly every surah opens with the basmala, so it identifies nothing and
   // must never anchor a jump — nor may the current surah's own basmala
-  // suppress one.
-  const stripped = stripLeadingBasmala(input.heard);
+  // suppress one. The isti'adha before it identifies even less: its words are
+  // Quran in exactly one place, 2:67, and that is where it used to jump to.
+  const stripped = stripLeadingBasmala(stripLeadingIstiadha(input.heard));
   const tail = stripped.slice(Math.max(0, stripped.length - tailSize));
 
   if (tail.length < MIN_JUMP_WORDS) return NO_RESULT(localScore, 'too few words to localize');
@@ -102,6 +114,8 @@ export function localize(input: LocalizeInput): LocalizeResult {
     heard: tail,
     lookAhead: LOOK_AHEAD_SEEKING,
     backtrack: DEFAULT_BACKTRACK,
+    floor,
+    limit,
   });
   const localBar = Math.max(localScore, generous.score);
 
@@ -114,7 +128,7 @@ export function localize(input: LocalizeInput): LocalizeResult {
   let bestRank = -Infinity;
 
   for (const c of candidates) {
-    if (c.start < 0 || c.start >= words.length) continue;
+    if (c.start < floor || c.start >= limit) continue;
     // ignore candidate jumps of <= 6 words: that is just normal progress
     if (Math.abs(c.start - livePos) <= MIN_JUMP_DISTANCE) continue;
 
@@ -127,6 +141,8 @@ export function localize(input: LocalizeInput): LocalizeResult {
       heard: tail,
       lookAhead: LOOK_AHEAD_SEEKING,
       backtrack: 0,
+      floor,
+      limit,
     });
     if (a.empty) continue;
 

@@ -13,7 +13,9 @@
  *                    index. Never merges the definite article.
  *   normalizeHeard() recognizer output. Merges the detached definite article
  *                    and single-letter proclitics that Android's recognizer
- *                    emits as separate tokens.
+ *                    emits as separate tokens. normalizeHeardSpans() does the
+ *                    same and also keeps each token's original spelling, which
+ *                    is what the screen shows.
  *
  * Merging in the canonical path was a real bug: `ءَالِ` ("family of")
  * normalizes to `ال`, and collapsing it swallowed the following word in 23
@@ -171,12 +173,81 @@ const ARTICLE = 'ال'; // ال
  * `ال فرعون`) from being mangled into `الفرعون`.
  */
 export function normalizeHeard(raw: string, vocab?: ReadonlySet<string>): string[] {
-  if (!raw) return [];
-  const parts = raw
-    .split(/\s+/)
-    .map(normalizeWord)
-    .filter((w) => w.length > 0);
-  const out: string[] = [];
+  return normalizeHeardSpans(raw, vocab).tokens;
+}
+
+/** Everything that is not an Arabic letter: harakat, tatweel, digits, Latin, punctuation. */
+const NOT_A_LETTER = /[^ء-غف-يٱ-ە]/g;
+
+/**
+ * A recognizer token as a person should READ it: the letters it was written
+ * with, hamza seats, ة and ى included, minus anything that is not a letter.
+ *
+ * normalizeWord() folds أ/ؤ/ئ/ة/ى away because the matcher must not care how
+ * the recognizer spelled a hamza. A reader does care. Shown "فيران" for what the
+ * phone wrote as "فئران", or "علي" for "على", an Arabic reader sees an app that
+ * cannot spell — the folded form is for comparing, never for showing.
+ */
+export function readableSpelling(raw: string): string {
+  return raw.replace(NOT_A_LETTER, '');
+}
+
+export interface HeardSpans {
+  /** normalized tokens, exactly what normalizeHeard() returns */
+  tokens: string[];
+  /** raw[i] is how the recognizer spelled tokens[i], for display only */
+  raw: string[];
+}
+
+/**
+ * The detached comparative ما (spec §5.1). The mushaf writes بَعۡدَ مَا and
+ * مِثۡلَ مَا as two words, 44 times; a recognizer writes the modern بعدما, which
+ * is not a Quran word, so it matched neither half and both were flagged wrong.
+ *
+ * Only split when the joined form is NOT in the vocabulary (كلما and انما are,
+ * and stay whole) and the stem IS. A stem ending in ه or ك is a pronoun (ربهما,
+ * عليكما): those are one word whatever the vocabulary says.
+ */
+function splitDetachedMa(token: string, vocab: ReadonlySet<string> | undefined): [string, string] | null {
+  if (vocab === undefined || token.length < 4 || !token.endsWith('ما') || vocab.has(token)) return null;
+  const stem = token.slice(0, -2);
+  if (stem.endsWith('ه') || stem.endsWith('ك') || !vocab.has(stem)) return null;
+  return [stem, 'ما'];
+}
+
+/**
+ * normalizeHeard(), keeping track of how each normalized token was SPELLED.
+ *
+ * The mapping is many-to-one but monotone: a raw token that normalizes to
+ * nothing (digits, Latin, a lone ء) is dropped, and a fused proclitic or
+ * article is the two raw tokens written together, which is how Arabic writes
+ * them anyway.
+ */
+export function normalizeHeardSpans(raw: string, vocab?: ReadonlySet<string>): HeardSpans {
+  if (!raw) return { tokens: [], raw: [] };
+  const parts: string[] = [];
+  const src: string[] = [];
+  for (const piece of raw.split(/\s+/)) {
+    const n = normalizeWord(piece);
+    if (n.length === 0) continue;
+    parts.push(n);
+    src.push(readableSpelling(piece) || n);
+  }
+  const tokens: string[] = [];
+  const spelled: string[] = [];
+  const push = (token: string, spelling: string): void => {
+    const split = splitDetachedMa(token, vocab);
+    if (split === null) {
+      tokens.push(token);
+      spelled.push(spelling);
+      return;
+    }
+    // The spelling splits the same way when it ends in the same two letters,
+    // which it does unless the recognizer wrote something exotic.
+    const rawSplit = spelling.endsWith('ما') ? [spelling.slice(0, -2), 'ما'] : split;
+    tokens.push(split[0], split[1]);
+    spelled.push(rawSplit[0], rawSplit[1]);
+  };
   for (let i = 0; i < parts.length; i++) {
     const p = parts[i];
     const next = parts[i + 1];
@@ -186,14 +257,86 @@ export function normalizeHeard(raw: string, vocab?: ReadonlySet<string>): string
       const fusedIsWord = vocab === undefined || vocab.has(fused);
       const splitIsWord = vocab !== undefined && vocab.has(p) && vocab.has(next);
       if (fusedIsWord || !splitIsWord) {
-        out.push(fused);
+        push(fused, src[i] + src[i + 1]);
         i++;
         continue;
       }
     }
-    out.push(p);
+    push(p, src[i]);
   }
-  return out;
+  return { tokens, raw: spelled };
+}
+
+/**
+ * The isti'adha, normalized, in its two common forms: أعوذ بالله من الشيطان
+ * الرجيم, and أعوذ بالله السميع العليم من الشيطان الرجيم. Both spellings of
+ * الشيطان are listed — the mushaf's الشيطن and the recognizer's الشيطان.
+ */
+const ISTIADHA: readonly (readonly string[])[] = [
+  ['اعوذ'],
+  ['بالله'],
+  ['السميع'],
+  ['العليم'],
+  ['من'],
+  ['الشيطان', 'الشيطن'],
+  ['الرجيم'],
+];
+
+/**
+ * How many leading heard tokens are the isti'adha (spec §5.5), 0 when it is not
+ * there.
+ *
+ * Almost every reciter opens with it, and it is not part of the surah. Left in,
+ * "أعوذ بالله" localized to 2:67 (قال أعوذ بالله أن أكون), the one ayah where
+ * those words are Quran, and the page flipped to Al-Baqarah from wherever the
+ * reciter was. Three in-order words, starting with أعوذ AT THE FIRST TOKEN, are
+ * required: an utterance that resumes mid-2:67 ("أعوذ بالله أن أكون") stops at
+ * two, and 113:1 ("أعوذ برب الفلق") at one, so the Quran's own أعوذ is never
+ * taken for the formula.
+ */
+export function leadingIstiadhaLength(heard: readonly string[]): number {
+  if (heard[0] !== 'اعوذ') return 0;
+  let i = 0;
+  let last = -1;
+  while (i < heard.length) {
+    const at = ISTIADHA.findIndex((forms) => forms.includes(heard[i]));
+    if (at === -1 || at <= last) break;
+    last = at;
+    i++;
+  }
+  return i >= 3 ? i : 0;
+}
+
+export function stripLeadingIstiadha(heard: readonly string[]): string[] {
+  return heard.slice(leadingIstiadhaLength(heard));
+}
+
+/** صدق الله العظيم, said by many reciters when they finish. Not Quran text. */
+const CLOSING: readonly string[] = ['صدق', 'الله', 'العظيم'];
+
+/**
+ * How many trailing heard tokens are the closing صدق الله العظيم.
+ *
+ * On a FINAL only the whole formula is stripped: "صدق الله" IS Quran (3:95, with
+ * a pause mark right after it), and a reciter stopping there must be credited.
+ * On a PARTIAL the formula's opening is stripped too, because partials paint
+ * words and painted words never un-paint: "صدق الله" heard after 67:1 used to
+ * walk three words into 67:2. Withholding them from a partial costs nothing —
+ * if they were Quran, the next partial or the final has them.
+ */
+export function trailingClosingLength(heard: readonly string[], partial: boolean): number {
+  for (let n = CLOSING.length; n >= (partial ? 1 : CLOSING.length); n--) {
+    if (heard.length < n) continue;
+    let ok = true;
+    for (let k = 0; k < n; k++) {
+      if (heard[heard.length - n + k] !== CLOSING[k]) {
+        ok = false;
+        break;
+      }
+    }
+    if (ok) return n;
+  }
+  return 0;
 }
 
 /** The four normalized words of the basmala, as they appear in 1:1. */

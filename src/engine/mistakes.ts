@@ -16,15 +16,27 @@ export interface PendingSkip {
   ofAlternatives: number;
   /** cursor when the skip was observed, for the "moved 3 words past" gate */
   observedAtCursor: number;
-  /** best guess at what the reciter said instead, for the review sheet */
+  /** best guess at what the reciter said instead, normalized */
   heardInstead: string;
+  /** the same word as the recognizer spelled it (see Mistake.heardRaw) */
+  heardRaw?: string;
 }
 
 export interface Mistake {
   /** index into the global word array — the stable identity of this mistake */
   word: number;
-  /** what the recognizer heard in its place, '' when it heard nothing */
+  /**
+   * what the recognizer heard in its place, '' when it heard nothing.
+   * NORMALIZED (فيران, not فئران): the letter hints and the confusion log
+   * compare it with the normalized expected word, so it must stay folded.
+   */
   heardInstead: string;
+  /**
+   * The same word as the recognizer SPELLED it, hamza, ة and ى intact: what
+   * "You said" shows. Optional because mistakes saved before it existed have
+   * none; show heardInstead then.
+   */
+  heardRaw?: string;
   /** when it was confirmed, ms epoch, for stable ordering */
   at: number;
 }
@@ -53,6 +65,11 @@ export interface PromotionContext {
   /** words the user permanently dismissed with "I said it right" (§5.6) */
   dismissed: ReadonlySet<number>;
   now: number;
+  /**
+   * Gate 3's threshold, MIN_WORDS_PAST unless the reciter can go no further:
+   * at the end of a practice range, or at stop, 0.
+   */
+  minWordsPast?: number;
 }
 
 /**
@@ -107,7 +124,7 @@ export function promotePending(
       continue;
     }
     // Gate 3: has the reciter actually moved past it yet?
-    if (ctx.cursor - p.word - 1 < MIN_WORDS_PAST) {
+    if (ctx.cursor - p.word - 1 < (ctx.minWordsPast ?? MIN_WORDS_PAST)) {
       stillPending.push(p);
       continue;
     }
@@ -116,11 +133,59 @@ export function promotePending(
       discarded.push(p.word);
       continue;
     }
-    promoted.push({ word: p.word, heardInstead: p.heardInstead, at: ctx.now });
+    promoted.push(
+      p.heardRaw === undefined
+        ? { word: p.word, heardInstead: p.heardInstead, at: ctx.now }
+        : { word: p.word, heardInstead: p.heardInstead, heardRaw: p.heardRaw, at: ctx.now },
+    );
   }
 
   promoted.sort((a, b) => a.word - b.word);
   return { pending: stillPending, promoted, discarded };
+}
+
+/** Person prefixes of a verb: يعملون / تعملون / نعمل / اعمل. */
+const PERSON_PREFIX = 'يتنا';
+/** Proclitics a person prefix can sit behind: وتعملون, فيعملون. */
+const PREFIX_CARRIERS = 'وف';
+
+/**
+ * Is `heard` the classic hifz slip on `expected`, rather than the recognizer
+ * mishearing it? The matcher accepts one consonant substitution in a short
+ * word, which is right for most of them and wrong for exactly the slips a
+ * memoriser makes most: the person of a verb (يعملون for تعملون) and the
+ * pronoun (عليهم for عليكم, لهم for لكم). Those were painted green.
+ *
+ * Deliberately narrow, because a false "Wrong word" is worse than a missed
+ * one. All of these must hold:
+ *  - the two differ in exactly ONE letter, and not two letters the phone
+ *    confuses with each other (same phonetic class);
+ *  - what was heard is itself a word of the Quran: a slip from memory produces
+ *    a real word, a recognizer garbling one usually does not;
+ *  - the letter is a person prefix (ي ت ن ا) at the start, or behind و/ف,
+ *    in a word of four letters or more; or it is ه/ك in the trailing pronoun
+ *    (ه ك هم كم هن كن هما كما), in a word of three letters or more.
+ */
+export function isHifzSlip(expected: string, heard: string, vocab: ReadonlySet<string>): boolean {
+  if (heard === expected || heard.length !== expected.length || !vocab.has(heard)) return false;
+  let at = -1;
+  for (let i = 0; i < expected.length; i++) {
+    if (expected[i] === heard[i]) continue;
+    if (at !== -1) return false;
+    at = i;
+  }
+  if (at === -1) return false;
+  const a = expected[at];
+  const b = heard[at];
+  if (compareWords(a + 'ثث', b + 'ثث').distance < 1) return false; // same class
+  const len = expected.length;
+  const prefixAt = at === 0 || (at === 1 && PREFIX_CARRIERS.includes(expected[0]));
+  if (len >= 4 && prefixAt && PERSON_PREFIX.includes(a) && PERSON_PREFIX.includes(b)) return true;
+  if (len >= 3 && 'هك'.includes(a) && 'هك'.includes(b)) {
+    const rest = expected.slice(at + 1);
+    return rest === '' || rest === 'م' || rest === 'ن' || rest === 'ما';
+  }
+  return false;
 }
 
 /**

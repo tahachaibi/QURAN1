@@ -23,7 +23,16 @@ export interface ExportResult {
   events: number;
 }
 
-export async function exportFixture(fixture: ReplayFixture): Promise<ExportResult> {
+/**
+ * `dialogTitle` is the share chooser's title, which Android 8 and 9 (and some
+ * vendor share sheets) still show. The summary card's button is translated, so
+ * its caller passes t('Save recitation log'); the English default is for the
+ * developer overlay.
+ */
+export async function exportFixture(
+  fixture: ReplayFixture,
+  dialogTitle = 'Send the recitation log',
+): Promise<ExportResult> {
   const events = fixture.events.length;
   try {
     const json = JSON.stringify(fixture, null, 1);
@@ -36,7 +45,7 @@ export async function exportFixture(fixture: ReplayFixture): Promise<ExportResul
     if (await Sharing.isAvailableAsync()) {
       await Sharing.shareAsync(uri, {
         mimeType: 'application/json',
-        dialogTitle: 'Send the recitation log',
+        dialogTitle,
         UTI: 'public.json',
       });
       return { ok: true, detail: `${name} · ${(json.length / 1024).toFixed(0)} KB`, events };
