@@ -96,6 +96,27 @@ describe('the page is not covered by anything that stays on screen', () => {
   });
 
   it('lifts the transient overlay clear of the strip rather than onto it', () => {
-    expect(source).toMatch(/styles\.floating, \{ bottom: bottomPad \+ 96 \+ \(tab === 'read' \? STATUS_STRIP_HEIGHT : 0\) \}/);
+    // On the strip, by the bottom bar's MEASURED height. The guessed
+    // `bottomPad + 96` was 12 px more than the bar, which put the first chip
+    // inside the page.
+    expect(source).toMatch(/styles\.floating, \{ bottom: floatingBottom \}/);
+    expect(source).toMatch(
+      /const floatingBottom =\s*tab === 'read' \? \(barHeight \?\? [^)]*\) \+ STATUS_STRIP_HEIGHT : bottomPad;/,
+    );
+    expect(source).toMatch(/onLayout=\{\(e\) => setBarHeight\(e\.nativeEvent\.layout\.height\)\}/);
+  });
+
+  it('floats one notice at a time, not a stack of them', () => {
+    // Stacked, two chips reached the last line of the page.
+    const floating = floatingBlock();
+    expect(floating).not.toMatch(/<Chip/);
+    expect(floating).toMatch(/\{tab === 'read' \? notice : null\}/);
+  });
+
+  it('never unmounts the header, so hiding it cannot re-fit the page', () => {
+    // Unmounted two seconds into every recitation, it gave its height to the
+    // page, which re-measured and changed type size under the reader's eyes.
+    expect(source).not.toMatch(/\{headerVisible \? \(/);
+    expect(source).toMatch(/style=\{\[styles\.header, !headerVisible && styles\.headerHidden\]\}/);
   });
 });

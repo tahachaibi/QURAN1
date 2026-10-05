@@ -25,6 +25,14 @@ export interface PageSlice {
   hinted: number[];
   /** 0..1 share of this page that has been recited, for the progress ribbon */
   progress: number;
+  /**
+   * The cursor clamped to [from, to]: every word below it reads as recited
+   * (§5.3). Clamped, so it changes only for the page the cursor is moving
+   * across — `from` for every page ahead of it, `to` for every page behind.
+   * The raw cursor used to be a page prop of its own, which made every mounted
+   * page re-render all of its words on every recognised word.
+   */
+  recitedUpTo: number;
 }
 
 const sameNumbers = (a: readonly number[], b: readonly number[]): boolean => {
@@ -37,6 +45,7 @@ const sameSlice = (a: PageSlice, b: PageSlice): boolean =>
   a.page === b.page &&
   a.current === b.current &&
   a.progress === b.progress &&
+  a.recitedUpTo === b.recitedUpTo &&
   sameNumbers(a.recited, b.recited) &&
   sameNumbers(a.missed, b.missed) &&
   sameNumbers(a.hinted, b.hinted);
@@ -66,6 +75,7 @@ export function usePageSlice(session: SessionState): (page: number) => PageSlice
         missed,
         hinted,
         progress: to > from ? recited.length / (to - from) : 0,
+        recitedUpTo: Math.min(Math.max(session.cursor, from), to),
       };
 
       const previous = cache.current.get(page);

@@ -14,14 +14,14 @@
  * page — no iteration, and a page is always exactly one screen.
  */
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, type LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
+import { Animated, I18nManager, type LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
 
 import { ayahDisplayWords, ayahByGlobal, globalAyahOf, surahInfo, wordInAyahOf } from '../data/quran';
 import { linesOfPage, type MushafLine } from '../data/lines';
 import { ayahTextSizes, radius, space, type FontStep, type Palette } from '../theme/theme';
 import type { PageSlice } from '../hooks/usePageSlice';
 import { AyahWord, type WordState } from './AyahWord';
-import { GUTTER, MEASURE_WIDTH, pxFont, pxLine, refine } from './mushafFit';
+import { GUTTER, MEASURE_WIDTH, lineFlexDirection, pxFont, pxLine, refine } from './mushafFit';
 import { useT } from '../i18n/useT';
 
 export interface MushafPageProps {
@@ -32,8 +32,11 @@ export interface MushafPageProps {
   palette: Palette;
   reduceMotion: boolean;
   level: Animated.Value;
-  /** furthest progress; everything below it reads as recited (§5.3) */
-  cursor: number;
+  // No `cursor` prop. "Everything below the cursor reads as recited" (§5.3) is
+  // carried by the slice as `recitedUpTo`, clamped to this page, so the cursor
+  // advancing one word changes the props of the ONE page it is on. As a raw
+  // prop it changed every mounted page's props on every recognised word, and
+  // each of them re-rendered all of its words.
   hintLevelOf: (word: number) => 0 | 1 | 2;
   onWordPress: (index: number) => void;
   onWordLongPress: (index: number) => void;
@@ -58,13 +61,16 @@ function MushafPageImpl({
   palette,
   reduceMotion,
   level,
-  cursor,
   hintLevelOf,
   onWordPress,
   onWordLongPress,
   width,
 }: MushafPageProps) {
   const { t } = useT();
+  // Read at render, not frozen at import, so a test can lay the page out both
+  // ways. On a phone it is a constant for the life of the process, exactly like
+  // the root layout direction it has to agree with.
+  const lineRow = I18nManager.isRTL ? RTL_ROW : LTR_ROW;
   const lines = useMemo(() => linesOfPage(page), [page]);
   /**
    * How many of this page's lines have a width worth measuring.
@@ -194,7 +200,7 @@ function MushafPageImpl({
   const stateOf = (index: number): WordState => {
     if (missedSet.has(index)) return 'missed';
     if (index === slice.current) return 'current';
-    if (recitedSet.has(index) || index < cursor) return 'recited';
+    if (recitedSet.has(index) || index < slice.recitedUpTo) return 'recited';
     return 'upcoming';
   };
 
@@ -248,6 +254,7 @@ function MushafPageImpl({
           onPress={onWordPress}
           onLongPress={onWordLongPress}
           accessibilityHint={t('Tap to move here, long press to start reciting from here')}
+          hiddenLabel={t('Hidden word')}
         />
       ),
     );
@@ -255,8 +262,8 @@ function MushafPageImpl({
     if (measuring) {
       // measured at natural width, so the scale can be solved directly
       return (
-        <View key={`a${i}`} style={styles.measureRow}>
-          <View style={styles.naturalRow} onLayout={(e) => onLineWidth(i, e.nativeEvent.layout.width)}>
+        <View key={`a${i}`} style={[styles.measureRow, lineRow]}>
+          <View style={[styles.naturalRow, lineRow]} onLayout={(e) => onLineWidth(i, e.nativeEvent.layout.width)}>
             {tokens}
           </View>
         </View>
@@ -269,12 +276,12 @@ function MushafPageImpl({
     if (line.centered) {
       return (
         <View key={`a${i}`} style={[styles.centredLine, { minHeight: lineHeight }]}>
-          <View style={styles.centredInner}>{tokens}</View>
+          <View style={[styles.centredInner, lineRow]}>{tokens}</View>
         </View>
       );
     }
     return (
-      <View key={`a${i}`} style={[styles.line, { minHeight: lineHeight }]}>
+      <View key={`a${i}`} style={[styles.line, lineRow, { minHeight: lineHeight }]}>
         {tokens}
       </View>
     );
@@ -382,6 +389,14 @@ function AyahMarker({
   );
 }
 
+/**
+ * The row direction of every line of words, kept OUT of the static styles so it
+ * cannot be written as a constant again: see lineFlexDirection for why a fixed
+ * 'row-reverse' printed the Quran backwards on phones set to Arabic.
+ */
+const LTR_ROW = { flexDirection: lineFlexDirection(false) };
+const RTL_ROW = { flexDirection: lineFlexDirection(true) };
+
 const styles = StyleSheet.create({
   page: { paddingHorizontal: space.sm, paddingVertical: space.sm },
   paper: {
@@ -406,13 +421,16 @@ const styles = StyleSheet.create({
   body: { flex: 1 },
   /** the 15 lines fill the page height, as the print's do */
   lines: { flex: 1, justifyContent: 'space-between', paddingHorizontal: GUTTER / 2 },
-  line: { flexDirection: 'row-reverse', alignItems: 'flex-end', justifyContent: 'space-between' },
+  // line, centredInner, measureRow and naturalRow take their flexDirection from
+  // LTR_ROW / RTL_ROW at render. centredLine may say 'row': it only centres one
+  // child, which comes out the same in either direction.
+  line: { alignItems: 'flex-end', justifyContent: 'space-between' },
   centredLine: { flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-end' },
-  centredInner: { flexDirection: 'row-reverse', alignItems: 'flex-end', flexShrink: 1 },
+  centredInner: { alignItems: 'flex-end', flexShrink: 1 },
   /** Off the flow, wider than any phone, invisible: see the measuring pass. */
   measurePad: { position: 'absolute', top: 0, right: 0, width: MEASURE_WIDTH, opacity: 0 },
-  measureRow: { flexDirection: 'row-reverse', width: MEASURE_WIDTH },
-  naturalRow: { flexDirection: 'row-reverse', alignItems: 'flex-end', alignSelf: 'flex-start' },
+  measureRow: { width: MEASURE_WIDTH },
+  naturalRow: { alignItems: 'flex-end', alignSelf: 'flex-start' },
   bandRow: { alignItems: 'center' },
   centeredRow: { alignItems: 'center' },
   basmala: {
@@ -450,7 +468,6 @@ export const MushafPage = memo(MushafPageImpl, (a, b) =>
   a.palette === b.palette &&
   a.reduceMotion === b.reduceMotion &&
   a.level === b.level &&
-  a.cursor === b.cursor &&
   a.hintLevelOf === b.hintLevelOf &&
   a.onWordPress === b.onWordPress &&
   a.onWordLongPress === b.onWordLongPress &&

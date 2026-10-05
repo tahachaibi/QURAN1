@@ -33,6 +33,12 @@ export interface AyahWordProps {
   onPress: (index: number) => void;
   onLongPress: (index: number) => void;
   accessibilityHint: string;
+  /**
+   * What TalkBack says for a word Hidden mode is concealing. Translated by the
+   * page and handed in, like the hint, so this memoized word stays free of a
+   * context hook; as a literal it read English to an Arabic interface.
+   */
+  hiddenLabel: string;
 }
 
 /**
@@ -61,6 +67,7 @@ function AyahWordImpl({
   onPress,
   onLongPress,
   accessibilityHint,
+  hiddenLabel,
 }: AyahWordProps) {
   const revealed = !hidden || hintLevel === 2 || state === 'recited' || state === 'missed';
   const ink = useRef(new Animated.Value(revealed ? 1 : inkOpacity.hidden)).current;
@@ -102,7 +109,7 @@ function AyahWordImpl({
       hitSlop={4}
       accessible
       accessibilityRole="text"
-      accessibilityLabel={revealed || showFirstLetterOnly ? text : 'hidden word'}
+      accessibilityLabel={revealed || showFirstLetterOnly ? text : hiddenLabel}
       accessibilityHint={accessibilityHint}
       accessibilityState={{ selected: state === 'current' }}
       style={styles.press}
@@ -221,9 +228,12 @@ const styles = StyleSheet.create({
 });
 
 /**
- * Custom comparator: `level` and the two callbacks are stable references from
- * the provider, and `palette` only changes on a theme switch. Everything else
- * is a primitive, so this is a cheap and exact bail-out.
+ * Custom comparator: `level` and the two callbacks are stable references (the
+ * surah screen reads the session through refs inside them, so a recognised
+ * word does not make them new), and `palette` only changes on a theme switch. Everything else
+ * is a primitive, so this is a cheap and exact bail-out. The two screen-reader
+ * strings are compared too: they change on a language switch, and leaving them
+ * out kept a word speaking the old language until something else repainted it.
  */
 export const AyahWord = memo(AyahWordImpl, (a, b) =>
   a.index === b.index &&
@@ -237,4 +247,6 @@ export const AyahWord = memo(AyahWordImpl, (a, b) =>
   a.reduceMotion === b.reduceMotion &&
   a.level === b.level &&
   a.onPress === b.onPress &&
-  a.onLongPress === b.onLongPress);
+  a.onLongPress === b.onLongPress &&
+  a.accessibilityHint === b.accessibilityHint &&
+  a.hiddenLabel === b.hiddenLabel);

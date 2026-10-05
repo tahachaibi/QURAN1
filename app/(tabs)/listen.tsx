@@ -19,7 +19,11 @@ export default function ListenTab() {
 
   const open = useCallback(
     (surah: number) => {
-      router.push({ pathname: '/surah/[id]', params: { id: String(surah), tab: 'listen' } });
+      // An explicit ayah, as the Quran tab passes: without one the surah
+      // screen keeps whatever cursor the last session left (by design, so a
+      // remount cannot drag a live cursor back), and the header named that
+      // surah instead of the one just tapped.
+      router.push({ pathname: '/surah/[id]', params: { id: String(surah), ayah: '1', tab: 'listen' } });
     },
     [router],
   );

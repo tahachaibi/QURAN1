@@ -88,7 +88,6 @@ export const PageDeck = forwardRef<PageDeckHandle, PageDeckProps>(function PageD
         palette={palette}
         reduceMotion={reduceMotion}
         level={level}
-        cursor={session.cursor}
         hintLevelOf={hintLevelOf}
         onWordPress={onWordPress}
         onWordLongPress={onWordLongPress}
@@ -102,7 +101,6 @@ export const PageDeck = forwardRef<PageDeckHandle, PageDeckProps>(function PageD
       palette,
       reduceMotion,
       level,
-      session.cursor,
       hintLevelOf,
       onWordPress,
       onWordLongPress,

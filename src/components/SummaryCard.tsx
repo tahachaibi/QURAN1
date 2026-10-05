@@ -11,6 +11,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { ayahByGlobal, globalAyahOf, surahInfo } from '../data/quran';
 import { radius, space, type Palette } from '../theme/theme';
 import type { SessionSummary } from '../context/RecitationProvider';
+import { PASS_GRADE } from '../engine/hifz';
 import { formatDuration } from './controls';
 import type { T } from '../i18n/i18n';
 import { surahName } from '../i18n/names';
@@ -48,6 +49,13 @@ export const SummaryCard = memo(function SummaryCard({
   const { t, lang } = useT();
   if (summary === null) return null;
   const progressLine = describeProgress(summary, t);
+  const worst = weakest(summary);
+  /**
+   * Only offered when there is something to practise. After a session with
+   * nothing graded and no hints — exactly the session the card above says it
+   * could not hear — the button promised practice and silently closed the card.
+   */
+  const canPractise = summary.graded.length > 0 || summary.hintedWords.length > 0;
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
@@ -72,9 +80,15 @@ export const SummaryCard = memo(function SummaryCard({
               {summary.graded.length === 1
                 ? t('1 ayah graded for revision')
                 : t('{n} ayahs graded for revision', { n: summary.graded.length })}
-              {weakest(summary) === null
+              {/* "Tomorrow" only when it is true. The scheduler brings a FAILED
+                  ayah back the next day; one that passed goes three or more
+                  days out, and promising it tomorrow sent the reciter looking
+                  for a review that was not there. */}
+              {worst === null
                 ? ''
-                : ` · ${t('weakest {ref} — it comes back tomorrow', { ref: weakest(summary) ?? '' })}`}
+                : worst.grade < PASS_GRADE
+                  ? ` · ${t('weakest {ref} — it comes back tomorrow', { ref: worst.ref })}`
+                  : ` · ${t('weakest {ref}', { ref: worst.ref })}`}
               {summary.dueNow > 0 ? ` · ${t('due now: {n}', { n: summary.dueNow })}` : ''}
             </Text>
           ) : onAddByHand !== undefined ? (
@@ -120,18 +134,18 @@ export const SummaryCard = memo(function SummaryCard({
                 {summary.autoLogged ? t('Saved — update it') : t('Log to streak')}
               </Text>
             </Pressable>
-            <Pressable
-              onPress={onPractise}
-              accessibilityRole="button"
-              accessibilityLabel={t('Practise the weakest ayah from this session')}
-              style={[styles.secondaryButton, { borderColor: palette.border }]}
-            >
-              <Text style={[styles.secondaryLabel, { color: palette.text }]}>
-                {weakest(summary) === null
-                  ? t('Practise shaky words')
-                  : t('Practise {ref}', { ref: weakest(summary) ?? '' })}
-              </Text>
-            </Pressable>
+            {canPractise ? (
+              <Pressable
+                onPress={onPractise}
+                accessibilityRole="button"
+                accessibilityLabel={t('Practise the weakest ayah from this session')}
+                style={[styles.secondaryButton, { borderColor: palette.border }]}
+              >
+                <Text style={[styles.secondaryLabel, { color: palette.text }]}>
+                  {worst === null ? t('Practise shaky words') : t('Practise {ref}', { ref: worst.ref })}
+                </Text>
+              </Pressable>
+            ) : null}
             {/* The one thing that makes matching better is a real recording of a
                 real session, and it was previously only reachable through a
                 developer toggle. This is the moment it exists. */}
@@ -167,13 +181,13 @@ function describeWord(word: number): string {
   return `${ayah.surah}:${ayah.ayah}`;
 }
 
-/** The lowest-graded ayah of this session, as "surah:ayah". */
-function weakest(summary: SessionSummary): string | null {
+/** The lowest-graded ayah of this session, as "surah:ayah", with its grade. */
+function weakest(summary: SessionSummary): { ref: string; grade: number } | null {
   if (summary.graded.length === 0) return null;
   let worst = summary.graded[0];
   for (const g of summary.graded) if (g.grade < worst.grade) worst = g;
   const ayah = ayahByGlobal(worst.ayah);
-  return `${ayah.surah}:${ayah.ayah}`;
+  return { ref: `${ayah.surah}:${ayah.ayah}`, grade: worst.grade };
 }
 
 /** The global ayah index of the lowest-graded ayah, for the practise action. */
