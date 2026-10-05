@@ -14,10 +14,9 @@ import {
   foldArabic,
   hadithByNumber,
   hadithsOfChapter,
-  isLoaded,
-  release,
   searchChapters,
   searchHadith,
+  searchHadithPage,
 } from '../src/data/hadith';
 
 describe('selection', () => {
@@ -57,22 +56,36 @@ describe('selection', () => {
   });
 });
 
+/** A fresh copy of the module, so "nothing is loaded yet" means what it says. */
+function freshHadith(): typeof import('../src/data/hadith') {
+  let mod: typeof import('../src/data/hadith') | undefined;
+  jest.isolateModules(() => {
+    mod = require('../src/data/hadith');
+  });
+  return mod!;
+}
+
 describe('the index is small and eager, the text large and lazy', () => {
   it('does not load any text just to describe the collections', () => {
-    release();
-    expect(collections.length).toBe(2);
-    expect(collections[0].chapters.length).toBeGreaterThan(0);
-    expect(isLoaded(1)).toBe(false);
-    expect(isLoaded(2)).toBe(false);
+    const h = freshHadith();
+    expect(h.collections.length).toBe(2);
+    expect(h.collections[0].chapters.length).toBeGreaterThan(0);
+    expect(h.isLoaded(1)).toBe(false);
+    expect(h.isLoaded(2)).toBe(false);
   });
 
-  it('loads a collection only when its text is asked for, and can release it', () => {
-    release();
-    hadithsOfChapter(1, 1);
-    expect(isLoaded(1)).toBe(true);
-    expect(isLoaded(2)).toBe(false);
-    release(1);
-    expect(isLoaded(1)).toBe(false);
+  it('loads a collection only when its text is asked for', () => {
+    const h = freshHadith();
+    h.hadithsOfChapter(1, 1);
+    expect(h.isLoaded(1)).toBe(true);
+    expect(h.isLoaded(2)).toBe(false);
+  });
+
+  it('opens only the collection a search is limited to', () => {
+    const h = freshHadith();
+    expect(h.searchHadith('prayer', { collectionId: 2, limit: 3 }).length).toBeGreaterThan(0);
+    expect(h.isLoaded(2)).toBe(true);
+    expect(h.isLoaded(1)).toBe(false);
   });
 });
 
@@ -165,35 +178,19 @@ describe('foldArabic', () => {
   });
 });
 
-/**
- * Search is the one thing that can open both collections at once, and what it
- * must not do is leave 22 MB resident because somebody typed a word that is not
- * in there.
- */
-describe('what a search leaves loaded', () => {
-  it('releases a collection it opened and found nothing in', () => {
-    release();
-    const results = searchHadith('zzqqxx', { limit: 5 });
-    expect(results).toEqual([]);
-    for (const c of collections) expect(isLoaded(c.id)).toBe(false);
+describe('a search over both collections', () => {
+  it('gives Muslim a share of the results, not only Bukhari', () => {
+    const hits = searchHadith('prayer', { limit: 40 });
+    const ids = new Set(hits.map((h) => h.collectionId));
+    expect(ids.has(1)).toBe(true);
+    expect(ids.has(2)).toBe(true);
   });
 
-  it('keeps a collection that actually matched', () => {
-    release();
-    const results = searchHadith('prayer', { collectionId: 2, limit: 3 });
-    expect(results.length).toBeGreaterThan(0);
-    expect(isLoaded(2)).toBe(true);
-    expect(isLoaded(1)).toBe(false);
-    release();
-  });
-
-  it('leaves a collection alone if it was already open', () => {
-    release();
-    hadithsOfChapter(1, 1);
-    expect(isLoaded(1)).toBe(true);
-    // a miss must not evict something the user had already opened
-    searchHadith('zzqqxx', { limit: 5 });
-    expect(isLoaded(1)).toBe(true);
-    release();
+  it('says when more matched than it is showing', () => {
+    const page = searchHadithPage('prayer', { limit: 10 });
+    expect(page.hits.length).toBe(10);
+    expect(page.more).toBe(true);
+    const rare = searchHadithPage('zzqqxx', { limit: 10 });
+    expect(rare).toEqual({ hits: [], more: false });
   });
 });

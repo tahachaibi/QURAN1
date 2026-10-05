@@ -20,6 +20,32 @@ const q = createHafs();
 
 if (chapters.length !== 114) throw new Error(`expected 114 surahs, got ${chapters.length}`);
 
+/**
+ * Surah names quran-json spells wrongly, corrected here so a regeneration cannot
+ * bring them back. These are names in the interface, not mushaf text: the ayah
+ * text is never touched.
+ *
+ *   - إبراهيم and الإنسان begin with hamzat al-qat', which the source drops —
+ *     while writing الأنعام, الإسراء and الإخلاص with theirs.
+ *   - الانفطار and الانشقاق are masdars of انفعل verbs, which begin with hamzat
+ *     al-wasl: no hamza is written.
+ *   - سبأ and النبأ: the source has سبإ and النبإ, the genitive spelling the
+ *     mushaf uses after "سورة". Standing alone, as the lists show them, a final
+ *     hamza after a fatha sits on alif.
+ *
+ * English: 21 follows the usual transliteration; 86 and 107 are typos.
+ */
+const NAME_FIX = {
+  14: 'إبراهيم',
+  34: 'سبأ',
+  76: 'الإنسان',
+  78: 'النبأ',
+  82: 'الانفطار',
+  84: 'الانشقاق',
+};
+const TRANSLITERATION_FIX = { 21: 'Al-Anbiya' };
+const TRANSLATION_FIX = { 86: 'The Nightcomer', 107: 'The Small Kindnesses' };
+
 const rows = [];
 let globalAyah = 0;
 for (const c of chapters) {
@@ -40,7 +66,14 @@ for (const c of chapters) {
     if (!text) throw new Error(`empty text at ${c.id}:${v.id}`);
     return [v.id, globalAyah, page, juz, text];
   });
-  rows.push([c.id, c.name, c.transliteration, c.translation, c.type, verses]);
+  rows.push([
+    c.id,
+    NAME_FIX[c.id] ?? c.name,
+    TRANSLITERATION_FIX[c.id] ?? c.transliteration,
+    TRANSLATION_FIX[c.id] ?? c.translation,
+    c.type,
+    verses,
+  ]);
 }
 
 if (globalAyah !== q.meta.numAyahs) {

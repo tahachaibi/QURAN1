@@ -4,8 +4,8 @@
  * The microphone permission is requested at the point it is about to be used and
  * explained in the same breath.
  */
-import { useCallback, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -60,6 +60,20 @@ export default function Onboarding() {
   const [denied, setDenied] = useState(false);
   const step = STEPS[index];
 
+  /**
+   * Android's Back steps back through the explainer rather than out of the
+   * app. On the first step there is nothing behind it, and Back leaves as it
+   * would from any first screen.
+   */
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (index === 0) return false;
+      setIndex(index - 1);
+      return true;
+    });
+    return () => sub.remove();
+  }, [index]);
+
   const finish = useCallback(async () => {
     const permission = await Audio.requestPermissionsAsync();
     await setOnboarded();
@@ -67,8 +81,14 @@ export default function Onboarding() {
       setDenied(true);
       return;
     }
-    // land straight in a live try on Al-Fatiha
-    router.replace({ pathname: '/surah/[id]', params: { id: '1', ayah: '1' } });
+    /**
+     * Land straight in a live try on Al-Fatiha — ON TOP of the Quran tab.
+     * Every first-run step replaces the one before it, so a bare replace left
+     * the surah screen alone in the stack: Back closed the app, and reopening it
+     * came back to the same tab-less screen.
+     */
+    router.replace('/(tabs)/quran');
+    router.push({ pathname: '/surah/[id]', params: { id: '1', ayah: '1' } });
   }, [router]);
 
   return (

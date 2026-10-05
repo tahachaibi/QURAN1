@@ -3,9 +3,14 @@
  *
  * Two kinds of entry, and the difference matters:
  *
- *   - DU'AS, whose Arabic is a verbatim slice of a hadith bundled in this app,
- *     cut out by scripts/gen-adhkar.mjs and carrying its collection and number.
- *     Nothing here is typed from memory; see that script for why.
+ *   - DU'AS, from the morning and evening lists supplied from islambook.com and
+ *     stored word for word (scripts/gen-adhkar-text.mjs). One whose wording
+ *     matches a narration bundled in this app closely enough to be sure carries
+ *     that hadith's collection and number. Most match none, and those name the
+ *     page they came from and claim nothing more — no screen may describe them
+ *     as quoted from Bukhari or Muslim. Only if that list were empty would the
+ *     older set apply: du'as cut verbatim out of the bundled hadith by
+ *     scripts/gen-adhkar.mjs. Nothing here is typed from memory.
  *   - QUR'AN PASSAGES, whose text comes from the bundled mushaf text and which
  *     are cited by surah and ayah only. The narrations that prescribe them for
  *     morning and evening are in Abu Dawud, at-Tirmidhi and an-Nasa'i, which this

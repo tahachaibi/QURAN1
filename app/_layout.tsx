@@ -7,7 +7,7 @@
  * moving between surahs never needs a navigation, a remount, or a handoff.
  */
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View, useColorScheme } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -20,8 +20,17 @@ import { AdhanProvider } from '../src/context/AdhanProvider';
 import { AdhanBanner } from '../src/components/AdhanBanner';
 import { ThemeProvider, useTheme } from '../src/theme/ThemeProvider';
 import { hasOnboarded } from '../src/data/storage';
-import { lightPalette } from '../src/theme/theme';
+import { darkPalette, lightPalette } from '../src/theme/theme';
 import { useT } from '../src/i18n/useT';
+
+/**
+ * Shown if a bundled font fails to load, which only a broken install can cause.
+ * Fixed text in both languages, because it appears before the language setting
+ * has been read, and addressed to the person holding the phone: the error itself
+ * goes to the log.
+ */
+const FONT_ERROR =
+  'تعذّر تحميل خطوط التطبيق. يُرجى إعادة تثبيت التطبيق.\n\nThe app’s fonts could not be loaded. Please reinstall the app.';
 
 export default function RootLayout() {
   // Every hook runs before any early return (§10): rendering nothing while the
@@ -51,15 +60,23 @@ export default function RootLayout() {
     Amiri_700Bold,
   });
 
+  /**
+   * The palette before the settings are read: the phone's own light or dark.
+   * It used to be the day palette always, so a phone in dark mode — somebody
+   * reading at night — got a cream screen on every cold start, then a blank
+   * frame while the settings loaded, and only then the night palette.
+   * "system" is the default theme, so this is usually exactly right.
+   */
+  const boot = useColorScheme() === 'dark' ? darkPalette : lightPalette;
+
+  useEffect(() => {
+    if (fontError !== null) console.warn('A bundled font failed to load', fontError);
+  }, [fontError]);
+
   if (fontError !== null) {
     return (
-      <View style={[styles.center, { backgroundColor: lightPalette.background }]}>
-        <Text style={[styles.error, { color: lightPalette.error }]}>
-          Amiri could not be loaded: {fontError.message}
-          {'\n\n'}
-          The Quran text needs Amiri for correct tashkeel. Reinstall dependencies with
-          `npm install` and rebuild the app.
-        </Text>
+      <View style={[styles.center, { backgroundColor: boot.background }]}>
+        <Text style={[styles.error, { color: boot.error }]}>{FONT_ERROR}</Text>
       </View>
     );
   }
@@ -68,14 +85,16 @@ export default function RootLayout() {
   // on Quranic text looks broken and drops the tashkeel.
   if (!fontsLoaded) {
     return (
-      <View style={[styles.center, { backgroundColor: lightPalette.background }]}>
-        <ActivityIndicator color={lightPalette.primary} />
+      <View style={[styles.center, { backgroundColor: boot.background }]}>
+        <ActivityIndicator color={boot.primary} />
       </View>
     );
   }
 
   return (
-    <SafeAreaProvider>
+    // The boot background stays underneath while ThemeProvider reads the
+    // settings (it renders nothing until then), so there is no blank frame.
+    <SafeAreaProvider style={{ backgroundColor: boot.background }}>
       <ThemeProvider>
         {/* Above the router so settings and the upgrade screen read one
             snapshot, and OUTSIDE RecitationProvider because it must never be

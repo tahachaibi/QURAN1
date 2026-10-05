@@ -4,30 +4,59 @@
  * Arabic here is set in Amiri, not the mushaf face. KFGQPC Uthmanic Script is
  * the Quran's typeface; using it for hadith would dress a narration as revelation.
  */
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-import { collections, searchHadith, type Hadith, type HadithCollection } from '../../src/data/hadith';
+import {
+  collections,
+  searchHadithPage,
+  type HadithCollection,
+  type HadithSearchPage,
+} from '../../src/data/hadith';
 import { adhkarCount, defaultTime } from '../../src/data/adhkar';
 import { HadithCard } from '../../src/components/HadithCard';
 import { useT } from '../../src/i18n/useT';
 import { useTheme } from '../../src/theme/ThemeProvider';
 import { radius, space } from '../../src/theme/theme';
 
+/** How many results a search shows; the footer says so when there were more. */
+const SEARCH_LIMIT = 40;
+
+/**
+ * How long typing has to pause before the collections are scanned. A scan reads
+ * fourteen thousand narrations on the JS thread; doing one per keystroke made
+ * every letter of a rare word wait for the one before it.
+ */
+const SEARCH_DEBOUNCE_MS = 250;
+
+const NO_RESULTS: HadithSearchPage = { hits: [], more: false };
+
+/** 7276 → "7,276", the same on every phone, whatever its locale. */
+const grouped = (n: number): string => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
 export default function HadithTab() {
   const { palette, fontStep } = useTheme();
   const { t, arabic } = useT();
   const router = useRouter();
   const [query, setQuery] = useState('');
+  /** the query the results belong to, which trails `query` while typing */
+  const [searched, setSearched] = useState('');
+
+  useEffect(() => {
+    const id = setTimeout(() => setSearched(query), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(id);
+  }, [query]);
 
   // Searching scans the collections, so only do it once the query is worth it.
-  const results = useMemo<Hadith[]>(
-    () => (query.trim().length < 2 ? [] : searchHadith(query, { limit: 40 })),
-    [query],
+  const results = useMemo<HadithSearchPage>(
+    () => (searched.trim().length < 2 ? NO_RESULTS : searchHadithPage(searched, { limit: SEARCH_LIMIT })),
+    [searched],
   );
   const searching = query.trim().length >= 2;
+  /** false while typing has not yet paused: "nothing matches" would be premature */
+  const settled = searched === query;
 
   const renderCollection = useCallback(
     ({ item }: { item: HadithCollection }) => (
@@ -41,7 +70,11 @@ export default function HadithTab() {
           <Text style={[styles.cardArabic, { color: palette.ink }]}>{item.arabicTitle}</Text>
           {arabic ? null : <Text style={[styles.cardTitle, { color: palette.text }]}>{item.englishTitle}</Text>}
           <Text style={[styles.cardMeta, { color: palette.textMuted }]}>
-            {arabic ? item.arabicAuthor : item.englishAuthor} · {t('{n} hadith', { n: item.total.toLocaleString() })} ·{' '}
+            {/* The Arabic form is chosen by the number in {n}, so Arabic gets the
+                number itself: a formatted "7,276" is not a number, and read as
+                0 it picked "7,276 حديث" where 7276 takes "حديثًا". */}
+            {arabic ? item.arabicAuthor : item.englishAuthor} ·{' '}
+            {t('{n} hadith', { n: arabic ? item.total : grouped(item.total) })} ·{' '}
             {t('{n} books', { n: item.chapters.length })}
           </Text>
         </View>
@@ -72,7 +105,7 @@ export default function HadithTab() {
 
       {searching ? (
         <FlatList
-          data={results}
+          data={results.hits}
           keyExtractor={(h) => `${h.collectionId}-${h.number}`}
           renderItem={({ item }) => (
             <HadithCard hadith={item} palette={palette} fontStep={fontStep} showSource />
@@ -81,9 +114,20 @@ export default function HadithTab() {
           keyboardShouldPersistTaps="handled"
           initialNumToRender={6}
           ListEmptyComponent={
-            <Text style={[styles.empty, { color: palette.textMuted }]}>
-              {t('Nothing matches that in Bukhari or Muslim.')}
-            </Text>
+            settled ? (
+              <Text style={[styles.empty, { color: palette.textMuted }]}>
+                {t('Nothing matches that in Bukhari or Muslim.')}
+              </Text>
+            ) : null
+          }
+          ListFooterComponent={
+            // A cut list has to say it was cut, or a common word reads as
+            // "these are all the hadith that mention it".
+            settled && results.more ? (
+              <Text style={[styles.empty, { color: palette.textMuted }]}>
+                {t('Showing the first {n} matches. Add a word to narrow it.', { n: results.hits.length })}
+              </Text>
+            ) : null
           }
         />
       ) : (
@@ -98,6 +142,11 @@ export default function HadithTab() {
              * thing you DO at a time of day, not a book you browse, and burying
              * them one level down would mean nobody reciting them twice a day
              * ever finds them.
+             *
+             * Everything on it is drawn in the colours the palette pairs with
+             * primary. Hard-coded white and the gold accent read well on the
+             * dark green of the day palette, but the night palette's primary is
+             * a light green, where white measured 2.0:1 and the gold 1.2:1.
              */
             <Pressable
               onPress={() => router.push('/adhkar')}
@@ -105,17 +154,20 @@ export default function HadithTab() {
               accessibilityLabel={t('Adhkar of the morning and evening')}
               style={[styles.card, { backgroundColor: palette.primary, borderColor: palette.accent }]}
             >
-              <Ionicons name="partly-sunny-outline" size={22} color={palette.accent} />
+              <Ionicons name="partly-sunny-outline" size={22} color={palette.accentSoft} />
               <View style={styles.cardMain}>
-                <Text style={[styles.cardTitle, { color: '#FFFFFF' }]}>{t('Adhkar · morning & evening')}</Text>
+                <Text style={[styles.cardTitle, { color: palette.paper }]}>{t('Adhkar · morning & evening')}</Text>
                 <Text style={[styles.cardMeta, { color: palette.accentSoft }]}>
                   {defaultTime() === 'morning'
                     ? t('{n} to say this morning', { n: adhkarCount(defaultTime()) })
                     : t('{n} to say this evening', { n: adhkarCount(defaultTime()) })}{' '}
-                  · {t("every one quoted from Bukhari, Muslim or the Qur'an")}
+                  {/* Not "every one from Bukhari, Muslim or the Qur'an": most
+                      of the du'as are matched to no narration and cite only
+                      islambook.com, which the adhkar screen itself says. */}
+                  · {t('each with its source')}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={palette.accent} />
+              <Ionicons name="chevron-forward" size={20} color={palette.accentSoft} />
             </Pressable>
           }
         />

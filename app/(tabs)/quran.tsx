@@ -2,9 +2,9 @@
  * Quran tab (spec §8): all 114 surahs, searchable, plus continue-where-you-
  * left-off and a juz / page jump.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import type { Lang, T } from '../../src/i18n/i18n';
@@ -16,12 +16,14 @@ import {
   globalAyahOf,
   hizbStart,
   juzStart,
-  surahs,
+  searchSurahs,
+  surahOf,
   TOTAL_HIZB,
   TOTAL_JUZ,
+  wordIndexOf,
   type SurahInfo,
 } from '../../src/data/quran';
-import { lastPosition } from '../../src/data/storage';
+import { lastPosition, loadProgress, type ProgressMap } from '../../src/data/storage';
 import { useRecitation } from '../../src/context/RecitationProvider';
 import { useTheme } from '../../src/theme/ThemeProvider';
 import { radius, space, type Palette } from '../../src/theme/theme';
@@ -30,37 +32,71 @@ export default function QuranScreen() {
   const { palette } = useTheme();
   const { t, lang, arabic } = useT();
   const router = useRouter();
-  const { seekTo, setViewedPage } = useRecitation();
+  const { session, seekTo, setViewedPage } = useRecitation();
   const [query, setQuery] = useState('');
   const [resume, setResume] = useState<{ surah: number; cursor: number } | null>(null);
+  /** where each surah was left (§6.7) */
+  const [progress, setProgress] = useState<ProgressMap>({});
 
-  useEffect(() => {
-    void lastPosition().then(setResume);
-  }, []);
+  /**
+   * Read on every visit to the tab, not once at mount. The tab stays mounted
+   * underneath the surah screen it opens, so a read at mount never saw what
+   * that screen saved: "Continue" kept naming the surah before last, and on a
+   * fresh install it did not appear at all until the app was restarted.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      let live = true;
+      void Promise.all([lastPosition(), loadProgress()]).then(([last, all]) => {
+        if (!live) return;
+        setResume(last);
+        setProgress(all);
+      });
+      return () => {
+        live = false;
+      };
+    }, []),
+  );
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (q.length === 0) return surahs;
-    return surahs.filter(
-      (s) =>
-        s.transliteration.toLowerCase().includes(q) ||
-        s.translation.toLowerCase().includes(q) ||
-        s.name.includes(query.trim()) ||
-        String(s.number) === q,
-    );
-  }, [query]);
+  const filtered = useMemo(() => searchSurahs(query), [query]);
 
+  /** for the juz and hizb jumps, which land on the first word of an ayah */
   const open = useCallback(
-    (surah: number, ayah = 1) => {
+    (surah: number, ayah: number) => {
       router.push({ pathname: '/surah/[id]', params: { id: String(surah), ayah: String(ayah) } });
     },
     [router],
   );
 
+  // The surah a session's cursor is in, while there is a session at all.
+  const sessionSurah = session.status === 'idle' ? null : surahOf(session.cursor);
+
+  /**
+   * A surah opens where its reader left it, which is what the per-surah save
+   * (§6.7) is for; every row used to open at ayah 1 and the save was never read
+   * from here. A session already in that surah owns its place (§2), so it is
+   * followed rather than dragged back to the last save; otherwise the cursor
+   * moves to the saved place, or to the first ayah of a surah never read.
+   *
+   * The route carries no ayah. An ayah in the route makes the surah screen seek
+   * to that ayah's first word, which would undo the exact word just set; without
+   * one it follows the cursor that is already there.
+   */
+  const openSurah = useCallback(
+    (surah: number) => {
+      if (sessionSurah !== surah) {
+        const saved = progress[String(surah)];
+        seekTo(saved !== undefined && surahOf(saved.cursor) === surah ? saved.cursor : wordIndexOf(surah, 1));
+      }
+      router.push({ pathname: '/surah/[id]', params: { id: String(surah) } });
+    },
+    [progress, router, seekTo, sessionSurah],
+  );
+
   const renderItem = useCallback(
     ({ item }: { item: SurahInfo }) => (
       <Pressable
-        onPress={() => open(item.number)}
+        onPress={() => openSurah(item.number)}
         accessibilityRole="button"
         accessibilityLabel={
           arabic
@@ -87,7 +123,7 @@ export default function QuranScreen() {
         <Text style={[styles.arabic, { color: palette.text }]}>{item.name}</Text>
       </Pressable>
     ),
-    [open, palette, t, arabic],
+    [openSurah, palette, t, arabic],
   );
 
   return (
@@ -107,9 +143,11 @@ export default function QuranScreen() {
       {resume !== null ? (
         <Pressable
           onPress={() => {
-            const ayah = ayahByGlobal(globalAyahOf(resume.cursor));
+            // The word itself, not the start of its ayah — in 2:282, the
+            // longest, that start can be a hundred words before where the
+            // reciter stopped. No ayah in the route, so nothing re-seeks.
             seekTo(resume.cursor);
-            open(ayah.surah, ayah.ayah);
+            router.push({ pathname: '/surah/[id]', params: { id: String(surahOf(resume.cursor)) } });
           }}
           accessibilityRole="button"
           accessibilityLabel={t('Continue where you left off')}
@@ -253,12 +291,14 @@ function GoButton({
         },
       ]}
     >
-      <Ionicons name={icon} size={16} color={active ? '#FFFFFF' : palette.primary} />
-      <Text style={[styles.goText, { color: active ? '#FFFFFF' : palette.text }]}>{label}</Text>
+      {/* paper on primary, not white: the night palette's primary is a light
+          green, and white on it measured 2.0:1 */}
+      <Ionicons name={icon} size={16} color={active ? palette.paper : palette.primary} />
+      <Text style={[styles.goText, { color: active ? palette.paper : palette.text }]}>{label}</Text>
       <Ionicons
         name={active ? 'chevron-up' : 'chevron-down'}
         size={14}
-        color={active ? '#FFFFFF' : palette.textMuted}
+        color={active ? palette.paper : palette.textMuted}
       />
     </Pressable>
   );
@@ -306,7 +346,7 @@ function NumberPanel({
             { backgroundColor: valid ? palette.primary : palette.border },
           ]}
         >
-          <Ionicons name="arrow-forward" size={18} color={valid ? '#FFFFFF' : palette.textMuted} />
+          <Ionicons name="arrow-forward" size={18} color={valid ? palette.paper : palette.textMuted} />
         </Pressable>
       </View>
       {value.length > 0 && !valid ? (
