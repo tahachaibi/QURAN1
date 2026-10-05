@@ -43,7 +43,7 @@ const mockRecognizer = {
 };
 
 jest.mock('../src/context/RecitationProvider', () => ({
-  useRecitation: () => ({ recognizer: mockRecognizer }),
+  useRecitation: () => ({ recognizer: mockRecognizer, session: { dismissed: new Set<number>() }, clearDismissedWords: jest.fn() }),
 }));
 
 jest.mock('../src/billing/BillingProvider', () => ({

@@ -57,6 +57,8 @@ import { useRecitationRecognizer, type RecognizerHandle } from '../recognition/u
 import { useTheme } from '../theme/ThemeProvider';
 import {
   addDismissed,
+  clearDismissed,
+  removeDismissed,
   appendMistakeLog,
   bestPreviousFor,
   loadDismissed,
@@ -136,6 +138,10 @@ export interface RecitationContextValue {
   resetStats: () => void;
   seekTo: (word: number) => void;
   dismissMistake: (word: number) => void;
+  /** undo "I said it right" for one mistake */
+  undismissMistake: (mistake: Mistake) => void;
+  /** forget every word marked "I said it right" */
+  clearDismissedWords: () => void;
 
   summary: SessionSummary | null;
   dismissSummary: () => void;
@@ -519,9 +525,12 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
   /**
    * Everything a live session owes storage, in one serialised pass.
    *
-   * `autoLog` is set only for the abandonment paths; the ordinary stop path
-   * leaves the tracker row to the summary card, where it has always been the
-   * reciter's choice.
+   * `autoLog` writes the tracker row once the session clears the word floor.
+   * Every path that ends or parks a session sets it, the ordinary Stop
+   * included: when the row was left to the summary card's button, "Not now",
+   * Back or Practise lost a finished recitation from the streak for good,
+   * while walking away without pressing Stop would have counted it. The button
+   * remains for a session under the floor, and to update the row.
    */
   const flush = useCallback(
     (opts: { final: boolean; autoLog: boolean; state?: SessionState }): Promise<void> => {
@@ -714,10 +723,12 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
 
   // Leaving 'listening' for any reason — paused by a phone call, by the
   // silence timeout, by backgrounding — is a natural moment to write. It is a
-  // flush, not a stop: the session is still there to resume.
+  // flush, not a stop: the session is still there to resume. A paused session
+  // also gets its tracker row now: it may never be resumed, and the row is
+  // updated if it is and goes further.
   useEffect(() => {
     if (session.status === 'listening' || session.status === 'idle') return;
-    void flush({ final: false, autoLog: false });
+    void flush({ final: false, autoLog: session.status === 'paused' });
   }, [flush, session.status]);
 
   /**
@@ -846,7 +857,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       if (outgoing.status === 'listening' || outgoing.status === 'paused') {
         void flush({ final: true, autoLog: true, state: outgoing });
       }
-      const cursor = fromWord ?? session.cursor;
+      const cursor = fromWord ?? sessionRef.current.cursor;
       capture.current = { name: `session-${new Date().toISOString()}`, startCursor: cursor, events: [] };
       lastEventAt.current = 0;
       setSummary(null);
@@ -870,7 +881,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
         if (ok) recognizer.start();
       });
     },
-    [dispatch, ensureMic, flush, recognizer, session.cursor],
+    [dispatch, ensureMic, flush, recognizer],
   );
 
   const buildSummary = useCallback(
@@ -880,7 +891,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       // Grading itself is deduped per ayah inside foldSession, so a session
       // already checkpointed three times cannot be pushed three steps further
       // up the interval ladder by stopping it.
-      await flush({ final: true, autoLog: false, state });
+      await flush({ final: true, autoLog: true, state });
       const surah = surahOf(state.cursor);
       const [surahStart] = surahWordRange(surah);
       const previous = await bestPreviousFor(surah);
@@ -930,6 +941,8 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
   const resumeSession = useCallback(() => {
     setInterruption(null);
     setSilenceTimedOut(false);
+    // Same rule as start(): the reciter's own audio must not feed the recognizer.
+    playbackStopper.current?.();
     recognizer.resume();
     dispatch({ type: 'resume', at: Date.now() });
   }, [dispatch, recognizer]);
@@ -949,6 +962,21 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
     },
     [dispatch],
   );
+
+  /** Undo "I said it right": the word can be flagged again, and the mistake is back. */
+  const undismissMistake = useCallback(
+    (mistake: Mistake) => {
+      dispatch({ type: 'undismiss', word: mistake.word, mistake });
+      void removeDismissed(mistake.word);
+    },
+    [dispatch],
+  );
+
+  /** Settings' reset: every word marked "I said it right" can be flagged again. */
+  const clearDismissedWords = useCallback(() => {
+    dispatch({ type: 'clearDismissed' });
+    void clearDismissed();
+  }, [dispatch]);
 
   const requestHint = useCallback(
     (word: number) => {
@@ -1029,7 +1057,21 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  const awayFromPlace = session.status !== 'idle' && viewedPage !== pageOf(session.livePos);
+  // Only while there is a voice to return to: after a session ends, every
+  // manual page swipe used to offer to "return" to a place nobody is reciting.
+  const awayFromPlace =
+    (session.status === 'listening' || session.status === 'paused') && viewedPage !== pageOf(session.livePos);
+
+  /**
+   * The reset icon next to the timer. The work before the tap is folded and
+   * logged first, so a stray tap mid-recitation cannot erase it from the
+   * streak and the revision deck.
+   */
+  const resetStats = useCallback(() => {
+    const before = sessionRef.current;
+    void flush({ final: true, autoLog: true, state: before });
+    dispatch({ type: 'resetStats', at: Date.now() });
+  }, [dispatch, flush]);
 
   /**
    * A permission failure from the recogniser drops the cached "granted".
@@ -1078,9 +1120,11 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       stop,
       pauseSession,
       resumeSession,
-      resetStats: () => dispatch({ type: 'resetStats', at: Date.now() }),
+      resetStats,
       seekTo,
       dismissMistake,
+      undismissMistake,
+      clearDismissedWords,
       summary,
       dismissSummary: () => setSummary(null),
       logSummaryToTracker,
@@ -1108,9 +1152,11 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       stop,
       pauseSession,
       resumeSession,
-      dispatch,
+      resetStats,
       seekTo,
       dismissMistake,
+      undismissMistake,
+      clearDismissedWords,
       summary,
       logSummaryToTracker,
       interruption,

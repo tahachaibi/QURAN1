@@ -95,6 +95,7 @@ export default function SurahScreen() {
     resetStats,
     seekTo,
     dismissMistake,
+    undismissMistake,
     summary,
     dismissSummary,
     logSummaryToTracker,
@@ -488,6 +489,10 @@ export default function SurahScreen() {
         onPress={() => setRange(null)}
       />
     );
+  } else if (recognizer.languageNotice !== null) {
+    // a passing note from the recognizer (e.g. the offline pack just arrived);
+    // it clears itself after a few seconds
+    notice = <Chip label={tr(recognizer.languageNotice)} icon="information-circle-outline" palette={palette} />;
   } else if (recognizer.offlineDropped) {
     notice = (
       <Chip
@@ -619,7 +624,7 @@ export default function SurahScreen() {
               text={session.lastHeard}
               expanded={false}
               onToggle={() => setTranscriptOpen(true)}
-              transcript={session.sessionHeard.slice(-40)}
+              transcript={session.sessionHeardRaw.slice(-40)}
               palette={palette}
               reduceMotion={reduceMotion}
             />
@@ -665,7 +670,7 @@ export default function SurahScreen() {
             text={session.lastHeard}
             expanded
             onToggle={() => setTranscriptOpen(false)}
-            transcript={session.sessionHeard.slice(-40)}
+            transcript={session.sessionHeardRaw.slice(-40)}
             palette={palette}
             reduceMotion={reduceMotion}
           />
@@ -764,6 +769,7 @@ export default function SurahScreen() {
           setMistakeFocus(null);
         }}
         onDismiss={dismissMistake}
+        onUndismiss={undismissMistake}
         onGoToWord={(word) => {
           setMistakesOpen(false);
           setViewedPage(pageOf(word));
@@ -791,7 +797,7 @@ export default function SurahScreen() {
       <SummaryCard
         summary={summary}
         palette={palette}
-        onExport={() => void exportFixture(captureFixture())}
+        onExport={() => void exportFixture(captureFixture(), t('Save recitation log'))}
         onAddByHand={() => {
           onSelfReport();
           dismissSummary();

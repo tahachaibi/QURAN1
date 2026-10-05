@@ -32,7 +32,7 @@ const themes = (t: T): { value: 'system' | 'light' | 'dark'; label: string }[] =
 export default function Settings() {
   const { palette, prefs, setPrefs } = useTheme();
   const { t } = useT();
-  const { recognizer } = useRecitation();
+  const { recognizer, session, clearDismissedWords } = useRecitation();
   const billing = useBilling();
   const router = useRouter();
   const backup = useBackup(t);
@@ -73,6 +73,9 @@ export default function Settings() {
             palette={palette}
           />
         </Row>
+        <Text style={[styles.hint, { color: palette.textMuted, paddingHorizontal: space.md }]}>
+          {t('Hadith, adhkar and Listen text. The mushaf page always fits your screen.')}
+        </Text>
         <Toggle
           label={t('High contrast')}
           hint={t('Maximum ink contrast for the mushaf text')}
@@ -119,7 +122,7 @@ export default function Settings() {
         />
         <Toggle
           label={t('Continuous segmented session')}
-          hint={t('Keeps one recognition session alive across breaths on Android 12+. Turn off if your device behaves oddly.')}
+          hint={t('Keeps one recognition session alive across breaths on Android 13+. Turn off if your device behaves oddly.')}
           value={prefs.allowSegmented}
           onChange={(allowSegmented) => setPrefs({ allowSegmented })}
           palette={palette}
@@ -165,7 +168,9 @@ export default function Settings() {
             <Text style={[styles.buttonLabel, { color: palette.paper }]}>{t('Install Arabic offline pack')}</Text>
           </Pressable>
         ) : null}
-        {recognizer.lastError !== null ? (
+        {/* A transient error is already being retried; showing it in red here
+            would report a problem that has fixed itself. */}
+        {recognizer.lastError !== null && !recognizer.lastError.transient ? (
           <Text style={[styles.hint, { color: palette.error }]}>{recognizerErrorText(recognizer.lastError, t)}</Text>
         ) : null}
       </Section>
@@ -281,6 +286,25 @@ export default function Settings() {
             </View>
           </View>
         ) : null}
+
+        <Pressable
+          onPress={clearDismissedWords}
+          disabled={session.dismissed.size === 0}
+          accessibilityRole="button"
+          accessibilityLabel={t('Check the words marked “I said it right” again')}
+          style={styles.toggleRow}
+        >
+          <View style={styles.toggleText}>
+            <Text style={[styles.rowLabel, { color: session.dismissed.size === 0 ? palette.textMuted : palette.text }]}>
+              {t('Check the words marked “I said it right” again')}
+            </Text>
+            <Text style={[styles.hint, { color: palette.textMuted }]}>
+              {t('Words marked so far: {n}. They are never flagged as mistakes until you reset them here.', {
+                n: session.dismissed.size,
+              })}
+            </Text>
+          </View>
+        </Pressable>
 
         {backup.note !== '' ? (
           <Text style={[styles.hint, { color: palette.textMuted, paddingHorizontal: space.md, paddingBottom: space.md }]}>

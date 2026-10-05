@@ -60,11 +60,11 @@ const mockRecognizer = {
   lastError: null,
   requestLanguagePack: () => Promise.resolve(),
 };
-const mockSession = { status: 'idle' as 'idle' | 'listening' | 'paused' | 'stopped' };
+const mockSession = { status: 'idle' as 'idle' | 'listening' | 'paused' | 'stopped', dismissed: new Set<number>() };
 const mockPush = jest.fn();
 
 jest.mock('../src/context/RecitationProvider', () => ({
-  useRecitation: () => ({ recognizer: mockRecognizer, session: mockSession }),
+  useRecitation: () => ({ recognizer: mockRecognizer, session: mockSession, clearDismissedWords: jest.fn() }),
 }));
 
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }));

@@ -183,6 +183,18 @@ export async function addDismissed(word: number): Promise<void> {
   await writeJson(KEY.dismissed, all);
 }
 
+/** Undo one "I said it right". */
+export async function removeDismissed(word: number): Promise<void> {
+  const all = await loadDismissed();
+  if (!all.includes(word)) return;
+  await writeJson(KEY.dismissed, all.filter((w) => w !== word));
+}
+
+/** Forget every word marked "I said it right". */
+export async function clearDismissed(): Promise<void> {
+  await AsyncStorage.removeItem(KEY.dismissed);
+}
+
 // ---------------------------------------------------------------------------
 // session log -> tracker streak (§6.6, §8)
 // ---------------------------------------------------------------------------

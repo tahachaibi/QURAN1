@@ -306,7 +306,8 @@ export function formatDuration(ms: number): string {
 export interface ChipProps {
   label: string;
   icon?: keyof typeof Ionicons.glyphMap;
-  onPress: () => void;
+  /** omit for a chip that only informs; it is then announced as text, not a button */
+  onPress?: () => void;
   palette: Palette;
   tone?: 'accent' | 'neutral' | 'error';
   accessibilityHint?: string;
@@ -319,7 +320,8 @@ export const Chip = memo(function Chip({ label, icon, onPress, palette, tone = '
   return (
     <Pressable
       onPress={onPress}
-      accessibilityRole="button"
+      disabled={onPress === undefined}
+      accessibilityRole={onPress === undefined ? 'text' : 'button'}
       accessibilityLabel={label}
       accessibilityHint={accessibilityHint}
       style={[styles.chip, { backgroundColor: background, borderColor: palette.border }]}

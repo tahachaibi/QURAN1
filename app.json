@@ -78,7 +78,8 @@
           ],
           "icon": "./src/assets/brand/notification-icon.png"
         }
-      ]
+      ],
+      "./plugins/withNoRtl"
     ],
     "experiments": {
       "typedRoutes": true

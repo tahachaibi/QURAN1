@@ -241,7 +241,7 @@ export default function TrackerScreen() {
       {recent.length === 0 ? (
         <Text style={[styles.empty, { color: palette.textMuted }]}>
           {t(
-            'Nothing logged yet. Finish a recitation and tap “Log to streak” on the summary card — or just start one and walk away: a session you abandon is saved on its own.',
+            'Nothing logged yet. Recite at least five words and your session is saved here on its own. For a shorter one, tap “Log to streak” on the summary card.',
           )}
         </Text>
       ) : (
