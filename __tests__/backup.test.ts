@@ -32,8 +32,16 @@ import {
   policyFor,
   serialiseBackup,
 } from '../src/data/backup';
-import { ALL_KEYS, MISTAKE_LOG_CAP, today, type LoggedSession } from '../src/data/storage';
-import { DEFAULT_EASINESS, MIN_EASINESS, newCard, review, type HifzCard } from '../src/engine/hifz';
+import { ALL_KEYS, DEFAULT_PREFS, MISTAKE_LOG_CAP, today, type LoggedSession } from '../src/data/storage';
+import {
+  AYAH_COUNT,
+  DEFAULT_EASINESS,
+  MIN_EASINESS,
+  newCard,
+  recitedReviewsOf,
+  review,
+  type HifzCard,
+} from '../src/engine/hifz';
 
 const DAY = 86_400_000;
 const T0 = Date.UTC(2026, 8, 22, 12, 0, 0);
@@ -473,6 +481,48 @@ describe('merging one ayah, which is the hard question', () => {
     expect(plan.summary.hifz).toEqual({ total: 1, added: 1, recovered: 0, kept: 0 });
   });
 
+  it('drops a card that names no ayah of the Quran, or a schedule nothing could produce', () => {
+    // A hand-edited file: shown clamped to 114:6, practising a word range of NaN.
+    const plan = planRestore(
+      {},
+      {
+        [K.hifz]: JSON.stringify({
+          '99999': card({ ayah: 99999, reviews: 1 }),
+          [String(AYAH_COUNT)]: card({ ayah: AYAH_COUNT, reviews: 1 }),
+          '5.5': card({ ayah: 5.5, reviews: 1 }),
+          '-1': card({ ayah: -1, reviews: 1 }),
+          '7': card({ ayah: 7, reviews: 1, lastGrade: 9 }),
+          '8': card({ ayah: 8, reviews: 1, intervalDays: -3 }),
+          '6235': card({ ayah: 6235, reviews: 1 }),
+        }),
+      },
+    );
+    expect(plan.summary.hifz).toEqual({ total: 1, added: 1, recovered: 0, kept: 0 });
+    expect(Object.keys(JSON.parse(plan.values[K.hifz]) as object)).toEqual(['6235']);
+  });
+
+  it('writes the repaired history of a card this phone keeps, even with nothing else to add', () => {
+    // The phone tapped "I read this" more recently, so its schedule wins — but
+    // the old phone HEARD the ayah three times, and verification survives a
+    // merge. The repair used to be dropped unless some other card was added.
+    const tapped = review(newCard(9, T0 - 10 * DAY), 3, T0, 'self-report');
+    const heard = card({ ayah: 9, reviews: 3, recitedReviews: 3, lastReviewedAt: T0 - 30 * DAY });
+    const plan = planRestore({ [K.hifz]: deckOf(tapped) }, { [K.hifz]: deckOf(heard) });
+    expect(plan.summary.hifz).toEqual({ total: 1, added: 0, recovered: 0, kept: 1 });
+    const written = JSON.parse(plan.values[K.hifz]) as Record<string, HifzCard>;
+    expect(recitedReviewsOf(written['9'])).toBe(3);
+    expect(written['9'].lastReviewedAt).toBe(T0); // the schedule is still this phone's
+  });
+
+  it('writes nothing for an old deck restored over itself', () => {
+    // Cards from before the self-report path have no recitedReviews, and the
+    // merge fills it in: that alone is not a change worth a write.
+    const legacy = card({ ayah: 11, reviews: 7, lastReviewedAt: T0 });
+    delete legacy.recitedReviews;
+    const values = { [K.hifz]: deckOf(legacy) };
+    expect(planRestore(values, payloadOf(values)).values).toEqual({});
+  });
+
   it('counts added, recovered and kept over a whole deck', () => {
     const mine = {
       '1': card({ ayah: 1, reviews: 4, lastReviewedAt: T0 }),
@@ -518,6 +568,44 @@ describe('the session log', () => {
   it('ignores entries that are not sessions', () => {
     const plan = planRestore({}, { [K.sessions]: JSON.stringify([null, 3, { id: 7 }, session('a', T0)]) });
     expect(plan.summary.sessions.merged).toBe(1);
+  });
+
+  it('refuses a row the tracker would show as NaN', () => {
+    // id and at used to be all it took; the totals then read "NaN" and "NaN:NaN"
+    const { wordsRecited, ...noWords } = session('b', T0);
+    const { durationMs, ...noTime } = session('c', T0);
+    const rows = [
+      { id: 'a', at: T0 },
+      noWords,
+      noTime,
+      { ...session('d', T0), day: 'yesterday' },
+      { ...session('e', T0), accuracy: 'high' },
+      session('f', T0),
+    ];
+    const plan = planRestore({}, { [K.sessions]: JSON.stringify(rows) });
+    expect(plan.summary.sessions.merged).toBe(1);
+    expect((JSON.parse(plan.values[K.sessions]) as LoggedSession[]).map((s) => s.id)).toEqual(['f']);
+  });
+
+  it('keeps the finished row of a resumed session, not the abandoned one', () => {
+    // A session backgrounded and then finished is logged twice under one id,
+    // and the later row is the whole session. Keeping the first row seen meant
+    // a new phone only ever got the abandoned tail.
+    const partial = { ...session('1000', T0), wordsRecited: 10 };
+    const finished = { ...session('1000', T0), wordsRecited: 200 };
+    const onto = (current: Record<string, string>) =>
+      JSON.parse(planRestore(current, { [K.sessions]: JSON.stringify([partial, finished]) }).values[K.sessions]) as LoggedSession[];
+
+    expect(onto({}).map((s) => s.wordsRecited)).toEqual([200]);
+    // the phone holding only the abandoned row gets the finished one, and that
+    // counts as recovered, which is what makes the plan write it at all
+    const plan = planRestore({ [K.sessions]: JSON.stringify([partial]) }, { [K.sessions]: JSON.stringify([finished]) });
+    expect(plan.summary.sessions.recovered).toBe(1);
+    expect((JSON.parse(plan.values[K.sessions]) as LoggedSession[]).map((s) => s.wordsRecited)).toEqual([200]);
+    // and a phone that already has the finished row keeps it
+    const kept = planRestore({ [K.sessions]: JSON.stringify([finished]) }, { [K.sessions]: JSON.stringify([partial]) });
+    expect(kept.summary.sessions.recovered).toBe(0);
+    expect(kept.values[K.sessions]).toBeUndefined();
   });
 });
 
@@ -622,6 +710,51 @@ describe('settings, the one thing a restore overwrites', () => {
     expect(describeRestore(same, same).settingsReplaced).toBe(false);
     expect(describeRestore(same, same).losesNothing).toBe(true);
   });
+
+  /** what a phone holds the moment the language picker has run, which is before anything else */
+  const freshInstall = (language: 'en' | 'ar') => ({ [K.prefs]: JSON.stringify({ ...DEFAULT_PREFS, language }) });
+  const restoredPrefs = (current: Record<string, string>, incoming: Record<string, string>) =>
+    JSON.parse(planRestore(current, incoming).values[K.prefs]) as Record<string, unknown>;
+
+  it('tells a fresh install that nothing is lost, although the picker has saved its language', () => {
+    // The whole case this feature is for. The picker's write made a new phone
+    // look like one with settings of its own, so every restore onto one said
+    // "Some things on this phone will change".
+    const file = { [K.prefs]: JSON.stringify({ theme: 'dark', reciter: 'b/' }) };
+    const summary = describeRestore(freshInstall('ar'), file);
+    expect(summary.settingsReplaced).toBe(false);
+    expect(summary.losesNothing).toBe(true);
+    expect(restoredPrefs(freshInstall('ar'), file)).toMatchObject({ theme: 'dark', reciter: 'b/', language: 'ar' });
+  });
+
+  it('keeps the language chosen on this phone, whatever the file says', () => {
+    // A backup from before the language existed has none, and restoring it
+    // sent the reader back to the picker; one made on an English phone turned
+    // an Arabic reader's interface English.
+    expect(restoredPrefs(freshInstall('en'), { [K.prefs]: JSON.stringify({ theme: 'dark' }) }).language).toBe('en');
+    const chosen = { [K.prefs]: JSON.stringify({ ...DEFAULT_PREFS, language: 'ar', theme: 'dark' }) };
+    const english = { [K.prefs]: JSON.stringify({ ...DEFAULT_PREFS, language: 'en', theme: 'light' }) };
+    expect(restoredPrefs(chosen, english)).toMatchObject({ language: 'ar', theme: 'light' });
+    // ...and that theme really is replaced, so the screen still says so
+    expect(describeRestore(chosen, english).settingsReplaced).toBe(true);
+  });
+
+  it('writes nothing when the file differs from this phone only in its language', () => {
+    const mine = { [K.prefs]: JSON.stringify({ ...DEFAULT_PREFS, language: 'ar', theme: 'dark' }) };
+    const file = { [K.prefs]: JSON.stringify({ theme: 'dark', language: 'en' }) };
+    const plan = planRestore(mine, file);
+    expect(plan.values[K.prefs]).toBeUndefined();
+    expect(plan.summary.settingsReplaced).toBe(false);
+  });
+
+  it('leaves this phone’s settings alone when the file’s are not settings at all', () => {
+    // storage.ts would read a non-object as all defaults: a silent reset.
+    for (const junk of ['"dark"', '[1,2]', '{"broken']) {
+      const plan = planRestore(freshInstall('ar'), { [K.prefs]: junk });
+      expect(plan.values[K.prefs]).toBeUndefined();
+      expect(plan.summary.settingsReplaced).toBe(false);
+    }
+  });
 });
 
 describe('describeRestore, which the UI must call first', () => {
@@ -695,15 +828,19 @@ describe('a user can actually reach this', () => {
   });
 
   it('plans the restore before writing it', () => {
-    // planRestore must be reached from the screen, and importAll must not be
-    // called from the same function that picks the file. The gap between them
-    // is the confirmation step, and it is the whole reason restore is not
-    // destructive by accident.
+    // planRestore must be reached from the screen, and the write must not
+    // happen in the same function that picks the file. The gap between them is
+    // the confirmation step, and it is the whole reason restore is not
+    // destructive by accident. The write goes through restoreAll (storage.ts),
+    // never a bare importAll: restoreAll is what makes the parts of the app
+    // holding a copy in memory re-read it, instead of writing the old copy
+    // back over the restore the next time they save.
     expect(settings).toContain('planRestore');
-    expect(settings).toContain('importAll');
+    expect(settings).toContain('restoreAll(');
+    expect(settings).not.toContain('importAll');
     const pick = settings.slice(settings.indexOf('const doPick'), settings.indexOf('const confirm'));
     expect(pick).toContain('planRestore');
-    expect(pick).not.toContain('importAll');
+    expect(pick).not.toContain('restoreAll(');
   });
 
   it('explains every way a file can be refused', () => {

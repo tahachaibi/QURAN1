@@ -24,9 +24,9 @@
  * to open this and see that it is theirs.
  */
 
-import { MIN_EASINESS, recitedReviewsOf, type HifzCard, type HifzDeck } from '../engine/hifz';
+import { AYAH_COUNT, MIN_EASINESS, recitedReviewsOf, type HifzCard, type HifzDeck } from '../engine/hifz';
 import type { MistakeRecord } from '../engine/confusion';
-import { ALL_KEYS, MISTAKE_LOG_CAP, type LoggedSession, type ProgressMap } from './storage';
+import { ALL_KEYS, DEFAULT_PREFS, MISTAKE_LOG_CAP, type LoggedSession, type ProgressMap } from './storage';
 
 // ---------------------------------------------------------------------------
 // the envelope
@@ -148,6 +148,8 @@ const POLICY: Readonly<Record<string, KeyPolicy>> = {
    * storage.ts's `readJson` spreads the stored object over DEFAULT_PREFS, so a
    * preference added since the file was written keeps its default rather than
    * becoming undefined. That is what makes replacing safe across versions.
+   * The one preference NOT replaced is this phone's interface language; see
+   * `planPrefs` for why.
    *
    * Note for the UI: `addedAdhans` inside prefs holds file:// URIs into the old
    * device's app sandbox. Those paths do not exist on a new phone. The entries
@@ -552,6 +554,17 @@ const isRecord = (v: unknown): v is Record<string, unknown> => isObject(v);
 const isArray = (v: unknown): v is unknown[] => Array.isArray(v);
 const num = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 
+/** The same value with every object's keys sorted, so two values can be compared as JSON. */
+function canonical(v: unknown): unknown {
+  if (Array.isArray(v)) return v.map(canonical);
+  if (!isObject(v)) return v;
+  const out: Record<string, unknown> = {};
+  for (const k of Object.keys(v).sort()) out[k] = canonical(v[k]);
+  return out;
+}
+
+const sameValue = (a: unknown, b: unknown): boolean => JSON.stringify(canonical(a)) === JSON.stringify(canonical(b));
+
 // --- the hifz deck ---------------------------------------------------------
 
 function isCard(value: unknown, key: string): value is HifzCard {
@@ -570,6 +583,11 @@ function isCard(value: unknown, key: string): value is HifzCard {
   ) {
     return false;
   }
+  // Numbers, but numbers that mean something. An ayah outside the Quran is
+  // shown clamped to 114:6 and practises a word range of NaN, and a grade or an
+  // interval the scheduler can never produce is a hand edit, not a history.
+  if (!Number.isInteger(c.ayah) || c.ayah < 0 || c.ayah >= AYAH_COUNT) return false;
+  if (c.lastGrade < 0 || c.lastGrade > 5 || c.intervalDays < 0) return false;
   // The deck is keyed by String(ayah) everywhere it is written. A file whose key
   // and `ayah` disagree is hand-edited or corrupt, and the disagreement is not
   // recoverable: `dueQueue` would report one number while the deck is filed
@@ -650,6 +668,14 @@ export function mergeCard(mine: HifzCard, theirs: HifzCard): { card: HifzCard; w
   return { card, winner };
 }
 
+/**
+ * A deck as the scheduler reads it. A card written before the self-report path
+ * has no `recitedReviews`, and `mergeCard` fills it in, so without this an
+ * identical restore of an old deck would count every card as changed.
+ */
+const asScheduled = (deck: HifzDeck): HifzDeck =>
+  Object.fromEntries(Object.entries(deck).map(([key, card]) => [key, { ...card, recitedReviews: recitedReviewsOf(card) }]));
+
 export function mergeDecks(mine: HifzDeck, theirs: HifzDeck): { deck: HifzDeck; change: DeckChange } {
   const deck: HifzDeck = { ...mine };
   let added = 0;
@@ -710,10 +736,35 @@ function mergeProgress(mine: ProgressMap, theirs: ProgressMap): { map: ProgressM
  * sessions silently dropped by the next session logged, which is a data loss
  * that would look like a bug in the tracker.
  */
-export const SESSION_CAP = 800;
+export const SESSION_CAP = 3000;
 
+const DAY_STAMP = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * A row the tracker can show without printing NaN.
+ *
+ * `id` and `at` alone used to be enough, so a row missing `wordsRecited` or
+ * `durationMs` sailed through and the tracker's totals became "NaN" and
+ * "NaN:NaN". Every field checked here is one a screen reads (the streak, the
+ * heatmap, the totals, the session list, "further than last time"), and every
+ * one has been in LoggedSession since the first commit, so no real backup of
+ * any age is refused by this.
+ */
 function isSession(v: unknown): v is LoggedSession {
-  return isObject(v) && typeof v.id === 'string' && num(v.at);
+  return (
+    isObject(v) &&
+    typeof v.id === 'string' &&
+    num(v.at) &&
+    typeof v.day === 'string' &&
+    DAY_STAMP.test(v.day) &&
+    num(v.surah) &&
+    num(v.wordsRecited) &&
+    num(v.versesCovered) &&
+    num(v.accuracy) &&
+    num(v.longestCleanRun) &&
+    num(v.durationMs) &&
+    num(v.furthestWord)
+  );
 }
 
 function readSessions(raw: string | undefined): LoggedSession[] {
@@ -722,22 +773,44 @@ function readSessions(raw: string | undefined): LoggedSession[] {
 }
 
 /**
+ * Of two rows for the same session, the one that got further.
+ *
+ * The log holds several rows per id ON PURPOSE: a session backgrounded and
+ * later finished is written when it is abandoned and again when it ends, under
+ * the same id, and the provider only ever re-writes a row once the session has
+ * matched more words. So the larger `wordsRecited` is always the later, fuller
+ * row. On a tie the first row seen wins, which is the device's own.
+ */
+const fuller = (kept: LoggedSession, other: LoggedSession): LoggedSession =>
+  other.wordsRecited > kept.wordsRecited ? other : kept;
+
+/**
  * Union by id, oldest first, capped like the log itself.
  *
- * Sessions carry a unique id, so this is the one merge here that is exactly
- * right: the union of two session logs IS the set of sessions that happened.
- * On a collision the device's own record is kept — it is the one the tracker has
- * already been counting, and the two are the same session anyway.
+ * Sessions carry an id, so this is the one merge here that is exactly right:
+ * the union of two session logs IS the set of sessions that happened. Where an
+ * id appears more than once — on either side — the fullest row is kept, which
+ * is the row the tracker shows too: it keeps the later one, and the later one
+ * is always the fuller (see `fuller`). This used to keep the FIRST
+ * row seen for an id, which on a new phone is the abandoned tail of every
+ * resumed session, so a restore quietly undercounted words, verses and time.
+ * A device row replaced by a fuller one from the file counts as recovered,
+ * which is also what makes the plan write it.
  */
 function mergeSessions(mine: LoggedSession[], theirs: LoggedSession[]): { list: LoggedSession[]; change: ListChange } {
   const byId = new Map<string, LoggedSession>();
-  for (const s of mine) byId.set(s.id, s);
-  let recovered = 0;
-  for (const s of theirs) {
-    if (byId.has(s.id)) continue;
-    byId.set(s.id, s);
-    recovered++;
+  for (const s of mine) {
+    const kept = byId.get(s.id);
+    byId.set(s.id, kept === undefined ? s : fuller(kept, s));
   }
+  const recoveredIds = new Set<string>();
+  for (const s of theirs) {
+    const kept = byId.get(s.id);
+    if (kept !== undefined && fuller(kept, s) === kept) continue;
+    byId.set(s.id, s);
+    recoveredIds.add(s.id);
+  }
+  const recovered = recoveredIds.size;
   const all = [...byId.values()].sort((a, b) => a.at - b.at || a.id.localeCompare(b.id));
   const list = all.slice(Math.max(0, all.length - SESSION_CAP));
   return {
@@ -833,6 +906,59 @@ function mergeDismissed(mine: number[], theirs: number[]): { list: number[]; cha
   };
 }
 
+// --- settings --------------------------------------------------------------
+
+const PREFS_KEY = 'qh:prefs:v1';
+
+function readObject(raw: string | undefined): Record<string, unknown> | null {
+  if (typeof raw !== 'string') return null;
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return isObject(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The file's settings as this phone should take them, and whether that costs
+ * the user anything.
+ *
+ * Still a replace (see the policy note on 'qh:prefs:v1'), with two exceptions
+ * that arrived with the interface language:
+ *
+ *  - THIS PHONE'S LANGUAGE IS KEPT. It is the first thing anybody chooses —
+ *    the picker runs before any other screen — so it is always a choice made
+ *    on this phone, by the person holding it. A plain replace handed every
+ *    backup made before the language existed a `language` of null, and the
+ *    picker came back on the next launch; a file made on an English phone
+ *    flipped somebody who had just chosen Arabic back to English.
+ *  - A PHONE WHOSE ONLY SETTING IS THAT LANGUAGE LOSES NOTHING. That is every
+ *    fresh install, the whole case this feature exists for, and it used to be
+ *    told "Some things on this phone will change" because the picker's write
+ *    made it look like a phone with settings of its own.
+ *
+ * Both sides are compared as storage.ts will load them — spread over
+ * DEFAULT_PREFS — so a field one side never wrote is its default, not a change.
+ * A file whose settings are not an object at all is left out rather than
+ * written: storage.ts would read it as all defaults, which is a reset.
+ */
+function planPrefs(mine: string | undefined, from: string): { value: string | undefined; replaced: boolean } {
+  const file = readObject(from);
+  if (file === null) return { value: undefined, replaced: false };
+  const device = readObject(mine) ?? {};
+  const language = device.language === 'en' || device.language === 'ar' ? device.language : null;
+  const next = language === null || file.language === language ? file : { ...file, language };
+
+  const asLoaded = (p: Record<string, unknown>) => ({ ...DEFAULT_PREFS, ...p });
+  const chosen = (p: Record<string, unknown>) => ({ ...asLoaded(p), language: null });
+  return {
+    // The file's own bytes when nothing had to change, as everywhere else here.
+    value: sameValue(asLoaded(device), asLoaded(next)) ? undefined : next === file ? from : JSON.stringify(next),
+    replaced: !sameValue(chosen(device), chosen({})) && !sameValue(chosen(device), chosen(next)),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // the plan
 // ---------------------------------------------------------------------------
@@ -874,10 +1000,14 @@ export function planRestore(
 
     switch (policy) {
       case 'replace': {
+        if (key === PREFS_KEY) {
+          const prefs = planPrefs(mine, from);
+          if (prefs.value !== undefined) values[key] = prefs.value;
+          settingsReplaced = prefs.replaced;
+          break;
+        }
         if (mine !== from) values[key] = from;
-        // Only an OVERWRITE counts. A fresh install has no settings of its own,
-        // so restoring them there costs nothing and `losesNothing` must not be
-        // dragged false by it — which is the whole case this feature is for.
+        // Only an OVERWRITE counts: restoring onto nothing costs nothing.
         if (typeof mine === 'string' && mine !== from) settingsReplaced = true;
         break;
       }
@@ -889,11 +1019,15 @@ export function planRestore(
         break;
       }
       case 'merge-hifz': {
-        const merged = mergeDecks(readDeck(mine), readDeck(from));
+        const myDeck = readDeck(mine);
+        const merged = mergeDecks(myDeck, readDeck(from));
         hifz = merged.change;
-        if (merged.change.added > 0 || merged.change.recovered > 0) {
-          values[key] = JSON.stringify(merged.deck);
-        }
+        // Written whenever ANY card changed, not only when one was added or
+        // recovered. `mergeCard` also repairs the history of cards this phone
+        // keeps — most importantly `recitedReviews`, so an ayah the old phone
+        // heard stays verified — and those repairs used to be thrown away
+        // unless some unrelated card happened to be added in the same restore.
+        if (!sameValue(asScheduled(merged.deck), asScheduled(myDeck))) values[key] = JSON.stringify(merged.deck);
         break;
       }
       case 'merge-progress': {

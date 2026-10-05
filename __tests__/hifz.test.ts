@@ -6,19 +6,24 @@
  */
 import {
   applyEvidence,
+  applySelfReport,
+  AYAH_COUNT,
   contiguousRuns,
   DEFAULT_EASINESS,
   dueQueue,
   gradeFor,
+  isVerified,
   MAX_INTERVAL_DAYS,
   MIN_EASINESS,
   newCard,
   review,
+  SELF_REPORT_COOLDOWN_MS,
   strengthOf,
   summarize,
   type AyahEvidence,
   type HifzDeck,
 } from '../src/engine/hifz';
+import { TOTAL_AYAHS } from '../src/data/quran';
 import { collectEvidence } from '../src/engine/evidence';
 import {
   analyseMistake,
@@ -28,7 +33,8 @@ import {
   type MistakeRecord,
 } from '../src/engine/confusion';
 
-const DAY = 24 * 60 * 60 * 1000;
+const MINUTE = 60 * 1000;
+const DAY = 24 * 60 * MINUTE;
 const T0 = 1_700_000_000_000; // fixed clock: scheduling must be deterministic
 
 const evidence = (over: Partial<AyahEvidence> = {}): AyahEvidence => ({
@@ -141,7 +147,95 @@ describe('SM-2 review scheduling', () => {
   });
 });
 
+describe('reciting an ayah again before it is due', () => {
+  /**
+   * THE REGRESSION: memorising a page means reciting it many times in one
+   * sitting, and every stop-and-start is a new session. Each clean pass used to
+   * step the card again, so six recitations twenty minutes apart walked a page
+   * learned that morning out 1 → 3 → 8 → 22 → 64 → 90 days.
+   */
+  it('does not walk a new ayah up the ladder in one sitting', () => {
+    let card = newCard(1, T0);
+    for (let i = 0; i < 6; i++) card = review(card, 5, T0 + i * 20 * MINUTE);
+    expect(card.repetitions).toBe(1);
+    expect(card.intervalDays).toBe(1);
+    expect(card.dueAt).toBe(T0 + DAY);
+    // ...and every one of those passes is still on record
+    expect(card.reviews).toBe(6);
+    expect(card.recitedReviews).toBe(6);
+    expect(card.lastReviewedAt).toBe(T0 + 100 * MINUTE);
+  });
+
+  it('never makes an ayah easier on an early pass, but believes one that went badly', () => {
+    const first = review(newCard(1, T0), 5, T0);
+    expect(review(first, 5, T0 + 60 * MINUTE).easiness).toBe(first.easiness);
+    expect(review(first, 3, T0 + 60 * MINUTE).easiness).toBeLessThan(first.easiness);
+  });
+
+  it('steps up as soon as the interval has been waited out', () => {
+    const first = review(newCard(1, T0), 5, T0);
+    const due = review(first, 5, first.dueAt);
+    expect(due.repetitions).toBe(2);
+    expect(due.intervalDays).toBe(3);
+  });
+
+  it('still counts a page revised a little ahead of its due date', () => {
+    // Half the interval, not all of it: the ayahs of one page fall due on
+    // slightly different days, and a page is revised together.
+    let card = review(newCard(1, T0), 5, T0);
+    card = review(card, 5, T0 + DAY); // interval 3, due T0 + 4 days
+    expect(card.intervalDays).toBe(3);
+    expect(review(card, 5, T0 + 2 * DAY).repetitions).toBe(2); // one day in: too soon
+    const ahead = review(card, 5, T0 + 3 * DAY); // two days in, a day before due
+    expect(ahead.repetitions).toBe(3);
+    expect(ahead.intervalDays).toBeGreaterThan(3);
+  });
+
+  it('lets an early recitation verify a tapped card without moving its schedule', () => {
+    const tapped = applySelfReport({}, [1], 'read', T0).deck['1'];
+    const heard = review(tapped, 5, T0 + 60 * MINUTE, 'recited');
+    expect(isVerified(heard)).toBe(true);
+    expect(heard.intervalDays).toBe(tapped.intervalDays);
+    expect(heard.dueAt).toBe(tapped.dueAt);
+  });
+
+  it('still sends an early failure back to tomorrow', () => {
+    let card = review(newCard(1, T0), 5, T0);
+    card = review(card, 5, T0 + DAY);
+    const failed = review(card, 1, T0 + DAY + 60 * MINUTE);
+    expect(failed.repetitions).toBe(0);
+    expect(failed.intervalDays).toBe(1);
+    expect(failed.lapses).toBe(1);
+  });
+
+  it('keeps taps outside the cooldown from walking the ladder too', () => {
+    let deck: HifzDeck = {};
+    for (let i = 0; i < 6; i++) {
+      deck = applySelfReport(deck, [1], 'revised', T0 + i * (SELF_REPORT_COOLDOWN_MS + MINUTE)).deck;
+    }
+    expect(deck['1'].reviews).toBe(6);
+    expect(deck['1'].intervalDays).toBe(1);
+    expect(deck['1'].repetitions).toBe(1);
+  });
+
+  it('heals a review stamped in the future instead of freezing on it', () => {
+    // a clock moved backwards, or a corrupt value: the schedule stays put and
+    // the last-review time comes back to the present
+    const card = { ...review(newCard(1, T0), 5, T0), lastReviewedAt: T0 + 30 * DAY };
+    const next = review(card, 5, T0 + 60 * MINUTE);
+    expect(next.lastReviewedAt).toBe(T0 + 60 * MINUTE);
+    expect(next.dueAt).toBe(card.dueAt);
+    expect(review(next, 5, card.dueAt).repetitions).toBe(2);
+  });
+});
+
 describe('deck, queue and strength', () => {
+  it('knows how many ayahs there are without loading the Quran', () => {
+    // hifz.ts and backup.ts keep their own copy so they stay pure; this is the
+    // test that keeps the copy true
+    expect(AYAH_COUNT).toBe(TOTAL_AYAHS);
+  });
+
   it('folds a session into the deck and grades every ayah touched', () => {
     const { deck, graded } = applyEvidence(
       {},

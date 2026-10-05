@@ -89,6 +89,16 @@ export const isVerified = (card: HifzCard): boolean => recitedReviewsOf(card) > 
 
 export type HifzDeck = Record<string, HifzCard>;
 
+/**
+ * How many ayahs there are: a deck key is a global ayah index below this.
+ *
+ * The same number as TOTAL_AYAHS in src/data/quran.ts, and a test holds the two
+ * together. Repeated rather than imported because this module and the backup
+ * reader that validates restored cards are pure, and importing quran.ts would
+ * load and index the whole bundled text to learn one integer.
+ */
+export const AYAH_COUNT = 6236;
+
 /** Evidence gathered for one ayah during one session. */
 export interface AyahEvidence {
   /** global ayah index */
@@ -152,10 +162,12 @@ export const SELF_REPORT_GRADE: Readonly<Record<SelfReportKind, number>> = {
 /**
  * A self-report cannot move the same card again inside this window.
  *
- * Tapping "I read this page" twice in one sitting is one reading. Without the
- * window each tap walks the card another step up the interval ladder, which is
- * exactly the failure `gradedSessionAt` guards against on the voice path — and
- * it is also what keeps the button from turning into a write per tap.
+ * Tapping "I read this page" twice in one sitting is one reading, so the second
+ * tap is not a review at all: counting it would inflate the card's history, and
+ * it would turn the button into a write per tap. (It also used to walk the card
+ * another step up the interval ladder per tap. `review` now refuses that for
+ * any pass inside half the card's interval — see `rehearsedEarly` — so this
+ * window is no longer what keeps the schedule honest.)
  */
 export const SELF_REPORT_COOLDOWN_MS = 30 * 60 * 1000;
 
@@ -193,6 +205,39 @@ export function gradeFor(evidence: AyahEvidence): number {
   return grade;
 }
 
+/**
+ * Is this review too soon after the last one for a pass to move the schedule?
+ * True inside the first half of the card's interval.
+ *
+ * THE BUG THIS FIXES: every passing grade stepped the card up the ladder,
+ * whenever it arrived. Memorising a new page means reciting it five or ten
+ * times in one sitting, and each stop-and-start is a new session, so six clean
+ * recitations twenty minutes apart walked a brand-new ayah 1 → 3 → 8 → 22 → 64
+ * → 90 days and raised its easiness every time: scheduled three months out on
+ * the day it was learned, which is exactly when it is most fragile. The
+ * per-session dedupe on the voice path and `SELF_REPORT_COOLDOWN_MS` only ever
+ * stopped the SAME session or the SAME tap from counting twice.
+ *
+ * Recalling an ayah minutes after reciting it says almost nothing about whether
+ * it will still be there in three days: an SM-2 interval only means something
+ * once the gap it was set for has been waited out. So an early pass is still a
+ * review — it is recorded, it can verify a card, it can show the ayah went badly
+ * — but it leaves the schedule where it was.
+ *
+ * Half the interval rather than all of it, so revising a page a day or two
+ * before it falls due still counts. The ayahs of one page come due on slightly
+ * different days; refusing every early pass would scatter a page that is
+ * revised together across the calendar.
+ *
+ * A clock that has gone backwards (now before the last review) counts as early:
+ * the schedule stays put and `lastReviewedAt` comes back to the present, which
+ * is the safe direction to be wrong in.
+ */
+function rehearsedEarly(card: HifzCard, now: number): boolean {
+  if (card.reviews === 0 || now >= card.dueAt) return false;
+  return now - card.lastReviewedAt < (card.intervalDays * DAY_MS) / 2;
+}
+
 export function newCard(ayah: number, now: number): HifzCard {
   return {
     ayah,
@@ -225,6 +270,32 @@ export function review(
   const g = Math.max(0, Math.min(5, Math.round(grade)));
   const passed = g >= PASS_GRADE;
   const recitedReviews = recitedReviewsOf(card) + (source === 'recited' ? 1 : 0);
+  const delta = 0.1 - (5 - g) * (0.08 + (5 - g) * 0.02);
+
+  if (passed && rehearsedEarly(card, now)) {
+    /**
+     * A pass this early is a review on record, not a step. The interval, the
+     * repetition count and the due date stay exactly as they were.
+     *
+     * Easiness may still go DOWN — stumbling over an ayah minutes after
+     * reciting it is, if anything, better evidence that it is hard — but never
+     * up, for the same reason a self-report may not raise it: an easy recall
+     * straight after a recitation is the one result that proves nothing.
+     */
+    return {
+      ayah: card.ayah,
+      easiness: Math.max(MIN_EASINESS, card.easiness + Math.min(0, delta)),
+      repetitions: card.repetitions,
+      intervalDays: card.intervalDays,
+      dueAt: card.dueAt,
+      lastReviewedAt: now,
+      lastGrade: g,
+      reviews: card.reviews + 1,
+      lapses: card.lapses,
+      lastSource: source,
+      recitedReviews,
+    };
+  }
 
   let repetitions: number;
   let intervalDays: number;
@@ -241,7 +312,6 @@ export function review(
     intervalDays = 1; // relearn tomorrow
   }
 
-  const delta = 0.1 - (5 - g) * (0.08 + (5 - g) * 0.02);
   /**
    * A self-report may make an ayah HARDER but never easier.
    *

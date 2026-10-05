@@ -9,6 +9,7 @@
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
 import { HifzPanel } from '../src/components/HifzPanel';
+import { ayahStartWord } from '../src/data/quran';
 import { buildProfile, type MistakeRecord } from '../src/engine/confusion';
 import { applyEvidence, newCard, type AyahEvidence, type HifzDeck } from '../src/engine/hifz';
 import { darkPalette, lightPalette } from '../src/theme/theme';
@@ -113,6 +114,57 @@ describe('HifzPanel', () => {
     expect(from).toBe(0);
     expect(to).toBe(7);
     tree.unmount();
+  });
+
+  it('practises the passage holding the weakest due ayah, and counts that passage', () => {
+    // 1:1 is due but known; 2:3–2:4 (global 10, 11) are due and failing. The
+    // button used to practise whichever run came first in the mushaf (1:1)
+    // while its label counted every due ayah ("Revise 3 due ayahs").
+    let deck: HifzDeck = applyEvidence({}, [evidence(0)], T0).deck;
+    const failing = { missedWords: 6, recitedWords: 4 };
+    deck = applyEvidence(deck, [evidence(10, failing), evidence(11, failing)], T0).deck;
+    const calls: [number, number][] = [];
+    const tree = render({ deck, now: T0 + 40 * DAY, onPractise: (from, to) => calls.push([from, to]) });
+
+    const button = tree.root.findAll(
+      (n) => typeof n.props.onPress === 'function' && n.props.accessibilityLabel?.startsWith('Revise'),
+    )[0];
+    expect(button.props.accessibilityLabel).toBe('Revise 2 due ayahs');
+    act(() => {
+      button.props.onPress();
+    });
+    expect(calls).toEqual([[ayahStartWord[10], ayahStartWord[12] - 1]]);
+    tree.unmount();
+  });
+
+  it('points the confusion arrow from the expected letter to the one heard', () => {
+    // The line is all right-to-left, and "→" is not mirrored: it used to point
+    // from the heard letter back at the expected one, against the advice.
+    const records: MistakeRecord[] = [
+      { word: 28, expected: 'الضالين', heardInstead: 'الظالين' },
+      { word: 100, expected: 'يضل', heardInstead: 'يظل' },
+      { word: 200, expected: 'الضحى', heardInstead: 'الظحى' },
+    ];
+    const deck = applyEvidence({}, [evidence(0)], T0).deck;
+    const tree = render({ deck, profile: buildProfile(records), now: T0 + 2 * DAY });
+    const rendered = text(tree);
+    expect(rendered).toContain('ض ← ظ');
+    expect(rendered).not.toContain('→');
+    tree.unmount();
+  });
+
+  it('describes the by-hand button by what it actually does', () => {
+    const hintOf = (selfReport: Parameters<typeof HifzPanel>[0]['selfReport']): unknown => {
+      const tree = render({ selfReport });
+      const hint = tree.root.findAll((n) => n.props.accessibilityLabel === 'Go' && typeof n.props.onPress === 'function')[0]
+        .props.accessibilityHint;
+      tree.unmount();
+      return hint;
+    };
+    expect(hintOf({ label: 'Go', onPress: () => undefined })).toBe(
+      'Adds those ayahs to your revision schedule as read, without using the microphone',
+    );
+    expect(hintOf({ label: 'Go', onPress: () => undefined, hint: 'Opens the Quran' })).toBe('Opens the Quran');
   });
 
   it('surfaces a repeated confusion pattern with advice', () => {

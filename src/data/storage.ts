@@ -216,11 +216,24 @@ export async function loadSessions(): Promise<LoggedSession[]> {
 }
 
 export async function logSession(session: LoggedSession): Promise<void> {
-  const all = await loadSessions();
-  all.push(session);
-  // keep two years of history; a habit app does not need more and this keeps
-  // the AsyncStorage value small enough to parse instantly on cold start
-  const trimmed = all.slice(Math.max(0, all.length - 800));
+  const stored = await loadSessions();
+  /**
+   * One row per session. A session is written again whenever it gets further
+   * — abandoned to the background, then finished — always under the same id,
+   * and the new row REPLACES the old one, in the old one's place so "Recent
+   * sessions" keeps its order. These used to pile up side by side, and the cap
+   * below counted every superseded copy: at two sessions a day, two rows each,
+   * the oldest days fell off after about two hundred days rather than two
+   * years, and a long streak and the lifetime totals quietly shrank.
+   */
+  const at = stored.findIndex((s) => s.id === session.id);
+  const all = stored.filter((s) => s.id !== session.id);
+  if (at === -1) all.push(session);
+  else all.splice(at, 0, session);
+  // Keep the most recent 3000 sessions: two years at four a day, and far more
+  // for most people. A row is about 200 bytes, so even full this stays well
+  // under a megabyte and parses in milliseconds. backup.ts mirrors the number.
+  const trimmed = all.slice(Math.max(0, all.length - 3000));
   await writeJson(KEY.sessions, trimmed);
 }
 
@@ -459,4 +472,85 @@ export async function importAll(values: Record<string, string>): Promise<string[
     }
   }
   return restored;
+}
+
+// ---------------------------------------------------------------------------
+// restoring into the running app
+// ---------------------------------------------------------------------------
+
+/**
+ * Something that keeps stored state in memory and writes its whole copy back.
+ *
+ * THE BUG THIS EXISTS FOR: a restore wrote storage and nothing else.
+ * ThemeProvider holds the settings and RecitationProvider holds the hifz deck,
+ * each read once at mount and each written back WHOLE on the next change. So
+ * the first setting touched, or the first recitation folded, after a restore
+ * put the pre-restore copy straight back over the restored one: every card the
+ * restore had just brought back was deleted by the next thing the user did,
+ * with no warning. Telling them to "close and reopen" did not save it either,
+ * because on Android closing an app rarely ends its process.
+ *
+ * A holder is handed the restore's `write` and must run it once, at a moment
+ * none of its own writes can land in between, and then re-read what it holds
+ * before it writes anything again.
+ */
+export type RestoreHolder = (write: () => Promise<void>) => Promise<void>;
+
+const restoreHolders: RestoreHolder[] = [];
+
+/** Take part in every restore while mounted. Returns the function that stops it. */
+export function holdAcrossRestores(holder: RestoreHolder): () => void {
+  restoreHolders.push(holder);
+  return () => {
+    const i = restoreHolders.indexOf(holder);
+    if (i !== -1) restoreHolders.splice(i, 1);
+  };
+}
+
+export interface RestoreOutcome {
+  /** how many keys the plan wanted to write; 0 means the backup had nothing new */
+  planned: number;
+  /** the keys actually written, as `importAll` reports them */
+  restored: string[];
+}
+
+/**
+ * Write a restore into the running app, with every holder wrapped around it.
+ *
+ * `plan` turns what storage holds now into the values to write — in practice
+ * `(current) => planRestore(current, payload).values`, handed in because
+ * backup.ts imports this file and not the other way round. It runs INSIDE the
+ * holders' wrap, so the plan is made from storage as it is at the moment of
+ * writing rather than when the file was picked: a recitation folded while the
+ * confirmation sat on screen is merged in, not written over.
+ */
+export async function restoreAll(
+  plan: (current: Record<string, string>) => Record<string, string>,
+): Promise<RestoreOutcome> {
+  let outcome: RestoreOutcome = { planned: 0, restored: [] };
+  let written = false;
+  const write = async (): Promise<void> => {
+    if (written) return;
+    written = true;
+    const values = plan(await exportAll());
+    outcome = { planned: Object.keys(values).length, restored: await importAll(values) };
+  };
+  const once = (step: () => Promise<void>): (() => Promise<void>) => {
+    let ran: Promise<void> | null = null;
+    return () => {
+      if (ran === null) ran = step();
+      return ran;
+    };
+  };
+  // Each holder wraps everything registered after it, so the first one is
+  // outermost. The order between them does not matter, only that every one
+  // sees the write happen inside it — once, however often it calls `write`.
+  const wrapped = restoreHolders.reduceRight<() => Promise<void>>((inner, hold) => {
+    const step = once(inner);
+    return () => hold(step);
+  }, write);
+  await wrapped();
+  // A holder that never ran the write must not swallow the restore.
+  await write();
+  return outcome;
 }
