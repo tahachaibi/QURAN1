@@ -18,7 +18,7 @@ export function recognizerErrorText(error: { name: string; message: string }, t:
         'This recognizer has no Arabic model. Try a different locale in Settings (ar-EG, ar-MA), or install Arabic under Settings > System > Languages & input > Voice input > Google > Offline speech recognition.',
       );
     case 'LANGUAGE_UNAVAILABLE':
-      return t("The Arabic offline pack is not downloaded yet. Tap 'Install Arabic offline' on the recitation screen.");
+      return t('The Arabic offline pack is not downloaded yet. Tap “Install Arabic offline pack” on the recitation screen.');
     case 'AUDIO':
       return t(
         'The microphone could not be read. Something else is holding it — end any call, voice recorder or assistant, then tap resume.',

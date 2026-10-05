@@ -288,7 +288,7 @@ describe('the words on the page', () => {
   it('starts a range picked backwards at its FIRST word', async () => {
     const live = wordIndexOf(2, 5);
     const tree = await mount({ session: session({ cursor: live, livePos: live }) });
-    await press(byLabel(tree, 'Practise an ayah range')[0]);
+    await press(byLabel(tree, 'Practice an ayah range')[0]);
     const onWordPress = mockDeckProps.onWordPress as (i: number) => void;
     const earlier = wordIndexOf(2, 2);
     await act(async () => onWordPress(earlier));
@@ -321,7 +321,7 @@ describe('notices over the page', () => {
       },
     });
     const text = textOf(tree);
-    expect(text).toContain('Practising 2:3');
+    expect(text).toContain('Practicing 2:3');
     expect(text).not.toContain('No offline Arabic');
     expect(text).not.toContain('Install Arabic offline pack');
     tree.unmount();
@@ -331,7 +331,7 @@ describe('notices over the page', () => {
     const from = wordIndexOf(1, 7);
     const to = wordIndexOf(2, 3);
     const tree = await mount({ range: { from, to } });
-    expect(textOf(tree)).toContain('Practising 1:7–2:3 · tap to clear');
+    expect(textOf(tree)).toContain('Practicing 1:7–2:3 · tap to clear');
     tree.unmount();
   });
 });
@@ -355,7 +355,7 @@ describe('practising from the summary', () => {
       autoLogged: false,
     };
     const tree = await mount({ summary, session: session({ status: 'stopped' }) });
-    await press(byLabel(tree, 'Practise the weakest ayah from this session')[0]);
+    await press(byLabel(tree, 'Practice the weakest ayah from this session')[0]);
     const [from] = ayahWordRange(2, 20);
     expect(mockRecitation.practiseRange).toHaveBeenCalledWith(from, expect.any(Number));
     expect(mockGoToPage).toHaveBeenCalledWith(pageOf(from), false);

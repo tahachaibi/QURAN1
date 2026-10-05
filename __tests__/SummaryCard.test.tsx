@@ -63,7 +63,7 @@ const practiseButtons = (tree: ReactTestRenderer) =>
   tree.root.findAll(
     (n) =>
       typeof n.type === 'string' &&
-      n.props.accessibilityLabel === 'Practise the weakest ayah from this session',
+      n.props.accessibilityLabel === 'Practice the weakest ayah from this session',
   );
 
 describe('the weakest ayah', () => {
@@ -95,12 +95,12 @@ describe('the practise button', () => {
   it('is offered for a graded ayah, and for hinted words alone', () => {
     const graded = render(summary({ graded: [{ ayah: ayah(2, 3), grade: 3 }] }));
     expect(practiseButtons(graded).length).toBeGreaterThan(0);
-    expect(textOf(graded)).toContain('Practise 2:3');
+    expect(textOf(graded)).toContain('Practice 2:3');
     graded.unmount();
 
     const hinted = render(summary({ hintedWords: [wordIndexOf(2, 5)] }));
     expect(practiseButtons(hinted).length).toBeGreaterThan(0);
-    expect(textOf(hinted)).toContain('Practise shaky words');
+    expect(textOf(hinted)).toContain('Practice shaky words');
     hinted.unmount();
   });
 });

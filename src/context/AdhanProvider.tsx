@@ -344,7 +344,7 @@ export function AdhanProvider({ children }: { children: ReactNode }) {
         setScheduleError({
           kind: 'permission',
           text: t(
-            'Notifications are turned off for Tasmee Hifz, so there is no call to prayer. Turn them on in Settings > Apps > Tasmee Hifz > Notifications.',
+            'Notifications are turned off for Tasmee Hifz, so the adhan and reminders cannot reach you while the app is closed. Turn them on in Settings > Apps > Tasmee Hifz > Notifications.',
           ),
         });
         return;

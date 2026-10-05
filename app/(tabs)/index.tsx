@@ -150,7 +150,7 @@ export default function PrayerScreen() {
       {next !== null ? (
         <View style={[styles.hero, { backgroundColor: palette.primary }]}>
           <Text style={[styles.heroLabel, { color: palette.accentSoft }]}>
-            {next.tomorrow ? t('Tomorrow') : t('Next')}
+            {next.tomorrow ? t('Tomorrow') : t('Next prayer')}
           </Text>
           <Text style={[styles.heroName, { color: '#FFFFFF' }]}>{prayerName(next.name, lang)}</Text>
           <Text style={[styles.heroCountdown, { color: palette.accent }]}>

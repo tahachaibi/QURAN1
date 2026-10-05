@@ -429,7 +429,7 @@ export default function SurahScreen() {
         accessibilityHint={
           micPermission === 'blocked'
             ? t('Opens this app’s permissions in Android settings, the only way to turn the microphone back on')
-            : t('Asks for microphone access again so following along can listen')
+            : t('Asks for microphone access again so follow-along can listen')
         }
       />
     );
@@ -457,7 +457,7 @@ export default function SurahScreen() {
   } else if (listening && !recognizer.heardSomething) {
     notice = (
       <Chip
-        label={t('Listening — nothing recognised yet')}
+        label={t('Listening — nothing recognized yet')}
         icon="ellipsis-horizontal"
         palette={palette}
         onPress={() => setTranscriptOpen(true)}
@@ -481,7 +481,7 @@ export default function SurahScreen() {
   } else if (range !== null) {
     notice = (
       <Chip
-        label={t('Practising {range} · tap to clear', { range: rangeLabel(range.from, range.to) })}
+        label={t('Practicing {range} · tap to clear', { range: rangeLabel(range.from, range.to) })}
         icon="repeat"
         tone="accent"
         palette={palette}
@@ -491,7 +491,7 @@ export default function SurahScreen() {
   } else if (recognizer.offlineDropped) {
     notice = (
       <Chip
-        label={t('No offline Arabic — recognising online')}
+        label={t('No offline Arabic — recognizing online')}
         icon="cloud-outline"
         palette={palette}
         onPress={() => void recognizer.requestLanguagePack()}
@@ -731,7 +731,7 @@ export default function SurahScreen() {
               <Pressable
                 onPress={() => setSelecting(session.livePos)}
                 accessibilityRole="button"
-                accessibilityLabel={t('Practise an ayah range')}
+                accessibilityLabel={t('Practice an ayah range')}
                 accessibilityHint={t('Starts at your current word; then tap the last word of the range')}
                 style={[styles.hintButton, { borderColor: palette.border }]}
               >
