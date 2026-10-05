@@ -13,8 +13,18 @@
  * imported eagerly. The text is 21.8 MB and is `require`d lazily per collection:
  * Metro runs a module's factory on first require, so nothing is materialised
  * until someone actually opens a collection.
+ *
+ * Once opened, a collection stays in memory for the life of the process. That is
+ * Metro's doing, not a choice made here: its module registry keeps every module's
+ * exports once the factory has run, and has no way to forget one. There used to
+ * be a release() that dropped this file's own reference and claimed to free the
+ * text; the registry still held it, so it freed nothing, and it is gone rather
+ * than left to mislead.
  */
 import rawIndex from '../assets/hadith-index.json';
+import { foldArabic, foldedPattern } from './fold';
+
+export { foldArabic };
 
 /** [chapterId, arabicName, englishName, count] */
 type ChapterRow = [number, string, string, number];
@@ -86,7 +96,8 @@ const loaded = new Map<number, HadithRow[]>();
 
 /**
  * Load one collection's text. The require is inside the function on purpose:
- * at module scope it would pull 22 MB into memory on app start.
+ * at module scope it would pull 22 MB into memory on app start. (A collection
+ * that has been opened stays open; see the note at the top of this file.)
  */
 function rowsOf(collectionId: number): HadithRow[] {
   const cached = loaded.get(collectionId);
@@ -106,12 +117,7 @@ function rowsOf(collectionId: number): HadithRow[] {
   return rows;
 }
 
-/** Free a collection's text. Reading two whole collections at once is 22 MB. */
-export function release(collectionId?: number): void {
-  if (collectionId === undefined) loaded.clear();
-  else loaded.delete(collectionId);
-}
-
+/** Whether a collection's text has been opened yet, which happens only on demand. */
 export const isLoaded = (collectionId: number): boolean => loaded.has(collectionId);
 
 const toHadith = (collectionId: number, row: HadithRow): Hadith => ({
@@ -139,79 +145,88 @@ export function hadithByNumber(collectionId: number, number: number): Hadith | u
 // search
 // ---------------------------------------------------------------------------
 
-/**
- * Fold Arabic so a search types like a search: strip the harakat the text is
- * full of and the reader will not type, and normalise the letters that vary in
- * spelling. Reuses the same idea as the recitation matcher, deliberately kept
- * simple — this is a text filter, not the aligner.
- */
-const MARKS = /[ؐ-ًؚ-ٰٟۖ-ۭـ]/g;
-export function foldArabic(value: string): string {
-  return value
-    .replace(MARKS, '')
-    .replace(/[أإآٱ]/g, 'ا')
-    .replace(/ى/g, 'ي')
-    .replace(/ؤ/g, 'و')
-    .replace(/ئ/g, 'ي')
-    .replace(/ة/g, 'ه')
-    .replace(/ء/g, '');
-}
-
 export interface HadithSearchOptions {
   /** limit to one collection; omit to search both */
   collectionId?: number;
   limit?: number;
 }
 
+export interface HadithSearchPage {
+  /** the matches shown, each collection's in its own order, Bukhari's first */
+  hits: Hadith[];
+  /** true when more hadith matched than `limit` let through */
+  more: boolean;
+}
+
 /**
  * Substring search over the Arabic and the English.
  *
- * Deliberately a scan rather than an index: it runs over one collection at a
- * time, only when the user has typed something, and the alternative — an
- * inverted index over 22 MB — is a second bundled asset for a feature nobody
- * uses at 60 fps.
+ * Deliberately a scan rather than an index: it runs only when the user has
+ * typed something, and the alternative — an inverted index over 22 MB — is a
+ * second bundled asset for a feature nobody uses at 60 fps.
+ *
+ * WHAT A SCAN COSTS is folding, not reading. Folding every narration to compare
+ * it with the folded query was seven regex passes and a new string per hadith,
+ * on every search: a quarter of a second per keystroke for a rare word, even
+ * under V8, and the phone runs Hermes, which has no JIT. The query is now
+ * compiled once into a pattern that matches the unfolded text directly (see
+ * foldedPattern), which gives the same answers without copying anything.
+ *
+ * BOTH COLLECTIONS GET A FAIR SHARE when neither is named. Filling the limit in
+ * collection order meant any common word showed forty Bukhari results and not
+ * one from Muslim, under a box promising to search both. Each collection is now
+ * offered an equal share of the limit, and whatever one cannot fill goes to the
+ * other.
  */
-export function searchHadith(query: string, options: HadithSearchOptions = {}): Hadith[] {
+export function searchHadithPage(query: string, options: HadithSearchOptions = {}): HadithSearchPage {
   const raw = query.trim();
-  if (raw.length < 2) return [];
+  if (raw.length < 2) return { hits: [], more: false };
   const limit = options.limit ?? 60;
-  const arabicNeedle = foldArabic(raw);
+  const arabic = foldedPattern(raw);
   const englishNeedle = raw.toLowerCase();
   const ids =
     options.collectionId === undefined ? collections.map((c) => c.id) : [options.collectionId];
 
-  const out: Hadith[] = [];
-  /**
-   * An unscoped search opens whatever it has to, and there are 22 MB to open.
-   *
-   * A common word stops at the limit inside the first collection. A rare one
-   * walks both — and without this, both would then stay resident for the rest of
-   * the session because one search asked a question of them. So anything opened
-   * BY this search and found to contain nothing is released again. The results
-   * keep the strings they matched; it is the row arrays that go.
-   */
-  const openedHere: number[] = [];
-  const contributed = new Set<number>();
-
-  try {
-    for (const id of ids) {
-      if (!isLoaded(id)) openedHere.push(id);
-      for (const row of rowsOf(id)) {
-        if (
-          foldArabic(row[2]).includes(arabicNeedle) ||
-          row[4].toLowerCase().includes(englishNeedle) ||
-          row[3].toLowerCase().includes(englishNeedle)
-        ) {
-          contributed.add(id);
-          out.push(toHadith(id, row));
-          if (out.length >= limit) return out;
-        }
+  // One more than the limit from each collection: enough to tell "exactly this
+  // many" from "more than we are showing" without reading any further.
+  const found = ids.map((id) => {
+    const hits: Hadith[] = [];
+    for (const row of rowsOf(id)) {
+      if (
+        (arabic !== null && arabic.test(row[2])) ||
+        row[4].toLowerCase().includes(englishNeedle) ||
+        row[3].toLowerCase().includes(englishNeedle)
+      ) {
+        hits.push(toHadith(id, row));
+        if (hits.length > limit) break;
       }
     }
-    return out;
-  } finally {
-    for (const id of openedHere) if (!contributed.has(id)) release(id);
+    return hits;
+  });
+
+  // Deal the limit out one at a time, round the collections, skipping any that
+  // has run out — equal shares, with the unused part of one going to the rest.
+  const take = found.map(() => 0);
+  let left = limit;
+  let dealt = true;
+  while (left > 0 && dealt) {
+    dealt = false;
+    for (let i = 0; i < found.length && left > 0; i++) {
+      if (take[i] < found[i].length) {
+        take[i] += 1;
+        left -= 1;
+        dealt = true;
+      }
+    }
   }
+
+  const total = found.reduce((n, hits) => n + hits.length, 0);
+  return { hits: found.flatMap((hits, i) => hits.slice(0, take[i])), more: total > limit };
+}
+
+/** The matches alone, for callers that do not show whether there were more. */
+export function searchHadith(query: string, options: HadithSearchOptions = {}): Hadith[] {
+  return searchHadithPage(query, options).hits;
 }
 
 /** Filter chapters by name, for the chapter list's own search box. */

@@ -2,54 +2,103 @@
  * Adhkar of the morning and the evening.
  *
  * Reached from the Hadith tab, because that is where the app keeps narrated text
- * rather than revealed text — and every du'a on this screen is a verbatim slice of
- * a hadith bundled in the app, with its collection and number shown so it can be
- * checked against a printed copy.
+ * rather than revealed text. Every card names its source and claims no more
+ * than the app can show: a du'a whose wording matches a narration bundled in the
+ * app shows that hadith and its number, so it can be checked against a printed
+ * copy; one that matches none names islambook.com, the list it was supplied
+ * from; a Qur'an passage is read from the app's own mushaf text and cited by
+ * surah and ayah.
  *
  * Two typefaces on purpose: Qur'an passages are set in the mushaf face, du'as in
  * Amiri. Setting a narration in the Qur'an's typeface would dress it as
  * revelation, and this screen puts the two side by side.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AppState, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 import { adhkarFor, defaultTime, type AdhkarTime, type Dhikr } from '../src/data/adhkar';
 import { collectionById } from '../src/data/hadith';
-import { loadAdhkarCounts, saveAdhkarCounts } from '../src/data/storage';
+import { loadAdhkarCounts, saveAdhkarCounts, today } from '../src/data/storage';
 import { surahName } from '../src/i18n/names';
 import { useT } from '../src/i18n/useT';
 import { useTheme } from '../src/theme/ThemeProvider';
-import { radius, space } from '../src/theme/theme';
+import { ayahTextSizes, radius, space, type FontStep } from '../src/theme/theme';
+
+/**
+ * Repetitions done, per dhikr — saying something a hundred times needs a tally —
+ * together with the day and the list they were counted for. Kept as one value so
+ * a tally can never be shown on, added to, or saved as a day or a list it does
+ * not belong to.
+ */
+interface Tally {
+  day: string;
+  time: AdhkarTime;
+  counts: Record<string, number>;
+}
+
+const NONE: Record<string, number> = {};
+
+/**
+ * What a tap builds on: the tallies held, unless the day has turned or the list
+ * has switched underneath them, which leaves nothing to build on.
+ */
+const countsFor = (tally: Tally, day: string, time: AdhkarTime): Record<string, number> =>
+  tally.day === day && tally.time === time ? tally.counts : NONE;
 
 export default function AdhkarScreen() {
   const { palette, fontStep, prefs } = useTheme();
   const { t } = useT();
   const [time, setTime] = useState<AdhkarTime>(() => defaultTime());
-  /** Repetitions done, per dhikr. Saying something a hundred times needs a tally. */
-  const [counts, setCounts] = useState<Record<string, number>>({});
+  /** the day the screen last read its tallies for; a new one means a reload */
+  const [day, setDay] = useState(() => today());
+  const [tally, setTally] = useState<Tally>(() => ({ day: today(), time, counts: NONE }));
 
   const items = useMemo(() => adhkarFor(time), [time]);
 
-  // Today's tallies, restored on arrival and after every switch.
+  // Today's tallies, restored on arrival, after every switch, and on a new day.
   useEffect(() => {
     let live = true;
     void loadAdhkarCounts(time).then((saved) => {
-      if (live) setCounts(saved);
+      if (live) setTally({ day: today(), time, counts: saved });
     });
     return () => {
       live = false;
     };
-  }, [time]);
+  }, [time, day]);
+
+  /**
+   * Coming back to a screen left open overnight. Android keeps the process, so
+   * the screen used to come back showing last night's list, every card done,
+   * and the first tap saved those tallies as today's. A new day opens on its
+   * own list, counted from nothing.
+   */
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state !== 'active' || today() === day) return;
+      setDay(today());
+      setTime(defaultTime());
+    });
+    return () => sub.remove();
+  }, [day]);
 
   const switchTo = useCallback((next: AdhkarTime) => setTime(next), []);
 
   const bump = useCallback(
     (id: string, repeat: number) => {
-      setCounts((prev) => {
-        const done = prev[id] ?? 0;
-        const next = done >= repeat ? 0 : done + 1;
+      setTally((prev) => {
+        const now = today();
+        const counts = countsFor(prev, now, time);
+        const done = counts[id] ?? 0;
+        /**
+         * Done stays done. Counting a hundred by feel overshoots by a tap, and
+         * that tap used to wrap the tally back to nought — the whole hundred
+         * gone, with nothing but a light buzz to say so. Starting over is a long
+         * press on the tally, which nobody makes by accident.
+         */
+        if (done >= repeat) return prev;
+        const next = done + 1;
         /**
          * A tap you can feel, because counting to a hundred should not need
          * looking. Heavier at the last one, so finishing is unmistakable without
@@ -60,13 +109,33 @@ export default function AdhkarScreen() {
             next === repeat ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Light,
           ).catch(() => undefined);
         }
-        const updated = { ...prev, [id]: next };
+        const updated = { ...counts, [id]: next };
         void saveAdhkarCounts(time, updated);
-        return updated;
+        return { day: now, time, counts: updated };
       });
     },
     [prefs.haptics, time],
   );
+
+  const restart = useCallback(
+    (id: string) => {
+      setTally((prev) => {
+        const now = today();
+        const counts = countsFor(prev, now, time);
+        if ((counts[id] ?? 0) === 0) return prev;
+        if (prefs.haptics) {
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
+        }
+        const updated = { ...counts, [id]: 0 };
+        void saveAdhkarCounts(time, updated);
+        return { day: now, time, counts: updated };
+      });
+    },
+    [prefs.haptics, time],
+  );
+
+  // Read at render, so the first render after midnight shows the new day empty.
+  const counts = countsFor(tally, today(), time);
 
   return (
     <View style={[styles.root, { backgroundColor: palette.background }]}>
@@ -82,12 +151,14 @@ export default function AdhkarScreen() {
               accessibilityLabel={option === 'morning' ? t('Morning adhkar') : t('Evening adhkar')}
               style={[styles.segmentButton, active ? { backgroundColor: palette.primary } : null]}
             >
+              {/* paper, not white: the night palette's primary is a light
+                  green, and white on it measured 2.0:1 */}
               <Ionicons
                 name={option === 'morning' ? 'sunny-outline' : 'moon-outline'}
                 size={15}
-                color={active ? '#FFFFFF' : palette.textMuted}
+                color={active ? palette.paper : palette.textMuted}
               />
-              <Text style={[styles.segmentText, { color: active ? '#FFFFFF' : palette.textMuted }]}>
+              <Text style={[styles.segmentText, { color: active ? palette.paper : palette.textMuted }]}>
                 {option === 'morning' ? t('Morning') : t('Evening')}
               </Text>
             </Pressable>
@@ -103,6 +174,7 @@ export default function AdhkarScreen() {
             dhikr={item}
             done={counts[item.id] ?? 0}
             onCount={() => bump(item.id, item.repeat)}
+            onRestart={() => restart(item.id)}
             palette={palette}
             fontStep={fontStep}
           />
@@ -125,14 +197,16 @@ function DhikrCard({
   dhikr,
   done,
   onCount,
+  onRestart,
   palette,
   fontStep,
 }: {
   dhikr: Dhikr;
   done: number;
   onCount: () => void;
+  onRestart: () => void;
   palette: ReturnType<typeof useTheme>['palette'];
-  fontStep: number;
+  fontStep: FontStep;
 }) {
   const [openSource, setOpenSource] = useState(false);
   const { t, lang, arabic } = useT();
@@ -141,6 +215,13 @@ function DhikrCard({
   // else, and every du'a that only ever had an Arabic name, gets the Arabic.
   const title = arabic ? (dhikr.titleAr ?? dhikr.titleEn ?? '') : (dhikr.titleEn ?? dhikr.titleAr ?? '');
   const complete = done >= dhikr.repeat;
+  /**
+   * The Text size setting's own scale, the one the mushaf and the hadith cards
+   * use. A fixed size plus the step (0, 1 or 2) moved the du'as 20 → 22 px
+   * across the three settings while the mushaf moved 24 → 34. The factors keep
+   * the middle setting where it was (21 and 23 px).
+   */
+  const lineSize = Math.round(ayahTextSizes[fontStep].fontSize * (quran ? 0.8 : 0.72));
 
   const sourceLabel =
     dhikr.source.kind === 'quran'
@@ -195,13 +276,14 @@ function DhikrCard({
         )}
         <Pressable
           onPress={onCount}
+          onLongPress={onRestart}
           accessibilityRole="button"
           accessibilityLabel={
             dhikr.repeat === 1
               ? t('Mark {title} as said', { title })
               : t('Count a repetition of {title}, {done} of {total} done', { title, done, total: dhikr.repeat })
           }
-          accessibilityHint={t('Tap to count; tapping again after the last one starts over')}
+          accessibilityHint={t('Tap to count; long-press to start over')}
           hitSlop={8}
           style={[
             styles.tally,
@@ -225,8 +307,7 @@ function DhikrCard({
           key={i}
           style={[
             quran ? styles.quranLine : styles.duaLine,
-            { color: palette.ink, fontSize: (quran ? 22 : 20) + fontStep },
-            quran ? { lineHeight: (22 + fontStep) * 2 } : { lineHeight: (20 + fontStep) * 1.9 },
+            { color: palette.ink, fontSize: lineSize, lineHeight: Math.round(lineSize * (quran ? 2 : 1.9)) },
           ]}
         >
           {line}

@@ -6,6 +6,7 @@
  * mushaf page — is derived from that integer. No screen owns a position.
  */
 import { tokenizeAyah } from '../engine/normalize';
+import { asciiDigits, foldArabic } from './fold';
 import rawData from '../assets/quran-data.json';
 import rawWords from '../assets/quran-words.json';
 import hizbRaw from '../assets/hizb.json';
@@ -157,6 +158,48 @@ export function surahInfo(surah: number): SurahInfo {
   const s = surahs[surah - 1];
   if (!s) throw new Error(`surah ${surah} out of range 1..114`);
   return s;
+}
+
+/** Latin as the search compares it: lower case, without hyphens, apostrophes or spaces. */
+const latinKey = (value: string): string => value.toLowerCase().replace(/[\s\-'`\u2019\u2018\u02BF\u02BE]+/g, '');
+
+/** Each surah's names as the search compares them, worked out once. */
+const SEARCH_KEYS = surahs.map((s) => ({
+  arabic: foldArabic(s.name).replace(/\s+/g, ''),
+  transliteration: latinKey(s.transliteration),
+  translation: latinKey(s.translation),
+}));
+
+/**
+ * The surah list's search: an Arabic name, a transliteration, a meaning, or a
+ * number.
+ *
+ * Arabic is compared folded, because that is how it is typed: without harakat,
+ * and mostly without the hamza on its seat — الاسراء, الانعام, اخلاص. The
+ * exact-substring match this replaces found nothing for any of those, nor for
+ * "سورة البقرة", nor for a number typed on an Arabic keyboard (١٨). Latin is
+ * compared without its hyphens and spaces, so "al ikhlas" finds Al-Ikhlas.
+ */
+export function searchSurahs(query: string): readonly SurahInfo[] {
+  const q = foldArabic(asciiDigits(query))
+    .trim()
+    // the word for surah is not part of any surah's name
+    .replace(/^(?:سوره|surah|surat|sura)(?:\s+|$)/i, '')
+    .trim();
+  if (q.length === 0) return surahs;
+  if (/^\d+$/.test(q)) {
+    const n = Number(q);
+    return surahs.filter((s) => s.number === n);
+  }
+  if (/[\u0600-\u06FF]/.test(q)) {
+    const needle = q.replace(/\s+/g, '');
+    return surahs.filter((_, i) => SEARCH_KEYS[i].arabic.includes(needle));
+  }
+  const needle = latinKey(q);
+  if (needle.length === 0) return surahs;
+  return surahs.filter(
+    (_, i) => SEARCH_KEYS[i].transliteration.includes(needle) || SEARCH_KEYS[i].translation.includes(needle),
+  );
 }
 
 export interface Ayah {

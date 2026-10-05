@@ -34,7 +34,10 @@ export const HadithCard = memo(function HadithCard({
   return (
     <View style={[styles.card, { backgroundColor: palette.paper, borderColor: palette.paperEdge }]}>
       <View style={styles.header}>
-        <Text style={[styles.number, { color: palette.accent, borderColor: palette.accent }]}>
+        {/* Gold stays on the ring only. As the colour of 11-point text on day
+            paper it measured 2.3:1, and this is the number a reader copies
+            down to check the narration against a printed copy. */}
+        <Text style={[styles.number, { color: palette.primary, borderColor: palette.accent }]}>
           {hadith.number}
         </Text>
         {collection !== undefined ? (

@@ -16,6 +16,8 @@
  * real list on first use and caches it; the small bundled list below is only the
  * cold-start fallback, and every path in it is one I have seen written down.
  */
+import { foldArabic } from './fold';
+
 export interface Reciter {
   /** stable id: the relative path, which is unique per recording */
   id: string;
@@ -65,14 +67,20 @@ export function surahAudioUrl(surah: number, path: string): string {
 export const reciterLabel = (r: Reciter): string =>
   r.style === undefined || r.style.length === 0 ? r.name : `${r.name} · ${r.style}`;
 
-/** Free-text search over both names, the style and the folder. */
+/**
+ * Free-text search over both names, the style and the folder.
+ *
+ * The Arabic name is compared folded, as the surah search is: "مصطفى اسماعيل",
+ * typed the way phones type it, has to find مصطفى إسماعيل.
+ */
 export function searchReciters(all: readonly Reciter[], query: string): readonly Reciter[] {
   const q = query.trim().toLowerCase();
   if (q.length === 0) return all;
+  const arabic = foldArabic(query.trim());
   return all.filter(
     (r) =>
       r.name.toLowerCase().includes(q) ||
-      (r.arabicName ?? '').includes(query.trim()) ||
+      (arabic.length > 0 && foldArabic(r.arabicName ?? '').includes(arabic)) ||
       (r.style ?? '').toLowerCase().includes(q) ||
       r.path.toLowerCase().includes(q),
   );
