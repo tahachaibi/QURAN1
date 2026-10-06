@@ -84,6 +84,11 @@ export interface RecognizerCallbacks {
    * session should stop counting time and holding the screen awake.
    */
   onFailed: () => void;
+  /**
+   * Every lifecycle change of the native recognizer, for the recitation log:
+   * device logs without them could show a gap but not why it happened.
+   */
+  onState?: (state: string, strategy: string) => void;
 }
 
 export interface RecognizerHandle {
@@ -288,6 +293,7 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
       }),
       speech.addListener('state', (event: SpeechStateEvent) => {
         setStrategy(event.strategy);
+        callbacks.current.onState?.(event.state, event.strategy);
         if (event.relayGapMs > 0) setLastRelayGapMs(event.relayGapMs);
         // Capabilities are read once at launch, before any session could have
         // proved segmented mode, so Settings could never say it was working.

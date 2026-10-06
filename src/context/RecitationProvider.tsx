@@ -567,13 +567,13 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
   const capture = useRef<ReplayFixture>({ name: 'captured', startCursor: 0, events: [] });
   const lastEventAt = useRef(0);
   const recordEvent = useCallback(
-    (kind: 'partial' | 'final' | 'segment', alternatives?: string[]) => {
+    (kind: 'partial' | 'final' | 'segment' | 'state', alternatives?: string[], state?: string) => {
       const now = Date.now();
       const dt = lastEventAt.current === 0 ? 0 : now - lastEventAt.current;
       lastEventAt.current = now;
       const events = capture.current.events;
       // bound the capture so a five-minute session cannot grow without limit
-      if (events.length < 4000) events.push({ kind, alternatives, dt });
+      if (events.length < 4000) events.push(state === undefined ? { kind, alternatives, dt } : { kind, state, dt });
     },
     [],
   );
@@ -608,6 +608,10 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'final', alternatives: event.alternatives, at: Date.now(), emittedAt: event.emittedAt });
       },
       [dispatch, recordEvent],
+    ),
+    onState: useCallback(
+      (state: string, strategy: string) => recordEvent('state', undefined, `${state}:${strategy}`),
+      [recordEvent],
     ),
     onEndOfSegment: useCallback(() => {
       recordEvent('segment');

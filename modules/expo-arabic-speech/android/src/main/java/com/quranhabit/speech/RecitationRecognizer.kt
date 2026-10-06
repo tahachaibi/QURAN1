@@ -3,12 +3,15 @@ package com.quranhabit.speech
 import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
+import android.media.AudioFormat
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.ParcelFileDescriptor
+import android.util.Log
 import android.speech.RecognitionListener
 import android.speech.RecognitionSupport
 import android.speech.RecognitionSupportCallback
@@ -26,9 +29,18 @@ import java.util.concurrent.Executor
  * with checkDebugDuplicateClasses. Owning the lifecycle here is the whole point
  * — every quality problem in the previous build was a lifecycle problem.
  *
- * Three strategies, tried in the priority order of spec §4, each verified at
- * runtime rather than assumed:
+ * Four strategies, tried in this priority order, each verified at runtime
+ * rather than assumed:
  *
+ *  0. STREAM     (API 33+) The app owns the microphone (MicPump) and feeds the
+ *     recognizer through a pipe, RecognizerIntent.EXTRA_AUDIO_SOURCE, with the
+ *     segmented session keyed on that source: the session lasts until the app
+ *     closes the pipe, so it never has to be restarted, and if it does end the
+ *     audio captured meanwhile is queued for the next one. Device recordings
+ *     showed the other strategies losing 8-12 s at every session handover,
+ *     about every 30 s of recitation; this is the fix. A device whose
+ *     recognizer ignores the audio source is detected (it never reads the pipe,
+ *     or reads it and never answers) and demoted to SEGMENTED.
  *  1. SEGMENTED  RecognizerIntent.EXTRA_SEGMENTED_SESSION (API 33+). One
  *     recognition session survives pauses and delivers repeated
  *     onSegmentResults() instead of ending the utterance, which removes the
@@ -51,7 +63,7 @@ class RecitationRecognizer(
   private val context: Context,
   private val emit: (event: String, payload: Bundle) -> Unit,
 ) {
-  enum class Strategy { SEGMENTED, ON_DEVICE, RELAY }
+  enum class Strategy { STREAM, SEGMENTED, ON_DEVICE, RELAY }
 
   data class Options(
     val locale: String = "ar-SA",
@@ -88,6 +100,17 @@ class RecitationRecognizer(
 
   /** set once this device has proved it ignores EXTRA_SEGMENTED_SESSION */
   private var segmentedFailed = false
+
+  /** set once this device has proved it does not read EXTRA_AUDIO_SOURCE */
+  private var streamFailed = false
+  /** set once a recognizer fed from the pipe has returned a word */
+  private var streamProven = false
+  /** the app-owned microphone, in STREAM only */
+  private var pump: MicPump? = null
+  /** our copy of the read end handed to the current session; closed when it is replaced */
+  private var streamReadEnd: ParcelFileDescriptor? = null
+  /** when the current STREAM session was attached, for the stream check */
+  private var streamAttachedAt = 0L
 
   /**
    * Whether to still ask for offline recognition.
@@ -157,6 +180,9 @@ class RecitationRecognizer(
    * microphone went deaf after the first utterance of every session.
    */
   fun supportsSegmented(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+
+  /** EXTRA_AUDIO_SOURCE and its companions arrived with segmented sessions, in Android 13. */
+  fun supportsStream(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
 
   fun capabilities(): Bundle = Bundle().apply {
     putInt("sdkInt", Build.VERSION.SDK_INT)
@@ -304,6 +330,7 @@ class RecitationRecognizer(
   }
 
   private fun chooseStrategy(): Strategy = when {
+    options.allowSegmented && supportsStream() && !streamFailed -> Strategy.STREAM
     options.allowSegmented && supportsSegmented() && !segmentedFailed -> Strategy.SEGMENTED
     options.preferOnDevice && supportsOnDevice() -> Strategy.ON_DEVICE
     else -> Strategy.RELAY
@@ -382,6 +409,98 @@ class RecitationRecognizer(
     runCatching { outgoing?.destroy() }
     current = null
     outgoing = null
+    stopStream()
+  }
+
+  /** Close the app-owned microphone and the pipe; idempotent. */
+  private fun stopStream() {
+    pump?.stop()
+    pump = null
+    runCatching { streamReadEnd?.close() }
+    streamReadEnd = null
+  }
+
+  /**
+   * Start the app-owned microphone if STREAM is the strategy. On failure the
+   * strategy is demoted here, before anything opens the microphone the other way.
+   */
+  private fun ensurePump(): Boolean {
+    if (pump?.isRunning == true) return true
+    val fresh = MicPump(
+      onLevel = { level -> main.post { if (active && strategy == Strategy.STREAM) emitLevel(level) } },
+      onLost = { main.post { onStreamLost() } },
+    )
+    if (fresh.start()) {
+      pump = fresh
+      return true
+    }
+    return false
+  }
+
+  /** The app-owned microphone stopped delivering: the same as ERROR_AUDIO. */
+  private fun onStreamLost() {
+    if (!active || strategy != Strategy.STREAM) return
+    active = false
+    generation++
+    runCatching { current?.cancel() }
+    releaseAll()
+    abandonAudioFocus()
+    emitState("mic-unavailable")
+  }
+
+  /**
+   * STREAM did not work on this device. Close the microphone first, so the
+   * recognizer can open it, then carry on with the next strategy for the rest
+   * of the process.
+   */
+  private fun demoteStream(reason: String) {
+    if (strategy != Strategy.STREAM) return
+    streamFailed = true
+    generation++ // the current session's late callbacks are now stale
+    runCatching { current?.cancel() }
+    runCatching { current?.destroy() }
+    current = null
+    stopStream()
+    strategy = chooseStrategy()
+    // Not an error the reciter needs to see: the session carries on the old way.
+    Log.i(TAG, "STREAM demoted: $reason")
+    emitState("stream-unsupported")
+    launch(fresh = false)
+  }
+
+  /**
+   * Watch a STREAM session until it has proved itself, and afterwards for a
+   * session that stops reading. Two ways a recognizer shows it does not take
+   * audio from the pipe: it never reads it (the pump's queue fills while a
+   * session is attached), or it reads and never returns a word while the
+   * microphone clearly hears a voice.
+   */
+  private fun scheduleStreamCheck(myGeneration: Int) {
+    main.postDelayed({
+      if (!active || generation != myGeneration || strategy != Strategy.STREAM) return@postDelayed
+      val p = pump ?: return@postDelayed
+      val attachedFor = System.currentTimeMillis() - streamAttachedAt
+      if (!streamProven) {
+        if (p.backlogged) {
+          demoteStream("The speech recognizer on this phone does not accept audio from the app.")
+          return@postDelayed
+        }
+        if (attachedFor > STREAM_PROOF_MS && p.speechFramesSinceAttach > STREAM_PROOF_SPEECH_FRAMES) {
+          demoteStream("The speech recognizer on this phone returned nothing for audio from the app.")
+          return@postDelayed
+        }
+      } else if (p.backlogged) {
+        // It worked, then this session stopped reading: give the audio to a new one.
+        handOverFromCheck()
+        return@postDelayed
+      }
+      scheduleStreamCheck(myGeneration)
+    }, STREAM_CHECK_MS)
+  }
+
+  private fun handOverFromCheck() {
+    runCatching { current?.cancel() }
+    launch(fresh = false)
   }
 
   /**
@@ -414,14 +533,30 @@ class RecitationRecognizer(
       if (!active) return@post
       val myGeneration = ++generation
       val previous = current
+
+      // STREAM: a fresh pipe per session, the microphone kept open across them.
+      var pipe: Array<ParcelFileDescriptor>? = null
+      if (strategy == Strategy.STREAM) {
+        pipe = if (ensurePump()) runCatching { ParcelFileDescriptor.createPipe() }.getOrNull() else null
+        if (pipe == null) {
+          // No microphone of our own, or no pipe: this phone takes the old road.
+          streamFailed = true
+          stopStream()
+          strategy = chooseStrategy()
+          emitState("stream-unsupported")
+        }
+      }
+
       val recognizer = createRecognizer()
       if (recognizer == null) {
+        pipe?.forEach { fd -> runCatching { fd.close() } }
         emitError("create-failed", "Could not create a SpeechRecognizer. Is RECORD_AUDIO granted?")
         // `previous` is still `current`, so releaseAll() inside fail() reaches it
         fail()
         return@post
       }
-      recognizer.setRecognitionListener(Listener(myGeneration))
+      val listener = Listener(myGeneration)
+      recognizer.setRecognitionListener(listener)
       current = recognizer
 
       val gap = if (relayStartedAt == 0L) 0L else System.currentTimeMillis() - relayStartedAt
@@ -429,13 +564,35 @@ class RecitationRecognizer(
       resultsThisInstance = 0
 
       runCatching {
-        recognizer.startListening(buildIntent(options.locale, segmented = strategy == Strategy.SEGMENTED))
+        recognizer.startListening(
+          buildIntent(
+            options.locale,
+            segmented = strategy == Strategy.SEGMENTED,
+            audioSource = pipe?.get(0),
+          ),
+        )
       }.onFailure {
         emitError("start-failed", "startListening threw: ${it.message}")
         // `current` is already the new instance, so the previous one has to be
         // handed in by name or it is never destroyed
+        pipe?.forEach { fd -> runCatching { fd.close() } }
         fail(orphan = previous)
         return@post
+      }
+
+      if (pipe != null) {
+        // The session holds its own duplicate of the read end once the request
+        // has been sent; ours is closed when the next session replaces it.
+        val previousReadEnd = streamReadEnd
+        streamReadEnd = pipe[0]
+        pump?.attach(pipe[1])
+        streamAttachedAt = System.currentTimeMillis()
+        main.postDelayed({ runCatching { previousReadEnd?.close() } }, RELAY_OVERLAP_MS)
+        scheduleStreamCheck(myGeneration)
+      } else if (!fresh) {
+        // Only handovers: a first start can be slow while the service loads, and
+        // the JS watchdog's grace period covers that.
+        scheduleDeadStartCheck(myGeneration, listener)
       }
 
       // now it is safe to let the previous instance go
@@ -452,6 +609,31 @@ class RecitationRecognizer(
     }
   }
 
+  /**
+   * A session that never even starts listening. Device recordings showed new
+   * sessions that received no audio at all (no ready, no level) until
+   * Android's own silence limit ended them 8-12 s later, and the JS watchdog
+   * cannot see them, because it acts on a voice with no words and these send
+   * no level either. Replace such a session after DEAD_START_MS.
+   */
+  private fun scheduleDeadStartCheck(myGeneration: Int, listener: Listener) {
+    main.postDelayed({
+      if (!active || generation != myGeneration || listener.heardAnything) return@postDelayed
+      val delay = nextRetryDelay(SpeechRecognizer.ERROR_RECOGNIZER_BUSY)
+      runCatching { current?.cancel() }
+      if (delay == null) {
+        emitError(
+          "recognizer-unavailable",
+          "The speech recognition service keeps failing to start. Close other apps using voice input, or check " +
+            "that Google speech services are installed and enabled, then tap the microphone again.",
+        )
+        fail()
+        return@postDelayed
+      }
+      main.postDelayed({ if (active && generation == myGeneration) launch(fresh = false) }, delay)
+    }, DEAD_START_MS)
+  }
+
   private fun createRecognizer(): SpeechRecognizer? = runCatching {
     if (strategy == Strategy.ON_DEVICE && supportsOnDevice()) {
       createOnDeviceTiramisu()
@@ -464,7 +646,7 @@ class RecitationRecognizer(
   private fun createOnDeviceTiramisu(): SpeechRecognizer =
     SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
 
-  private fun buildIntent(locale: String, segmented: Boolean): Intent =
+  private fun buildIntent(locale: String, segmented: Boolean, audioSource: ParcelFileDescriptor? = null): Intent =
     Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
       putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
       putExtra(RecognizerIntent.EXTRA_LANGUAGE, locale)
@@ -488,7 +670,10 @@ class RecitationRecognizer(
       )
       putExtra(
         RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS,
-        options.minimumLengthMs,
+        // A segmented session ends at this length and the next one has to be
+        // started, which is where recitation used to be lost. Five minutes
+        // instead of the 30 s it was makes that rare.
+        if (segmented) maxOf(options.minimumLengthMs, SEGMENTED_SESSION_MS) else options.minimumLengthMs,
       )
 
       // Only ask for offline while it is still believed to work; see offlineViable.
@@ -505,7 +690,19 @@ class RecitationRecognizer(
         )
         segmentedAttempts++
       }
+
+      if (audioSource != null && supportsStream()) putStreamExtras(this, audioSource)
     }
+
+  @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+  private fun putStreamExtras(intent: Intent, audioSource: ParcelFileDescriptor) {
+    intent.putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE, audioSource)
+    intent.putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE_ENCODING, AudioFormat.ENCODING_PCM_16BIT)
+    intent.putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE_CHANNEL_COUNT, 1)
+    intent.putExtra(RecognizerIntent.EXTRA_AUDIO_SOURCE_SAMPLING_RATE, MicPump.SAMPLE_RATE)
+    // The session lasts as long as the audio source: until the app closes it.
+    intent.putExtra(RecognizerIntent.EXTRA_SEGMENTED_SESSION, RecognizerIntent.EXTRA_AUDIO_SOURCE)
+  }
 
   // -------------------------------------------------------------------------
   // audio focus
@@ -597,6 +794,10 @@ class RecitationRecognizer(
      */
     private var handedOver = false
 
+    /** whether this session ever started listening or reported a level */
+    var heardAnything = false
+      private set
+
     private fun handOver(delayMs: Long) {
       if (handedOver) return
       handedOver = true
@@ -605,6 +806,7 @@ class RecitationRecognizer(
 
     override fun onReadyForSpeech(params: Bundle?) {
       if (stale) return
+      heardAnything = true
       // It started listening, so whatever kept it from starting has cleared.
       fastTransientErrors = 0
       emitState("ready")
@@ -617,10 +819,13 @@ class RecitationRecognizer(
 
     override fun onRmsChanged(rmsdB: Float) {
       if (stale) return
+      heardAnything = true
+      // In STREAM the level comes from the app's own microphone (MicPump).
+      if (strategy == Strategy.STREAM) return
       // The JS liveness watchdog is driven by REAL audio, not guesses: it needs
       // to know whether the silence is the recognizer dying or the reciter
       // pausing (spec §4).
-      emit("rms", Bundle().apply { putDouble("level", rmsdB.toDouble()) })
+      emitLevel(rmsdB.toDouble())
     }
 
     override fun onBufferReceived(buffer: ByteArray?) = Unit
@@ -663,6 +868,26 @@ class RecitationRecognizer(
         )
         fail()
         return
+      }
+      val languageError =
+        error == SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE || error == SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED
+      if (strategy == Strategy.STREAM && !languageError && error !in TRANSIENT_ERRORS && error !in RETRYABLE_ERRORS) {
+        if (!streamProven) {
+          // The recognizer refused the request before ever answering: this
+          // phone does not take the app's audio.
+          demoteStream("the recognizer failed with ${errorName(error)} before any result")
+          return
+        }
+        if (error == SpeechRecognizer.ERROR_AUDIO) {
+          // It has worked here, so this is one session losing the pipe, not the
+          // microphone: the pump still holds that. Give the audio to a new
+          // session, backing off like any other failure to start.
+          val delay = nextRetryDelay(SpeechRecognizer.ERROR_CLIENT)
+          if (delay != null) {
+            handOver(delay)
+            return
+          }
+        }
       }
       if (error == SpeechRecognizer.ERROR_AUDIO) {
         // The ONLY signal that actually means the microphone is gone. Recoverable
@@ -718,6 +943,7 @@ class RecitationRecognizer(
 
     override fun onPartialResults(partialResults: Bundle?) {
       if (stale) return
+      if (strategy == Strategy.STREAM && hasWords(partialResults)) streamProven = true
       lastResultAt = System.currentTimeMillis()
       resultsThisInstance++
       fastTransientErrors = 0
@@ -727,6 +953,7 @@ class RecitationRecognizer(
 
     override fun onSegmentResults(segmentResults: Bundle) {
       if (stale) return
+      if (strategy == Strategy.STREAM && hasWords(segmentResults)) streamProven = true
       // Arriving here proves the device honours segmented mode.
       segmentedProven = true
       lastResultAt = System.currentTimeMillis()
@@ -739,7 +966,7 @@ class RecitationRecognizer(
     override fun onEndOfSegmentedSession() {
       if (stale) return
       emit("endOfSegment", Bundle())
-      if (!segmentedProven && segmentedAttempts >= SEGMENTED_PROBES) {
+      if (strategy == Strategy.SEGMENTED && !segmentedProven && segmentedAttempts >= SEGMENTED_PROBES) {
         // The device accepted the extra but never delivered a segment: demote.
         segmentedFailed = true
         strategy = demotedStrategy()
@@ -750,6 +977,13 @@ class RecitationRecognizer(
 
     override fun onEvent(eventType: Int, params: Bundle?) = Unit
   }
+
+  private fun emitLevel(level: Double) {
+    emit("rms", Bundle().apply { putDouble("level", level) })
+  }
+
+  private fun hasWords(bundle: Bundle?): Boolean =
+    bundle?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.any { it.isNotBlank() } == true
 
   private fun emitTranscript(event: String, bundle: Bundle?) {
     if (bundle == null) return
@@ -792,12 +1026,23 @@ class RecitationRecognizer(
   }
 
   companion object {
+    private const val TAG = "TasmeeSpeech"
     /** How long the outgoing recognizer is kept alive during a relay handover. */
     private const val RELAY_OVERLAP_MS = 120L
     /** Delay before restarting after a transient error. Keep well under 150ms. */
     private const val RESTART_DELAY_MS = 60L
     /** Segmented sessions to try before deciding the device ignores the extra. */
     private const val SEGMENTED_PROBES = 2
+    /** How long a segmented session runs before it has to be replaced. */
+    private const val SEGMENTED_SESSION_MS = 300_000
+    /** A session with no ready and no level after this long never got the microphone. */
+    private const val DEAD_START_MS = 3_000L
+    /** How often a STREAM session is checked. */
+    private const val STREAM_CHECK_MS = 500L
+    /** A STREAM session that hears a voice this long and returns nothing is not using the pipe. */
+    private const val STREAM_PROOF_MS = 6_000L
+    /** about 3 s of voice, in 20 ms frames */
+    private const val STREAM_PROOF_SPEECH_FRAMES = 150
     /** Give up on checkRecognitionSupport rather than hang the JS promise. */
     private const val LANGUAGE_PROBE_TIMEOUT_MS = 4_000L
     /** How long the throwaway download-trigger recognizer is kept alive. */

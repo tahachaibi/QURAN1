@@ -125,7 +125,6 @@ export type FontStep = 0 | 1 | 2;
 
 /** Word-state ink opacities (§6.3). */
 export const inkOpacity = {
-  upcoming: 0.45,
   current: 1,
   recited: 1,
   missed: 1,

@@ -1,5 +1,5 @@
 /** Recognizer strategy actually in use; reported so the UI never has to guess. */
-export type SpeechStrategy = 'SEGMENTED' | 'ON_DEVICE' | 'RELAY';
+export type SpeechStrategy = 'STREAM' | 'SEGMENTED' | 'ON_DEVICE' | 'RELAY';
 
 export interface SpeechCapabilities {
   sdkInt: number;
@@ -78,7 +78,9 @@ export interface SpeechStateEvent {
      * recognising nothing at all.
      */
     | 'offline-unavailable'
-    | 'segmented-unsupported';
+    | 'segmented-unsupported'
+    /** the recognizer would not take audio from the app; carrying on without STREAM */
+    | 'stream-unsupported';
   strategy: SpeechStrategy;
   /** measured gap, in ms, between releasing one recognizer and the next (§4.3) */
   relayGapMs: number;

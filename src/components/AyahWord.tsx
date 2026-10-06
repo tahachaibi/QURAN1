@@ -73,7 +73,10 @@ function AyahWordImpl({
   const ink = useRef(new Animated.Value(revealed ? 1 : inkOpacity.hidden)).current;
 
   useEffect(() => {
-    const target = revealed ? (state === 'upcoming' ? inkOpacity.upcoming : 1) : inkOpacity.hidden;
+    // Seen mode shows every word at full ink, recited or not; the underline
+    // alone says where the voice is. Upcoming words used to be dimmed, which
+    // made the page ahead look blurred.
+    const target = revealed ? 1 : inkOpacity.hidden;
     if (reduceMotion) {
       ink.setValue(target);
       return;
@@ -83,7 +86,7 @@ function AyahWordImpl({
       duration: duration.reveal,
       useNativeDriver: true,
     }).start();
-  }, [revealed, state, ink, reduceMotion]);
+  }, [revealed, ink, reduceMotion]);
 
   const showFirstLetterOnly = hidden && hintLevel === 1 && !revealed;
   const [head, tail] = showFirstLetterOnly ? firstGrapheme(text) : ['', ''];
@@ -134,8 +137,8 @@ function AyahWordImpl({
           </Animated.Text>
         )}
 
-        {/* current word: a gold underline that breathes with the voice, never a
-            filled box over the sacred text (§6.3) */}
+        {/* current word: a solid gold underline that moves on as each word is
+            said, never a filled box over the sacred text (§6.3) */}
         {state === 'current' ? (
           <VoiceUnderline palette={palette} level={level} reduceMotion={reduceMotion} pad={pad} />
         ) : null}
@@ -186,7 +189,8 @@ const VoiceUnderline = memo(function VoiceUnderline({
           left: pad,
           right: pad,
           backgroundColor: palette.accent,
-          opacity: level.interpolate({ inputRange: [0, 1], outputRange: [0.35, 1] }),
+          // Always fully visible: only the width breathes with the voice. A
+          // fading underline was easy to lose between words.
           transform: [{ scaleX: level.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }],
         },
       ]}
@@ -208,7 +212,7 @@ const styles = StyleSheet.create({
   underline: {
     position: 'absolute',
     bottom: 2,
-    height: 2,
+    height: 3,
     borderRadius: 1,
   },
   dashed: {

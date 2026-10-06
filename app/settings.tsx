@@ -529,6 +529,8 @@ function describeLines(p: PendingRestore, t: T): string[] {
  */
 function strategyLabel(strategy: SpeechStrategy | null, t: T): string {
   switch (strategy) {
+    case 'STREAM':
+      return t('Continuous microphone stream');
     case 'SEGMENTED':
       return t('Continuous segmented session');
     case 'ON_DEVICE':

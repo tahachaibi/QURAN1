@@ -12,9 +12,14 @@
 import { initialSession, sessionReducer, type SessionConfig, type SessionEvent, type SessionState } from './session';
 
 export interface ReplayEvent {
-  kind: 'partial' | 'final' | 'segment' | 'pause' | 'resume';
+  kind: 'partial' | 'final' | 'segment' | 'pause' | 'resume' | 'state';
   /** up to 5 recognizer alternatives, best first, as raw (un-normalized) text */
   alternatives?: string[];
+  /**
+   * For 'state': the native recognizer's lifecycle change and strategy, e.g.
+   * "restarted:SEGMENTED". Recorded for diagnosis; replay only advances time.
+   */
+  state?: string;
   /** ms since the previous event; defaults to 250 for partials, 600 for finals */
   dt?: number;
 }
@@ -63,6 +68,7 @@ const DEFAULT_DT: Record<ReplayEvent['kind'], number> = {
   segment: 100,
   pause: 100,
   resume: 100,
+  state: 0,
 };
 
 export function replay(fixture: ReplayFixture, config: SessionConfig): ReplayOutcome {
@@ -72,6 +78,7 @@ export function replay(fixture: ReplayFixture, config: SessionConfig): ReplayOut
   const frames: ReplayFrame[] = [];
   fixture.events.forEach((e, index) => {
     now += e.dt ?? DEFAULT_DT[e.kind];
+    if (e.kind === 'state') return;
     let event: SessionEvent;
     switch (e.kind) {
       case 'partial':

@@ -358,6 +358,7 @@ export const BASE: Record<string, string | ArabicForms> = {
   "Lower latency, and works with no network when the Arabic offline pack is installed. Your recitation then stays on the phone.": "استجابة أسرع، ويعمل دون إنترنت إذا كانت حزمة العربية دون اتصال مثبّتة، وتبقى تلاوتك حينها على الهاتف.",
   "Continuous segmented session": "جلسة متواصلة مقسّمة",
   "Keeps one recognition session alive across breaths on Android 13+. Turn off if your device behaves oddly.": "يُبقي جلسة تعرّف واحدة مستمرة بين الأنفاس في أندرويد 13 وما بعده. عطّله إن تصرّف جهازك بغرابة.",
+  "Continuous microphone stream": "بثّ متواصل من الميكروفون",
   "Hadith, adhkar and Listen text. The mushaf page always fits your screen.": "نص الأحاديث والأذكار والاستماع. صفحة المصحف تتلاءم دائمًا مع شاشتك.",
   "Check the words marked “I said it right” again": "أعِد فحص الكلمات المعلَّمة بـ«قلتها صحيحة»",
   "Words marked so far: {n}. They are never flagged as mistakes until you reset them here.": "عدد الكلمات المعلَّمة حتى الآن: {n}. لن تُعَدّ أخطاءً إلى أن تعيد ضبطها من هنا.",
