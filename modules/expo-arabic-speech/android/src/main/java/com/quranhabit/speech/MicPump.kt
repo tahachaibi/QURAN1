@@ -117,7 +117,8 @@ class MicPump(
   fun attach(writeEnd: ParcelFileDescriptor) {
     try {
       val fd = writeEnd.fileDescriptor
-      Os.fcntlInt(fd, OsConstants.F_SETFL, Os.fcntlVoid(fd, OsConstants.F_GETFL) or OsConstants.O_NONBLOCK)
+      val flags = Os.fcntlInt(fd, OsConstants.F_GETFL, 0)
+      Os.fcntlInt(fd, OsConstants.F_SETFL, flags or OsConstants.O_NONBLOCK)
     } catch (e: ErrnoException) {
       // A blocking pipe still works; the writer just cannot detect a stall as early.
     }
