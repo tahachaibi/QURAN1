@@ -10,7 +10,7 @@
  * the router so unmounting a surah screen cannot stop a session.
  */
 import { align, LOCK_ON_PROGRESS, lookAheadFor, type AlignResult } from './align';
-import { localize, type LocalizeResult } from './localize';
+import { localize, MIN_START_JUMP_WORDS, type LocalizeResult } from './localize';
 import {
   mergeMistakes,
   promotePending,
@@ -22,7 +22,7 @@ import {
   type PendingSkip,
 } from './mistakes';
 import { compareWords, weightedDistance } from './distance';
-import { leadingIstiadhaLength, normalizeHeardSpans, trailingClosingLength } from './normalize';
+import { leadingIstiadhaLength, normalizeHeardSpans, stripLeadingBasmala, trailingClosingLength } from './normalize';
 
 export type SessionStatus = 'idle' | 'listening' | 'paused' | 'stopped';
 
@@ -39,6 +39,13 @@ export interface SessionConfig {
   limit: number;
   /** surah currently on screen, for localization tie-breaks */
   viewSurah?: number;
+  /**
+   * Strict following, for Hidden mode: once the reciter has been found, the
+   * cursor moves only on the word that comes next. A wrong word or a skip
+   * does not carry it forward; it stays on the expected word, which is marked
+   * as a mistake, until that word is said. See applyStrict.
+   */
+  strict?: boolean;
 }
 
 export interface DebugInfo {
@@ -143,10 +150,25 @@ export type SessionEvent =
 
 /** Two consecutive partials must agree before the cursor jumps (spec §5.5). */
 export const JUMP_CONFIRMATIONS = 2;
+/**
+ * At the start of a session, before the reciter's first matched word, one
+ * partial is enough when the phrase is unique in the Quran and wins by this
+ * much. Somebody who opens the app and starts reciting elsewhere is the common
+ * case, and waiting for a second partial cost a whole word, about a second.
+ */
+export const START_JUMP_MARGIN = 0.5;
+/** A two-word start jump must align at least this well: both words nearly exact. */
+export const START_JUMP_TWO_WORD_SCORE = 0.85;
 /** Proposals within this many words count as the same jump target. */
 export const JUMP_TARGET_TOLERANCE = 3;
 /** After a jump, ignore localization for this long (spec §5.5). */
 export const JUMP_COOLDOWN_MS = 1000;
+/**
+ * Strict mode: a heard word equal to one of this many words just before the
+ * cursor is the reciter going back to take a run at the ayah again, not a
+ * mistake.
+ */
+export const STRICT_REPEAT_WINDOW = 15;
 /** How many words of session transcript to keep for the grace pass. */
 const SESSION_HEARD_CAP = 600;
 
@@ -429,6 +451,250 @@ function applyResult(
 }
 
 /**
+ * A word's consonant skeleton: no long-vowel letters, no hamza forms. The
+ * recognizer spells in modern orthography (العالمين, السماوات) and the
+ * vocabulary is the mushaf's (العلمين, السموت); the skeletons agree.
+ */
+function skeleton(word: string): string {
+  return word.replace(/[اىيوأإآءئؤٱ]/g, '');
+}
+
+const skeletonCache = new WeakMap<ReadonlySet<string>, ReadonlySet<string>>();
+function skeletonsOf(vocabulary: ReadonlySet<string>): ReadonlySet<string> {
+  let set = skeletonCache.get(vocabulary);
+  if (set === undefined) {
+    const built = new Set<string>();
+    for (const w of vocabulary) {
+      const k = skeleton(w);
+      if (k.length > 0) built.add(k);
+    }
+    skeletonCache.set(vocabulary, built);
+    set = built;
+  }
+  return set;
+}
+
+/**
+ * Whether a heard token is a word of the Quran at all, in either spelling, as
+ * opposed to a piece of one or the recognizer's garble (ون, يع). Short tokens
+ * must be exact: a one-letter skeleton matches far too much.
+ */
+function isQuranWord(token: string, vocabulary: ReadonlySet<string>): boolean {
+  if (vocabulary.has(token)) return true;
+  if (token.length < 3) return false;
+  const k = skeleton(token);
+  return k.length >= 2 && skeletonsOf(vocabulary).has(k);
+}
+
+interface StrictWalk {
+  /** where the walk stopped: the first word not yet said */
+  cursor: number;
+  matched: number[];
+  /** wrong words said in place of an expected word, at most one per word */
+  wrong: { word: number; heard: string; raw: string }[];
+}
+
+/**
+ * Walk one alternative strictly: each heard word either is the word expected
+ * next (move on), repeats one of the words just said (ignore), or is wrong
+ * (stay, and remember what was said instead).
+ *
+ * A partial's last two words are still being recognised and are often
+ * revised, so they can move the cursor but are never called wrong; a final's
+ * can.
+ */
+function strictWalk(
+  state: SessionState,
+  config: SessionConfig,
+  heard: readonly string[],
+  raw: readonly string[],
+  isFinal: boolean,
+): StrictWalk {
+  const at = (q: number): string => (q < config.limit ? config.words[q] ?? '' : '');
+  const same = (h: string, q: number): boolean => q < config.limit && compareWords(h, at(q)).ok;
+  let p = state.utteranceStart;
+  const matched: number[] = [];
+  const wrong: StrictWalk['wrong'] = [];
+  const flagged = new Set<number>();
+  // A basmala said before an ayah that does not begin with it is not Quran text
+  // the reciter owes; skip it rather than call every word of it wrong.
+  const basmala = at(p) === 'بسم' ? 0 : heard.length - stripLeadingBasmala(heard).length;
+  let i = basmala;
+  while (i < heard.length && p < config.limit) {
+    const word = heard[i];
+    const next = heard[i + 1];
+    // 1. the word owed
+    if (same(word, p)) {
+      matched.push(p);
+      p += 1;
+      i += 1;
+      continue;
+    }
+    // 2. the recognizer's habits, none of them the reciter's mistake:
+    //    one word written as two (يا ايها for يايها), or a word cut in pieces
+    if (next !== undefined && same(word + next, p)) {
+      matched.push(p);
+      p += 1;
+      i += 2;
+      continue;
+    }
+    //    two words written as one
+    if (p + 1 < config.limit && compareWords(word, at(p) + at(p + 1)).ok) {
+      matched.push(p, p + 1);
+      p += 2;
+      i += 1;
+      continue;
+    }
+    //    a word it did not catch at all, proved by the words after it: the
+    //    next one or two words match exactly where they should. Measured on
+    //    device recordings, Android drops words the reciter plainly said far
+    //    more often than reciters skip a single word.
+    const dropped = droppedBefore(heard, i, p, same);
+    if (dropped > 0) {
+      for (let q = p; q < p + dropped; q++) matched.push(q);
+      p += dropped;
+      continue;
+    }
+    // 3. not a word anywhere in the Quran: a piece of a word or the recognizer's
+    //    garble (ون, يع, مربيهم for ملاقوا ربهم), never the reciter's mistake.
+    //    Passed over; the words after it put the walk back in step (rule 2).
+    if (!isQuranWord(word, config.vocabulary)) {
+      i += 1;
+      continue;
+    }
+    // 4. going back over words just said, to take a run at the ayah again
+    let repeat = false;
+    for (let q = Math.max(config.floor, p - STRICT_REPEAT_WINDOW); q < p && !repeat; q++) repeat = same(word, q);
+    if (repeat) {
+      i += 1;
+      continue;
+    }
+    // 5. wrong: hold here. Android also revises the word before the last, so
+    //    in a partial only a word two back has settled; a final's are all final.
+    const stable = isFinal || i < heard.length - 2;
+    if (stable && !flagged.has(p)) {
+      flagged.add(p);
+      wrong.push({ word: p, heard: word, raw: raw[i] || word });
+    }
+    i += 1;
+  }
+  return { cursor: p, matched, wrong };
+}
+
+/**
+ * How many expected words (1 or 2) the recognizer seems to have dropped before
+ * heard[i]: heard[i] and heard[i+1] match the words right after them. Two
+ * matching words are required, so one stray match is not enough; at the end
+ * of a transcript, where there is no second word yet, nothing is assumed.
+ */
+function droppedBefore(
+  heard: readonly string[],
+  i: number,
+  p: number,
+  same: (h: string, q: number) => boolean,
+): number {
+  if (i + 1 >= heard.length) return 0;
+  for (const gap of [1, 2]) {
+    if (same(heard[i], p + gap) && same(heard[i + 1], p + gap + 1)) return gap;
+  }
+  return 0;
+}
+
+/**
+ * Hidden mode's strict following (SessionConfig.strict).
+ *
+ * The ordinary path aligns with look-ahead: a skipped word is passed over and
+ * flagged later, and the cursor runs on with the voice. In Hidden mode that
+ * hands the reciter the rest of the ayah after any slip. Here the cursor waits
+ * on the word they owe: a wrong word or a skip leaves it there, the word is
+ * marked as a mistake at once (with what was said instead), and following
+ * resumes the moment the right word is said. The mistake stays, even though
+ * the word was said in the end.
+ */
+function applyStrict(
+  state: SessionState,
+  config: SessionConfig,
+  scored: readonly Scored[],
+  at: number,
+  emittedAt: number | undefined,
+  isFinal: boolean,
+): SessionState {
+  // The alternative that gets furthest, then the one with fewest wrong words:
+  // lower-ranked alternatives are often the right one for Quranic Arabic.
+  let best: { s: Scored; walk: StrictWalk } | null = null;
+  for (const s of scored) {
+    const walk = strictWalk(state, config, s.heard, s.raw, isFinal);
+    if (
+      best === null ||
+      walk.cursor > best.walk.cursor ||
+      (walk.cursor === best.walk.cursor && walk.wrong.length < best.walk.wrong.length)
+    ) {
+      best = { s, walk };
+    }
+  }
+  const { s, walk } = best!;
+
+  const cursor = Math.max(state.cursor, walk.cursor);
+  const matched = withAdded(state.matched, walk.matched);
+  /**
+   * Which wrong words are worth calling mistakes. Holding the cursor is cheap
+   * to undo (say the word); a red mark is not, so it needs more evidence:
+   *  - the word was not heard anywhere in any alternative of this utterance:
+   *    then it was said, and the recognizer only put it in the wrong place;
+   *  - a particle of one or two letters (من, ان, لا) that the walk got past is
+   *    the recognizer's commonest confusion, not a slip worth marking.
+   * Measured on device recordings, these two rules removed most of the marks
+   * on words the reciter said correctly.
+   */
+  const heardSomewhere = (word: number): boolean => {
+    const expected = config.words[word] ?? '';
+    return scored.some((x) => x.heard.some((h) => compareWords(h, expected).ok));
+  };
+  const fresh = walk.wrong
+    .filter((w) => !state.dismissed.has(w.word))
+    .filter((w) => !heardSomewhere(w.word))
+    .filter((w) => !(w.word < walk.cursor && (config.words[w.word] ?? '').length <= 2))
+    .map((w) => ({ word: w.word, heardInstead: w.heard, heardRaw: w.raw, at }));
+  const mistakes = mergeMistakes(state.mistakes, fresh);
+  const lockedOn = state.lockedOn || cursor - state.utteranceStart >= LOCK_ON_PROGRESS;
+
+  let currentCleanRun = state.currentCleanRun;
+  let longestCleanRun = state.longestCleanRun;
+  if (mistakes !== state.mistakes) {
+    currentCleanRun = 0;
+  } else {
+    currentCleanRun += matched.size - state.matched.size;
+    if (currentCleanRun > longestCleanRun) longestCleanRun = currentCleanRun;
+  }
+
+  return {
+    ...state,
+    cursor,
+    livePos: cursor,
+    lockedOn,
+    matched,
+    mistakes,
+    currentCleanRun,
+    longestCleanRun,
+    sessionHeard: isFinal ? capTail([...state.sessionHeard, ...s.heard], SESSION_HEARD_CAP) : state.sessionHeard,
+    sessionHeardRaw: isFinal ? capTail([...state.sessionHeardRaw, ...s.raw], SESSION_HEARD_CAP) : state.sessionHeardRaw,
+    utteranceHeard: s.heard,
+    utteranceStart: isFinal ? cursor : state.utteranceStart,
+    utteranceLockedOn: isFinal ? lockedOn : state.utteranceLockedOn,
+    utteranceFresh: false,
+    lastResultAt: at,
+    lastHeard: s.raw.join(' '),
+    debug: {
+      ...state.debug,
+      alternatives: scored.map((x) => x.heard.join(' ')),
+      jumpReason: walk.wrong.length > 0 ? `strict: waiting on ${walk.cursor}` : '',
+      progress: walk.matched.length,
+      latencyMs: emittedAt === undefined ? 0 : Math.max(0, at - emittedAt),
+    },
+  };
+}
+
+/**
  * Words the best alternative MATCHED with a hifz slip (isHifzSlip): يعملون for
  * تعملون. The match stands, because the reciter is plainly at that word and
  * the cursor must follow them; the word is flagged as said wrong as well.
@@ -576,6 +842,9 @@ function maybeJump(
   if (state.utteranceHeard.length === 0) return state;
   if (at - state.lastJumpAt < JUMP_COOLDOWN_MS) return state;
 
+  // Nothing recited has matched yet: the reciter may be anywhere.
+  const atStart = !state.lockedOn && state.matched.size === 0;
+
   const result: LocalizeResult = localize({
     words: config.words,
     cursor: state.cursor,
@@ -586,6 +855,7 @@ function maybeJump(
     surahOf: config.surahOf,
     floor: config.floor,
     limit: config.limit,
+    minWords: atStart ? MIN_START_JUMP_WORDS : undefined,
   });
 
   const debug: DebugInfo = {
@@ -597,12 +867,17 @@ function maybeJump(
   if (result.target === null) {
     return { ...state, debug, jumpCandidate: null };
   }
+  // Two words decide nothing unless both were heard nearly exactly.
+  if (result.usedWords < 3 && result.globalScore < START_JUMP_TWO_WORD_SCORE) {
+    return { ...state, debug: { ...debug, jumpReason: `${result.reason}; two words, not exact enough` }, jumpCandidate: null };
+  }
 
   const prev = state.jumpCandidate;
   const same = prev !== null && Math.abs(prev.target - result.target) <= JUMP_TARGET_TOLERANCE;
   const count = same ? prev.count + 1 : 1;
+  const sure = atStart && result.unique && result.margin >= START_JUMP_MARGIN;
 
-  if (count < JUMP_CONFIRMATIONS) {
+  if (count < JUMP_CONFIRMATIONS && !sure) {
     return {
       ...state,
       debug,
@@ -678,14 +953,29 @@ export function sessionReducer(
        */
       const sig = partialSig(state, event.alternatives);
       if (event.type === 'partial' && sig === state.lastPartialSig) {
-        return state.lastResultAt === event.at ? state : { ...state, lastResultAt: event.at };
+        const alive = state.lastResultAt === event.at ? state : { ...state, lastResultAt: event.at };
+        /**
+         * Except for a jump that is waiting to be confirmed. The same transcript
+         * arriving again IS a second partial agreeing, and Android repeats a
+         * partial several times while the reciter is mid-word. Skipping it made
+         * every jump wait for the NEXT word, about a second, before moving.
+         */
+        if (alive.jumpCandidate === null) return alive;
+        const jumped = maybeJump(alive, config, event.at);
+        const nextSig = partialSig(jumped, event.alternatives);
+        return jumped.lastPartialSig === nextSig ? jumped : { ...jumped, lastPartialSig: nextSig };
       }
 
       const isFinal = event.type === 'final';
       const scored = scoreAlternatives(state, config, event.alternatives, isFinal);
       if (scored.length === 0) return state;
-      const applied = applyResult(state, config, scored, event.at, event.emittedAt, isFinal);
-      const jumped = maybeJump(applied, config, event.at);
+      // Strict following starts once the reciter has been found; until then
+      // the ordinary path locates them, jumps included.
+      const strict = config.strict === true && state.matched.size > 0 && !state.utteranceFresh;
+      const applied = strict
+        ? applyStrict(state, config, scored, event.at, event.emittedAt, isFinal)
+        : applyResult(state, config, scored, event.at, event.emittedAt, isFinal);
+      const jumped = strict ? applied : maybeJump(applied, config, event.at);
       /**
        * The stored signature describes the computation that would happen NOW, so
        * it is built from the RESULTING utteranceStart — a jump can move it, and

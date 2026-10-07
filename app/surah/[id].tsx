@@ -206,10 +206,15 @@ export default function SurahScreen() {
 
   // --- auto page-turn: the deck follows the voice (§6.1) ---
   const cursorPage = pageOf(session.livePos);
+  const followedPage = useRef(cursorPage);
   useEffect(() => {
     if (!listening) return;
     if (viewedPage !== cursorPage) return;
-    deck.current?.goToPage(cursorPage, !reduceMotion);
+    // Slide to the next page; a jump across the mushaf goes straight there,
+    // instead of scrolling through every page in between.
+    const near = Math.abs(cursorPage - followedPage.current) <= 1;
+    followedPage.current = cursorPage;
+    deck.current?.goToPage(cursorPage, near && !reduceMotion);
   }, [cursorPage, listening, reduceMotion, viewedPage]);
 
   // --- the text is the interface: hide the header while listening (§6.4) ---
@@ -524,19 +529,13 @@ export default function SurahScreen() {
     <View style={[styles.root, { backgroundColor: palette.background }]}>
       <SafeAreaView edges={['top']} style={styles.safeTop}>
         {/*
-          Hidden by fading, never by removing. Unmounted, it handed its ~65 dp
-          to the page, the page is fitted to its box, so two seconds into every
-          recitation the text blanked for a measuring pass and came back at a
-          different size, under the eyes of somebody reading it — and jumped
-          back when they stopped. Same reasoning as the status strip below:
-          constant space, constant page. Hidden from touch and TalkBack too,
-          so nobody lands on an invisible Back button.
+          Collapsed, not just faded, while reciting: its ~65 dp go to the page.
+          It used to keep that space invisible, because handing it over made
+          the page blank for a measuring pass; MushafPage now keeps its text
+          on screen at the old size while it re-fits, so the space can go to
+          the Quran instead of sitting empty above it. A tap brings it back.
         */}
-        <View
-          style={[styles.header, !headerVisible && styles.headerHidden]}
-          pointerEvents={headerVisible ? 'auto' : 'none'}
-          importantForAccessibility={headerVisible ? 'auto' : 'no-hide-descendants'}
-        >
+        <View style={[styles.header, !headerVisible && styles.headerCollapsed]}>
           <Pressable
             onPress={goBack}
             hitSlop={12}
@@ -854,7 +853,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.md,
     paddingVertical: space.sm,
   },
-  headerHidden: { opacity: 0 },
+  headerCollapsed: { display: 'none' },
   headerCentre: { alignItems: 'center' },
   headerArabic: { fontFamily: 'Amiri_700Bold', fontSize: 22 },
   headerLatin: { fontSize: 11, marginTop: 1 },

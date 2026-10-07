@@ -12,7 +12,7 @@
 import { memo, useEffect, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { duration, inkOpacity, type Palette } from '../theme/theme';
+import { inkOpacity, type Palette } from '../theme/theme';
 
 export type WordState = 'upcoming' | 'current' | 'recited' | 'missed';
 
@@ -21,6 +21,8 @@ export interface AyahWordProps {
   index: number;
   text: string;
   state: WordState;
+  /** the current word already holds a mistake: its underline turns red */
+  flagged?: boolean;
   hidden: boolean;
   /** 0 none, 1 first letter shown, 2 whole word shown (§6.2) */
   hintLevel: 0 | 1 | 2;
@@ -57,6 +59,7 @@ function AyahWordImpl({
   index,
   text,
   state,
+  flagged = false,
   hidden,
   hintLevel,
   fontSize,
@@ -76,17 +79,10 @@ function AyahWordImpl({
     // Seen mode shows every word at full ink, recited or not; the underline
     // alone says where the voice is. Upcoming words used to be dimmed, which
     // made the page ahead look blurred.
-    const target = revealed ? 1 : inkOpacity.hidden;
-    if (reduceMotion) {
-      ink.setValue(target);
-      return;
-    }
-    Animated.timing(ink, {
-      toValue: target,
-      duration: duration.reveal,
-      useNativeDriver: true,
-    }).start();
-  }, [revealed, ink, reduceMotion]);
+    // Set, not animated: a word appears the instant it is recognised. Even a
+    // 55 ms fade put the reveal a few frames behind the voice.
+    ink.setValue(revealed ? 1 : inkOpacity.hidden);
+  }, [revealed, ink]);
 
   const showFirstLetterOnly = hidden && hintLevel === 1 && !revealed;
   const [head, tail] = showFirstLetterOnly ? firstGrapheme(text) : ['', ''];
@@ -140,7 +136,12 @@ function AyahWordImpl({
         {/* current word: a solid gold underline that moves on as each word is
             said, never a filled box over the sacred text (§6.3) */}
         {state === 'current' ? (
-          <VoiceUnderline palette={palette} level={level} reduceMotion={reduceMotion} pad={pad} />
+          <VoiceUnderline
+            color={flagged ? palette.error : palette.accent}
+            level={level}
+            reduceMotion={reduceMotion}
+            pad={pad}
+          />
         ) : null}
 
         {/* a hinted word keeps a dashed gold underline as a record (§6.3) */}
@@ -168,18 +169,18 @@ function AyahWordImpl({
  * render for the very budget §5.7 is about.
  */
 const VoiceUnderline = memo(function VoiceUnderline({
-  palette,
+  color,
   level,
   reduceMotion,
   pad,
 }: {
-  palette: Palette;
+  color: string;
   level: Animated.Value;
   reduceMotion: boolean;
   pad: number;
 }) {
   if (reduceMotion) {
-    return <View style={[styles.underline, { backgroundColor: palette.accent, left: pad, right: pad }]} />;
+    return <View style={[styles.underline, { backgroundColor: color, left: pad, right: pad }]} />;
   }
   return (
     <Animated.View
@@ -188,7 +189,7 @@ const VoiceUnderline = memo(function VoiceUnderline({
         {
           left: pad,
           right: pad,
-          backgroundColor: palette.accent,
+          backgroundColor: color,
           // Always fully visible: only the width breathes with the voice. A
           // fading underline was easy to lose between words.
           transform: [{ scaleX: level.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }],
@@ -243,6 +244,7 @@ export const AyahWord = memo(AyahWordImpl, (a, b) =>
   a.index === b.index &&
   a.text === b.text &&
   a.state === b.state &&
+  a.flagged === b.flagged &&
   a.hidden === b.hidden &&
   a.hintLevel === b.hintLevel &&
   a.fontSize === b.fontSize &&

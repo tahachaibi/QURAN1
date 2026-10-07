@@ -127,6 +127,18 @@ function MushafPageImpl({
     setMeasured(0);
   }
 
+  /**
+   * The last scale settled for this page and type size, whatever the box.
+   *
+   * When only the box changes — the reading screen's header collapsing while
+   * listening, and coming back on a tap — the page keeps showing its text at
+   * this scale while the new fit is measured off-screen, instead of blanking
+   * for the measuring pass. That blank is what used to make the header keep
+   * its space, invisible, above the page.
+   */
+  const shownScale = useRef<{ sizeKey: string; scale: number } | null>(null);
+  if (scale !== null) shownScale.current = { sizeKey, scale };
+
   const lastScaleKey = useRef(scaleKey);
   if (lastScaleKey.current !== scaleKey) {
     lastScaleKey.current = scaleKey;
@@ -150,10 +162,16 @@ function MushafPageImpl({
     if (natural.current.size !== before) setMeasured(natural.current.size);
   }, []);
 
-  /** the size on screen: the settled scale, or the candidate being measured */
+  /** the size being measured: the settled scale, or the candidate */
   const applied = scale ?? probe ?? 1;
   const fontSize = pxFont(base.fontSize, applied);
   const lineHeight = pxLine(base.lineHeight, applied);
+  /** the size on screen while a new fit is measured: the last one settled for this page */
+  const held = scale === null && shownScale.current?.sizeKey === sizeKey ? shownScale.current.scale : null;
+  const shownFont = held === null ? fontSize : pxFont(base.fontSize, held);
+  const shownLine = held === null ? lineHeight : pxLine(base.lineHeight, held);
+  const measureFont = fontSize;
+  const measureLine = lineHeight;
 
   /**
    * Run a round of the fit once the box AND every line width are known, in an
@@ -198,13 +216,18 @@ function MushafPageImpl({
   }, [base.fontSize, base.lineHeight, box.h, box.w, probe, scaleKey, lines.length, measurable, measured, scale]);
 
   const stateOf = (index: number): WordState => {
-    if (missedSet.has(index)) return 'missed';
+    // The word the voice is on comes first, even when it already holds a
+    // mistake: in Hidden mode that is the word the reciter is still owed, and
+    // showing it as 'missed' would reveal it. It gets a red underline instead.
     if (index === slice.current) return 'current';
+    if (missedSet.has(index)) return 'missed';
     if (recitedSet.has(index) || index < slice.recitedUpTo) return 'recited';
     return 'upcoming';
   };
 
   const renderLine = (line: MushafLine, i: number, measuring: boolean) => {
+    const fontSize = measuring ? measureFont : shownFont;
+    const lineHeight = measuring ? measureLine : shownLine;
     if (line.kind === 'surah') {
       return (
         // Never measured — see `measurable`. Inside the 4000-wide measuring pad
@@ -244,6 +267,7 @@ function MushafPageImpl({
           index={token.index}
           text={displayWordOf(token.index)}
           state={stateOf(token.index)}
+          flagged={token.index === slice.current && missedSet.has(token.index)}
           hidden={hidden}
           hintLevel={hintLevelOf(token.index)}
           fontSize={fontSize}
@@ -302,6 +326,9 @@ function MushafPageImpl({
         </View>
 
         <View style={styles.body} onLayout={onBoxLayout}>
+          {scale === null && held !== null ? (
+            <View style={styles.lines}>{lines.map((line, i) => renderLine(line, i, false))}</View>
+          ) : null}
           {scale === null ? (
             /**
              * The measuring pass, in a container far wider than any page and

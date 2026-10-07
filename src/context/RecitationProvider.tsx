@@ -413,7 +413,9 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
   // The config the reducer sees must include the surah currently in view, but
   // rebuilding it on every page swipe would churn; keep it in a ref instead.
   const configRef = useRef(config);
-  configRef.current = { ...config, viewSurah: surahOf(pageWordRange(viewedPage)[0]) };
+  // Hidden mode follows strictly: a wrong word or a skip holds the cursor on the
+  // word owed until it is said (SessionConfig.strict).
+  configRef.current = { ...config, viewSurah: surahOf(pageWordRange(viewedPage)[0]), strict: mode === 'hidden' };
 
   const [session, rawDispatch] = useReducer(
     (state: SessionState, event: SessionEvent) => sessionReducer(state, event, configRef.current),

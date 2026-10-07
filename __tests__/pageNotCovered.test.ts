@@ -113,10 +113,11 @@ describe('the page is not covered by anything that stays on screen', () => {
     expect(floating).toMatch(/\{tab === 'read' \? notice : null\}/);
   });
 
-  it('never unmounts the header, so hiding it cannot re-fit the page', () => {
-    // Unmounted two seconds into every recitation, it gave its height to the
-    // page, which re-measured and changed type size under the reader's eyes.
-    expect(source).not.toMatch(/\{headerVisible \? \(/);
-    expect(source).toMatch(/style=\{\[styles\.header, !headerVisible && styles\.headerHidden\]\}/);
+  it('collapses the header while reciting, so its space goes to the page', () => {
+    // It used to stay, invisible, because giving its height to the page made the
+    // page blank while it re-measured. MushafPage now keeps its text on screen
+    // during a re-fit, so the space goes to the Quran instead of staying empty.
+    expect(source).toMatch(/style=\{\[styles\.header, !headerVisible && styles\.headerCollapsed\]\}/);
+    expect(source).toMatch(/headerCollapsed: \{ display: 'none' \}/);
   });
 });

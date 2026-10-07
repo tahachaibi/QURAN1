@@ -38,6 +38,12 @@ export interface LocalizeInput {
    */
   floor?: number;
   limit?: number;
+  /**
+   * Fewer heard words than this never anchor a jump; MIN_JUMP_WORDS unless the
+   * caller knows better. The session lowers it to MIN_START_JUMP_WORDS before
+   * the reciter's first matched word, where a unique phrase is all there is.
+   */
+  minWords?: number;
 }
 
 export interface LocalizeResult {
@@ -64,6 +70,12 @@ export const JUMP_MARGIN = 0.25;
 export const JUMP_MIN_SCORE = 0.45;
 /** Fewer heard words than this can never anchor a jump. */
 export const MIN_JUMP_WORDS = 3;
+/**
+ * At the very start of a session two words are enough, if they occur together
+ * nowhere else in the Quran (a phrase under UNIQUE_REQUIRED_BELOW words must be
+ * unique). "أتأمرون الناس" can only be 2:44.
+ */
+export const MIN_START_JUMP_WORDS = 2;
 /** With fewer than this many words, the phrase must be unique in the Quran. */
 export const UNIQUE_REQUIRED_BELOW = 4;
 export const DEFAULT_TAIL = 8;
@@ -92,7 +104,13 @@ export function localize(input: LocalizeInput): LocalizeResult {
   const stripped = stripLeadingBasmala(stripLeadingIstiadha(input.heard));
   const tail = stripped.slice(Math.max(0, stripped.length - tailSize));
 
-  if (tail.length < MIN_JUMP_WORDS) return NO_RESULT(localScore, 'too few words to localize');
+  if (tail.length < (input.minWords ?? MIN_JUMP_WORDS)) return NO_RESULT(localScore, 'too few words to localize');
+  // An isti'adha still being said is stripped only from its third word on, and
+  // "أعوذ بالله" is itself unique — it is 2:67. Two words starting with أعوذ
+  // are the isti'adha far more often than they are that ayah.
+  if (tail.length < MIN_JUMP_WORDS && input.heard[0] === 'اعوذ') {
+    return NO_RESULT(localScore, "the isti'adha may be starting");
+  }
 
   const candidates = candidateStarts({ heard: tail });
   if (candidates.length === 0) return NO_RESULT(localScore, 'no indexed anchor words');

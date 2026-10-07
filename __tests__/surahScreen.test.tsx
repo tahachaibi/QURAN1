@@ -239,7 +239,7 @@ describe('the header', () => {
     tree.unmount();
   });
 
-  it('keeps its space while hidden, so the page is never re-fitted', async () => {
+  it('gives its space to the page while hidden', async () => {
     jest.useFakeTimers();
     try {
       const tree = await mount({ session: session({ status: 'listening' }) });
@@ -249,9 +249,12 @@ describe('the header', () => {
       const [back] = byLabel(tree, 'Back');
       expect(back).toBeDefined();
       let header: ReactTestInstance | null = back.parent;
-      while (header !== null && header.props.pointerEvents === undefined) header = header.parent;
-      expect(header?.props.pointerEvents).toBe('none');
-      expect(header?.props.importantForAccessibility).toBe('no-hide-descendants');
+      const collapsed = (node: ReactTestInstance | null): boolean =>
+        node !== null &&
+        [node.props.style].flat(Infinity).some((st: unknown) => (st as { display?: string } | null)?.display === 'none');
+      while (header !== null && !collapsed(header)) header = header.parent;
+      // display none: no space, no touch, nothing for TalkBack to land on
+      expect(header).not.toBeNull();
       tree.unmount();
     } finally {
       jest.useRealTimers();

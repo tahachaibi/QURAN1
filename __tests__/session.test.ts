@@ -146,12 +146,43 @@ describe('arriving in another surah mid-verse (acceptance tests 4 and 5)', () =>
     expect(out.mistakes).toEqual([]);
   });
 
-  it('needs two consecutive partials before it moves', () => {
+  it('needs two consecutive partials before it moves, once the reciter is being followed', () => {
     const single = replay(
-      { name: 'one-partial', startCursor: 0, synthetic: true, events: [tail[2]] },
+      {
+        name: 'one-partial',
+        startCursor: 0,
+        synthetic: true,
+        events: [
+          { kind: 'partial', alternatives: ['بسم الله الرحمن الرحيم الحمد لله رب العالمين'] },
+          { kind: 'final', alternatives: ['بسم الله الرحمن الرحيم الحمد لله رب العالمين'] },
+          { kind: 'segment' },
+          tail[2],
+        ],
+      },
       config,
     );
     expect(single.final.cursor).toBeLessThan(SURAH_2);
+  });
+
+  it('moves on the first partial at the start of a session, when the phrase is unique', () => {
+    const single = replay(
+      { name: 'one-partial-at-start', startCursor: 0, synthetic: true, events: [tail[2]] },
+      config,
+    );
+    expect(surahOf(single.final.cursor)).toBe(2);
+  });
+
+  it('moves on two words at the start when they occur together only once', () => {
+    const out = replay(
+      {
+        name: 'two-words-at-start',
+        startCursor: 0,
+        synthetic: true,
+        events: [{ kind: 'partial', alternatives: ['اتامرون الناس'] }],
+      },
+      config,
+    );
+    expect(out.final.cursor).toBe(wordIndexOf(2, 44) + 2);
   });
 });
 
