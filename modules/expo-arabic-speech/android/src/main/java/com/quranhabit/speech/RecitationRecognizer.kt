@@ -12,6 +12,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.ParcelFileDescriptor
 import android.util.Log
+import android.speech.ModelDownloadListener
 import android.speech.RecognitionListener
 import android.speech.RecognitionSupport
 import android.speech.RecognitionSupportCallback
@@ -290,8 +291,61 @@ class RecitationRecognizer(
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || !supportsOnDevice()) {
       return "unsupported"
     }
-    triggerDownloadTiramisu(locale)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+      triggerDownloadWithProgress(locale)
+    } else {
+      triggerDownloadTiramisu(locale)
+    }
     return "requested"
+  }
+
+  /**
+   * Android 14+: the same request, with a listener, so the app can show the
+   * download's progress and know the moment it lands, instead of polling and
+   * leaving an "Install" chip up for a pack that is already installed.
+   */
+  @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+  private fun triggerDownloadWithProgress(locale: String) {
+    val downloader = SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
+    var done = false
+    val finish = { state: String, error: String? ->
+      if (!done) {
+        done = true
+        emitLanguagePack(state, 100, error)
+        main.post { runCatching { downloader.destroy() } }
+      }
+    }
+    runCatching {
+      downloader.triggerModelDownload(
+        buildIntent(locale, segmented = false),
+        executor,
+        object : ModelDownloadListener {
+          override fun onProgress(completedPercent: Int) {
+            if (!done) emitLanguagePack("downloading", completedPercent, null)
+          }
+
+          override fun onSuccess() = finish("installed", null)
+
+          // Android decided to download it later, typically on Wi-Fi.
+          override fun onScheduled() = finish("scheduled", null)
+
+          override fun onError(error: Int) = finish("failed", errorName(error))
+        },
+      )
+    }.onFailure {
+      finish("failed", it.message)
+    }
+  }
+
+  private fun emitLanguagePack(state: String, percent: Int, error: String?) {
+    emit(
+      "languagePack",
+      Bundle().apply {
+        putString("state", state)
+        putInt("percent", percent)
+        if (error != null) putString("error", error)
+      },
+    )
   }
 
   @RequiresApi(Build.VERSION_CODES.TIRAMISU)

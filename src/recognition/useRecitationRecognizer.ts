@@ -18,6 +18,7 @@ import { msg } from '../i18n/i18n';
 import {
   ArabicSpeech,
   isArabicSpeechLinked,
+  type LanguagePackEvent,
   type LanguageStatus,
   type SpeechCapabilities,
   type SpeechErrorEvent,
@@ -58,6 +59,17 @@ const LANGUAGE_POLL_MS = 5000;
 const LANGUAGE_POLL_FOR_MS = 2 * 60 * 1000;
 /** True silence for this long ends the session with a gentle prompt (§4). */
 export const SILENCE_TIMEOUT_MS = 3 * 60 * 1000;
+
+/**
+ * The offline pack is asked for once per app run without anyone tapping
+ * anything: recognition on the phone is faster than going online, and most
+ * people would never find a chip that asks them to install something.
+ */
+let packAutoRequested = false;
+/** for tests */
+export function resetPackAutoRequest(): void {
+  packAutoRequested = false;
+}
 /** Smoothing for the voice-level animation; the only continuous animation (§7). */
 const LEVEL_ATTACK = 0.5;
 const LEVEL_DECAY = 0.12;
@@ -114,6 +126,8 @@ export interface RecognizerHandle {
    * msg(); display it with tr(). Clears itself after a few seconds.
    */
   languageNotice: string | null;
+  /** the offline pack's download in progress (Android 14+ reports it), or null */
+  languagePack: LanguagePackEvent | null;
   linked: boolean;
   start: () => void;
   stop: () => void;
@@ -135,6 +149,7 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
   const [strategy, setStrategy] = useState<SpeechStrategy | null>(null);
   const [capabilities, setCapabilities] = useState<SpeechCapabilities | null>(null);
   const [languageStatus, setLanguageStatus] = useState<LanguageStatus | null>(null);
+  const [languagePack, setLanguagePack] = useState<LanguagePackEvent | null>(null);
   const [lastError, setLastError] = useState<SpeechErrorEvent | null>(null);
   const [lastRelayGapMs, setLastRelayGapMs] = useState(0);
   const [watchdogRestarts, setWatchdogRestarts] = useState(0);
@@ -244,6 +259,16 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
       .catch(() => undefined);
 
     const subs = [
+      speech.addListener('languagePack', (event: LanguagePackEvent) => {
+        setLanguagePack(event.state === 'downloading' || event.state === 'scheduled' ? event : null);
+        if (event.state === 'installed') {
+          // Known at once, even mid-recitation, where the status poll waits.
+          setLanguageStatus((s) => (s === null ? s : { ...s, localeInstalled: true }));
+          setLanguageNotice(msg('The Arabic offline pack is installed.'));
+        } else if (event.state === 'failed') {
+          setLanguageNotice(msg('The Arabic offline pack could not be downloaded. Try again from Settings.'));
+        }
+      }),
       speech.addListener('partial', (event: TranscriptEvent) => {
         lastResultAt.current = Date.now();
         speechSinceResultAt.current = 0;
@@ -527,6 +552,17 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
     await poll();
   }, [linked, refreshLanguageStatus]);
 
+  // Ask for the offline pack by itself, once per run, when it is missing and
+  // on-device recognition is wanted. Android downloads it in the background
+  // (it may wait for Wi-Fi); nobody has to find a setting.
+  useEffect(() => {
+    if (packAutoRequested) return;
+    if (configRef.current.preferOnDevice === false) return;
+    if (languageStatus === null || !languageStatus.supported || languageStatus.localeInstalled !== false) return;
+    packAutoRequested = true;
+    void requestLanguagePack();
+  }, [languageStatus, requestLanguagePack]);
+
   // stop the microphone if this hook ever unmounts
   useEffect(
     () => () => {
@@ -544,6 +580,7 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
     strategy,
     capabilities,
     languageStatus,
+    languagePack,
     lastError,
     lastRelayGapMs,
     watchdogRestarts,

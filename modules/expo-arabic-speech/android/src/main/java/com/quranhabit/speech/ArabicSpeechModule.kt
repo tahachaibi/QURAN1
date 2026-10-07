@@ -62,7 +62,7 @@ class ArabicSpeechModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("ArabicSpeech")
 
-    Events("partial", "final", "rms", "error", "endOfSegment", "state")
+    Events("partial", "final", "rms", "error", "endOfSegment", "state", "languagePack")
 
     AsyncFunction("isAvailable") { engine().isAvailable() }
 

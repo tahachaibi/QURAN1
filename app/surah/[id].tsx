@@ -58,8 +58,10 @@ import { recognizerErrorText } from '../../src/recognition/errorText';
 
 type Tab = 'listen' | 'read';
 
-/** The header auto-hides this long after listening starts (§6.4). */
-const HEADER_HIDE_MS = 2000;
+/** The header folds away this soon after listening starts (§6.4). */
+const HEADER_HIDE_MS = 800;
+/** ...and this long after a tap on the page brought it back while listening. */
+const HEADER_PEEK_MS = 3000;
 /**
  * Height of the status strip under the page. One chip or one line of heard
  * text; see the strip itself for why it is fixed rather than sized to content.
@@ -218,14 +220,23 @@ export default function SurahScreen() {
   }, [cursorPage, listening, reduceMotion, viewedPage]);
 
   // --- the text is the interface: hide the header while listening (§6.4) ---
+  // Keyed on headerVisible too: a tap on the page brings the header back for
+  // the Back button, and it used to stay for the rest of the recitation,
+  // since nothing hid it again until listening stopped.
+  const listeningSince = useRef(0);
+  useEffect(() => {
+    if (listening) listeningSince.current = Date.now();
+  }, [listening]);
   useEffect(() => {
     if (!listening) {
       setHeaderVisible(true);
       return undefined;
     }
-    const id = setTimeout(() => setHeaderVisible(false), HEADER_HIDE_MS);
+    if (!headerVisible) return undefined;
+    const justStarted = Date.now() - listeningSince.current < HEADER_HIDE_MS + 200;
+    const id = setTimeout(() => setHeaderVisible(false), justStarted ? HEADER_HIDE_MS : HEADER_PEEK_MS);
     return () => clearTimeout(id);
-  }, [listening]);
+  }, [listening, headerVisible]);
 
   // The surah shown in the header comes from the PAGE IN VIEW, not the route.
   // Swiping into another surah relabels the header; it does not navigate.
@@ -498,6 +509,19 @@ export default function SurahScreen() {
     // a passing note from the recognizer (e.g. the offline pack just arrived);
     // it clears itself after a few seconds
     notice = <Chip label={tr(recognizer.languageNotice)} icon="information-circle-outline" palette={palette} />;
+  } else if (recognizer.languagePack !== null) {
+    // the offline pack on its way, asked for by the app itself
+    notice = (
+      <Chip
+        label={
+          recognizer.languagePack.state === 'scheduled'
+            ? t('The Arabic offline pack will download soon')
+            : t('Downloading the Arabic offline pack… {n}%', { n: recognizer.languagePack.percent })
+        }
+        icon="cloud-download-outline"
+        palette={palette}
+      />
+    );
   } else if (recognizer.offlineDropped) {
     notice = (
       <Chip

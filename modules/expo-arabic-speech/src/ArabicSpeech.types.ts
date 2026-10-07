@@ -97,6 +97,14 @@ export interface StartOptions {
   minimumLengthMs?: number;
 }
 
+/** The offline pack's download, reported on Android 14+ (triggerModelDownload's listener). */
+export interface LanguagePackEvent {
+  state: 'downloading' | 'installed' | 'scheduled' | 'failed';
+  /** 0-100 while downloading */
+  percent: number;
+  error?: string;
+}
+
 export type ArabicSpeechEvents = {
   partial: (event: TranscriptEvent) => void;
   final: (event: TranscriptEvent) => void;
@@ -104,4 +112,5 @@ export type ArabicSpeechEvents = {
   error: (event: SpeechErrorEvent) => void;
   endOfSegment: () => void;
   state: (event: SpeechStateEvent) => void;
+  languagePack: (event: LanguagePackEvent) => void;
 };

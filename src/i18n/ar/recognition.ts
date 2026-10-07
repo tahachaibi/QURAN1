@@ -5,6 +5,12 @@
 import type { ArabicForms } from '../i18n';
 
 export const RECOGNITION: Record<string, string | ArabicForms> = {
+  // the offline pack, downloaded by the app itself
+  'The Arabic offline pack is installed.': 'ثُبّتت حزمة العربية للعمل دون اتصال.',
+  'The Arabic offline pack could not be downloaded. Try again from Settings.':
+    'تعذّر تنزيل حزمة العربية للعمل دون اتصال. حاول مجددًا من الإعدادات.',
+  'The Arabic offline pack will download soon': 'ستُنزَّل حزمة العربية للعمل دون اتصال قريبًا',
+  'Downloading the Arabic offline pack… {n}%': 'جارٍ تنزيل حزمة العربية للعمل دون اتصال… {n}٪',
   // src/recognition/errorText.ts
   'The recognition service stopped responding. Tap the microphone to try again.':
     'توقفت خدمة التعرّف عن الاستجابة. اضغط الميكروفون لتعيد المحاولة.',

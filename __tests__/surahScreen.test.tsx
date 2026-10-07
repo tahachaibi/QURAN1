@@ -260,6 +260,41 @@ describe('the header', () => {
       jest.useRealTimers();
     }
   });
+
+  it('folds away again after a tap on the page brings it back mid-recitation', async () => {
+    jest.useFakeTimers();
+    try {
+      const tree = await mount({ session: session({ status: 'listening' }) });
+      const isCollapsed = (): boolean => {
+        let node: ReactTestInstance | null = byLabel(tree, 'Back')[0].parent;
+        while (node !== null) {
+          if ([node.props.style].flat(Infinity).some((st: unknown) => (st as { display?: string } | null)?.display === 'none')) {
+            return true;
+          }
+          node = node.parent;
+        }
+        return false;
+      };
+      await act(async () => {
+        jest.advanceTimersByTime(1000);
+      });
+      expect(isCollapsed()).toBe(true);
+      // the page itself: the pressable that is not an accessibility element
+      const page = tree.root.find((n) => n.props.accessible === false && typeof n.props.onPress === 'function');
+      await act(async () => {
+        page.props.onPress();
+      });
+      expect(isCollapsed()).toBe(false);
+      await act(async () => {
+        jest.advanceTimersByTime(3500);
+      });
+      // it used to stay for the rest of the recitation
+      expect(isCollapsed()).toBe(true);
+      tree.unmount();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });
 
 describe('the words on the page', () => {

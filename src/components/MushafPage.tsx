@@ -425,7 +425,9 @@ const LTR_ROW = { flexDirection: lineFlexDirection(false) };
 const RTL_ROW = { flexDirection: lineFlexDirection(true) };
 
 const styles = StyleSheet.create({
-  page: { paddingHorizontal: space.sm, paddingVertical: space.sm },
+  // Slim side margins: a phone's page is limited by its WIDTH (the widest line),
+  // so every dp given back here makes the Quran text itself larger.
+  page: { paddingHorizontal: space.xs, paddingVertical: space.sm },
   paper: {
     flex: 1,
     borderRadius: radius.lg,
@@ -433,7 +435,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     paddingTop: space.sm,
     paddingBottom: space.sm,
-    paddingHorizontal: space.md,
+    paddingHorizontal: space.sm,
   },
   topRule: { position: 'absolute', top: 0, left: 0, right: 0, height: 2, opacity: 0.7 },
   ribbonTrack: {
