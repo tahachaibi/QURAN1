@@ -59,6 +59,8 @@ const LANGUAGE_POLL_MS = 5000;
 const LANGUAGE_POLL_FOR_MS = 2 * 60 * 1000;
 /** True silence for this long ends the session with a gentle prompt (§4). */
 export const SILENCE_TIMEOUT_MS = 3 * 60 * 1000;
+/** Quiet this long and the voice counts as off, for the recitation log. */
+const VOICE_OFF_MS = 300;
 
 /**
  * The offline pack is asked for once per app run without anyone tapping
@@ -134,6 +136,8 @@ export interface RecognizerHandle {
   pause: (reason?: string) => void;
   resume: () => void;
   requestLanguagePack: () => Promise<void>;
+  /** ms epoch when a voice was last heard, 0 if never; read every frame, so a getter, not state */
+  lastVoiceAt: () => number;
 }
 
 export interface RecognizerConfig extends RecognizerCallbacks {
@@ -168,6 +172,14 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
   const wantsToListen = useRef(false);
   const lastResultAt = useRef(0);
   const lastSpeechAt = useRef(0);
+  /**
+   * When a voice was last actually HEARD: unlike lastSpeechAt, never set by
+   * starting. The underline's lead reads it (src/engine/lead.ts), and the
+   * recitation log records the voice turning on and off from it, so a log
+   * shows how far the recognizer's words trail the voice.
+   */
+  const lastVoiceAt = useRef(0);
+  const voiceOn = useRef(false);
   /**
    * When the voice the recognizer has not answered yet began: the first voiced
    * RMS frame since the last result or the last new instance, 0 when there is
@@ -290,7 +302,15 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
         const now = Date.now();
         if (db >= SPEECH_RMS_DB) {
           lastSpeechAt.current = now;
+          lastVoiceAt.current = now;
           if (speechSinceResultAt.current === 0) speechSinceResultAt.current = now;
+          if (!voiceOn.current) {
+            voiceOn.current = true;
+            callbacks.current.onState?.('voice-on', '');
+          }
+        } else if (voiceOn.current && now - lastVoiceAt.current > VOICE_OFF_MS) {
+          voiceOn.current = false;
+          callbacks.current.onState?.('voice-off', '');
         }
         // dB in, 0..1 out, with a fast attack and a slow decay so the underline
         // breathes rather than flickers.
@@ -563,6 +583,8 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
     void requestLanguagePack();
   }, [languageStatus, requestLanguagePack]);
 
+  const readLastVoiceAt = useCallback(() => lastVoiceAt.current, []);
+
   // stop the microphone if this hook ever unmounts
   useEffect(
     () => () => {
@@ -593,5 +615,6 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
     pause,
     resume,
     requestLanguagePack,
+    lastVoiceAt: readLastVoiceAt,
   };
 }

@@ -5,6 +5,10 @@
 import type { ArabicForms } from '../i18n';
 
 export const RECOGNITION: Record<string, string | ArabicForms> = {
+  // the underline's lead
+  'Underline ahead of the recognizer': 'تقدّم الخط قبل تأكيد التعرّف',
+  'The recognizer confirms each word a moment after you say it. This moves the underline on with your voice, at your own pace, and the recognizer then confirms it.':
+    'يؤكّد محرّك التعرّف كل كلمة بعد نطقك بها بلحظة. هذا الخيار يُقدّم الخط مع صوتك وبحسب سرعتك، ثم يؤكّده المحرّك.',
   // the offline pack, downloaded by the app itself
   'The Arabic offline pack is installed.': 'ثُبّتت حزمة العربية للعمل دون اتصال.',
   'The Arabic offline pack could not be downloaded. Try again from Settings.':

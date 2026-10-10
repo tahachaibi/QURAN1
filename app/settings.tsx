@@ -127,6 +127,13 @@ export default function Settings() {
           onChange={(allowSegmented) => setPrefs({ allowSegmented })}
           palette={palette}
         />
+        <Toggle
+          label={t('Underline ahead of the recognizer')}
+          hint={t('The recognizer confirms each word a moment after you say it. This moves the underline on with your voice, at your own pace, and the recognizer then confirms it.')}
+          value={prefs.leadUnderline}
+          onChange={(leadUnderline) => setPrefs({ leadUnderline })}
+          palette={palette}
+        />
       </Section>
 
       <Section title={t('Recognizer on this device')} palette={palette}>

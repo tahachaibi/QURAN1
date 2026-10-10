@@ -31,8 +31,11 @@ import {
   pageWordRange,
   surahInfo,
   surahOf,
+  TOTAL_WORDS,
   wordIndexOf,
+  words,
 } from '../../src/data/quran';
+import { useLead } from '../../src/hooks/useLead';
 import { PageDeck, type PageDeckHandle } from '../../src/components/PageDeck';
 import { MistakeSheet } from '../../src/components/MistakeSheet';
 import { SummaryCard, weakestAyahOf } from '../../src/components/SummaryCard';
@@ -57,6 +60,9 @@ import { useT } from '../../src/i18n/useT';
 import { recognizerErrorText } from '../../src/recognition/errorText';
 
 type Tab = 'listen' | 'read';
+
+/** For a recognizer that cannot say when it last heard a voice (tests). */
+const NEVER = (): number => 0;
 
 /** The header folds away this soon after listening starts (§6.4). */
 const HEADER_HIDE_MS = 800;
@@ -205,6 +211,15 @@ export default function SurahScreen() {
       deck.current?.goToPage(pageOf(word), false);
     });
   }, [params.ayah, seedAyah, seedSurah, seekTo, session.cursor, session.status, setViewedPage]);
+
+  // --- the underline a beat ahead of the recognizer (src/engine/lead.ts) ---
+  const lead = useLead({
+    session,
+    words,
+    limit: range === null ? TOTAL_WORDS : range.to + 1,
+    lastVoiceAt: recognizer.lastVoiceAt ?? NEVER,
+    enabled: prefs.leadUnderline,
+  });
 
   // --- auto page-turn: the deck follows the voice (§6.1) ---
   const cursorPage = pageOf(session.livePos);
@@ -604,6 +619,7 @@ export default function SurahScreen() {
             onWordPress={onWordPress}
             onWordLongPress={onWordLongPress}
             width={width}
+            underlineAt={lead}
           />
         ) : (
           <ListenPanel

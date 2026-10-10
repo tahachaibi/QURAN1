@@ -35,6 +35,8 @@ export interface PageDeckProps {
   onWordPress: (index: number) => void;
   onWordLongPress: (index: number) => void;
   width: number;
+  /** the word to underline ahead of the confirmed position (the lead), or -1 */
+  underlineAt?: number;
 }
 
 const PAGES = Array.from({ length: TOTAL_PAGES }, (_, i) => i + 1);
@@ -53,10 +55,11 @@ export const PageDeck = forwardRef<PageDeckHandle, PageDeckProps>(function PageD
     onWordPress,
     onWordLongPress,
     width,
+    underlineAt = -1,
   } = props;
 
   const list = useRef<FlatList<number>>(null);
-  const sliceFor = usePageSlice(session);
+  const sliceFor = usePageSlice(session, underlineAt);
 
   useImperativeHandle(
     ref,

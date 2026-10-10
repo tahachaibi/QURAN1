@@ -60,6 +60,8 @@ export interface Prefs {
   locale: string;
   preferOnDevice: boolean;
   allowSegmented: boolean;
+  /** draw the underline a beat ahead of the recognizer (src/engine/lead.ts) */
+  leadUnderline: boolean;
   reciter: string;
   hiddenMode: boolean;
   showDebugOverlay: boolean;
@@ -103,6 +105,7 @@ export const DEFAULT_PREFS: Prefs = {
   locale: 'ar-SA',
   preferOnDevice: true,
   allowSegmented: true,
+  leadUnderline: true,
   // a QuranicAudio folder now, not an alquran.cloud edition id
   reciter: 'yasser_ad-dussary/',
   hiddenMode: false,

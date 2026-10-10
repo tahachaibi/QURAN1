@@ -50,7 +50,12 @@ const sameSlice = (a: PageSlice, b: PageSlice): boolean =>
   sameNumbers(a.missed, b.missed) &&
   sameNumbers(a.hinted, b.hinted);
 
-export function usePageSlice(session: SessionState): (page: number) => PageSlice {
+/**
+ * `underline` is the word to underline when it is not the confirmed position:
+ * the lead (src/engine/lead.ts), a beat ahead of the recognizer. -1 for none.
+ * It moves only the underline; what reads as recited stays the confirmed cursor.
+ */
+export function usePageSlice(session: SessionState, underline = -1): (page: number) => PageSlice {
   const cache = useRef(new Map<number, PageSlice>());
 
   return useCallback(
@@ -65,7 +70,7 @@ export function usePageSlice(session: SessionState): (page: number) => PageSlice
       }
       for (const m of session.mistakes) if (m.word >= from && m.word < to) missed.push(m.word);
 
-      const live = session.livePos;
+      const live = underline >= 0 ? underline : session.livePos;
       const next: PageSlice = {
         page,
         from,
@@ -83,6 +88,6 @@ export function usePageSlice(session: SessionState): (page: number) => PageSlice
       cache.current.set(page, next);
       return next;
     },
-    [session],
+    [session, underline],
   );
 }

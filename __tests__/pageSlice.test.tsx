@@ -15,8 +15,8 @@ import { initialSession, type SessionState } from '../src/engine/session';
 
 let sliceFor: ((page: number) => PageSlice) | null = null;
 
-function Probe({ session }: { session: SessionState }): null {
-  sliceFor = usePageSlice(session);
+function Probe({ session, underline }: { session: SessionState; underline?: number }): null {
+  sliceFor = usePageSlice(session, underline);
   return null;
 }
 
@@ -44,6 +44,27 @@ describe('recitedUpTo', () => {
     expect(sliceFor!(page - 1)).toBe(before.behind);
     expect(sliceFor!(page + 1)).toBe(before.ahead);
     expect(to).toBeGreaterThan(from + 4);
+    tree.unmount();
+  });
+});
+
+describe('the lead', () => {
+  it('moves only the underline, never what reads as recited', () => {
+    const page = 50;
+    const [from] = pageWordRange(page);
+    const session: SessionState = { ...initialSession(from + 3), livePos: from + 3 };
+    let tree!: ReturnType<typeof create>;
+    act(() => {
+      tree = create(<Probe session={session} underline={from + 4} />);
+    });
+    expect(sliceFor!(page).current).toBe(from + 4);
+    // a hidden word ahead of the confirmed cursor must stay hidden
+    expect(sliceFor!(page).recitedUpTo).toBe(from + 3);
+    expect(sliceFor!(page).recited).not.toContain(from + 3);
+    act(() => {
+      tree.update(<Probe session={session} underline={-1} />);
+    });
+    expect(sliceFor!(page).current).toBe(from + 3);
     tree.unmount();
   });
 });
