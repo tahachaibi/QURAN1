@@ -496,9 +496,16 @@ jobs:
           ./gradlew :app:assembleRelease -PtasmeeQuranModel=true
           -PreactNativeArchitectures=arm64-v8a -Pandroid.injected.build.abi=arm64-v8a --stacktrace
 
+      - name: Find the APK (built for one ABI, it is not named app-release.apk)
+        run: |
+          ls -la android/app/build/outputs/apk/release/
+          APK=$(ls android/app/build/outputs/apk/release/*.apk | head -1)
+          test -f "$APK" || { echo "::error::no APK was built"; exit 1; }
+          echo "APK=$APK" >> "$GITHUB_ENV"
+
       - name: The model and ONNX Runtime are inside
         run: |
-          APK=android/app/build/outputs/apk/release/app-release.apk
+          set -o pipefail
           unzip -l "$APK" | grep -E 'assets/quran-model/|libonnxruntime' | tee /tmp/quran.txt
           for f in features.onnx encoder.onnx decoder.onnx tokens.bin config.json; do
             grep -q "assets/quran-model/$f" /tmp/quran.txt || { echo "::error::$f is missing from the test APK"; exit 1; }
@@ -508,12 +515,12 @@ jobs:
 
       - name: 16 KB alignment (informational; this APK is never uploaded to Play)
         continue-on-error: true
-        run: python3 scripts/check-elf-alignment.py android/app/build/outputs/apk/release/app-release.apk
+        run: python3 scripts/check-elf-alignment.py "$APK"
 
       - name: Name it
         run: |
           mkdir -p out
-          cp android/app/build/outputs/apk/release/app-release.apk "out/tasmee-hifz-quran-${GITHUB_SHA::7}.apk"
+          cp "$APK" "out/tasmee-hifz-quran-${GITHUB_SHA::7}.apk"
 
       - uses: actions/upload-artifact@v4
         with:
