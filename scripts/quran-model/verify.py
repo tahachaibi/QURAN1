@@ -161,6 +161,7 @@ def main() -> None:
     fe = WhisperFeatureExtractor.from_pretrained(cfg['model'], revision=cfg['revision'])
     ref_model = WhisperForConditionalGeneration.from_pretrained(cfg['model'], revision=cfg['revision']).eval()
     processor = WhisperProcessor.from_pretrained(cfg['model'], revision=cfg['revision'])
+    ref_model.generation_config.forced_decoder_ids = [[i, t] for i, t in enumerate(cfg['prompt'][1:], 1)]
 
     enc_ms, dec_ms, calls_per_pass, vs_text, vs_ref = [], [], [], [], []
     failures = 0
@@ -205,9 +206,9 @@ def main() -> None:
                 failures += 1
 
             with torch.no_grad():
-                gen = ref_model.generate(
-                    torch.from_numpy(ref_feats), language='ar', task='transcribe', max_new_tokens=MAX_NEW
-                )
+                # this model's generation config predates `language=`: force the
+                # same prompt the phone uses instead
+                gen = ref_model.generate(torch.from_numpy(ref_feats), max_new_tokens=MAX_NEW)
             reference = processor.batch_decode(gen, skip_special_tokens=True)[0].strip()
 
             truth = ayah_text(surah, ayah)

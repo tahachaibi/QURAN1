@@ -63,7 +63,7 @@ import java.util.concurrent.Executor
 class RecitationRecognizer(
   private val context: Context,
   private val emit: (event: String, payload: Bundle) -> Unit,
-) {
+) : SpeechEngine {
   enum class Strategy { STREAM, SEGMENTED, ON_DEVICE, RELAY }
 
   data class Options(
@@ -160,7 +160,7 @@ class RecitationRecognizer(
   private var relayStartedAt = 0L
   private var lastResultAt = 0L
 
-  val isActive: Boolean get() = active
+  override val isActive: Boolean get() = active
   val currentStrategy: String get() = strategy.name
 
   // -------------------------------------------------------------------------
@@ -359,7 +359,7 @@ class RecitationRecognizer(
   // session lifecycle
   // -------------------------------------------------------------------------
 
-  fun start(options: Options) {
+  override fun start(options: Options) {
     this.options = options
     if (!isAvailable()) {
       emitError(
@@ -432,7 +432,7 @@ class RecitationRecognizer(
    * abandoned the NEW request and left the old one on the focus stack for good,
    * so the podcast paused at the start of recitation never resumed.
    */
-  fun stop() {
+  override fun stop() {
     active = false
     generation++
     abandonAudioFocus()
@@ -443,7 +443,7 @@ class RecitationRecognizer(
     }
   }
 
-  fun cancel() {
+  override fun cancel() {
     active = false
     generation++
     abandonAudioFocus()
@@ -454,7 +454,7 @@ class RecitationRecognizer(
     }
   }
 
-  fun destroy() {
+  override fun destroy() {
     cancel()
   }
 

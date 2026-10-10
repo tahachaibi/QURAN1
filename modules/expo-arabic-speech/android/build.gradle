@@ -9,17 +9,37 @@ applyKotlinExpoModulesCorePlugin()
 useCoreDependencies()
 useDefaultAndroidSdkVersions()
 
+/*
+ * The built-in Quran model (test APK only). `./gradlew -PtasmeeQuranModel=true`
+ * compiles in src/quranModel (the engine and the model files CI puts there)
+ * and ONNX Runtime. Without the flag, which is every Play build, none of it
+ * exists: ArabicSpeechModule looks the engine up by name and finds nothing.
+ */
+def quranModel = (findProperty('tasmeeQuranModel') ?: 'false').toString().toBoolean()
+
 android {
   namespace "com.quranhabit.speech"
   defaultConfig {
     versionCode 1
     versionName "1.0.0"
+    consumerProguardFiles 'proguard-rules.pro'
   }
   lint {
     abortOnError false
+  }
+  sourceSets {
+    main {
+      if (quranModel) {
+        java.srcDirs += 'src/quranModel/java'
+        assets.srcDirs += 'src/quranModel/assets'
+      }
+    }
   }
 }
 
 dependencies {
   implementation "androidx.annotation:annotation:1.7.1"
+  if (quranModel) {
+    implementation "com.microsoft.onnxruntime:onnxruntime-android:1.22.0"
+  }
 }

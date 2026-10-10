@@ -13,6 +13,9 @@ import expo.modules.kotlin.modules.ModuleDefinition
 import expo.modules.kotlin.records.Field
 import expo.modules.kotlin.records.Record
 
+/** compiled only into the test APK; looked up by name so the Play build does not need it */
+private const val QURAN_ENGINE = "com.quranhabit.speech.quran.QuranModelRecognizer"
+
 class MissingContextException :
   CodedException("No Android context is available. This module only works in a dev-client or release build, not in Expo Go.")
 
@@ -30,6 +33,8 @@ class StartOptions(
   @Field var completeSilenceMs: Int = 6_000,
   @Field var possiblyCompleteSilenceMs: Int = 1_800,
   @Field var minimumLengthMs: Int = 30_000,
+  /** "google" (Android's recognizer) or "quran" (the built-in model, test APK only) */
+  @Field var engine: String = "google",
 ) : Record {
   fun toOptions() = RecitationRecognizer.Options(
     locale = locale,
@@ -44,6 +49,26 @@ class StartOptions(
 
 class ArabicSpeechModule : Module() {
   private var recognizer: RecitationRecognizer? = null
+  private var quran: SpeechEngine? = null
+  /** whichever engine the last start() went to */
+  private var running: SpeechEngine? = null
+
+  /**
+   * The built-in Quran model, if this build carries it. Found by name: its
+   * class, ONNX Runtime and the model files are only compiled into the test
+   * APK (build.gradle, -PtasmeeQuranModel=true), never the Play bundle.
+   */
+  private fun quranEngine(): SpeechEngine? {
+    quran?.let { return it }
+    val context = appContext.reactContext ?: return null
+    return runCatching {
+      val cls = Class.forName(QURAN_ENGINE)
+      val bundled = cls.getMethod("bundled", Context::class.java)
+      if (bundled.invoke(null, context) != true) return null
+      val emit: (String, Bundle) -> Unit = { event, payload -> safeSend(event, payload) }
+      cls.getConstructor(Context::class.java, Function2::class.java).newInstance(context, emit) as SpeechEngine
+    }.getOrNull()?.also { quran = it }
+  }
 
   private fun engine(): RecitationRecognizer {
     recognizer?.let { return it }
@@ -68,7 +93,9 @@ class ArabicSpeechModule : Module() {
 
     AsyncFunction("supportsOnDevice") { engine().supportsOnDevice() }
 
-    AsyncFunction("capabilities") { engine().capabilities() }
+    AsyncFunction("capabilities") {
+      engine().capabilities().apply { putBoolean("quranModelAvailable", quranEngine() != null) }
+    }
 
     /**
      * Both of these build a throwaway on-device SpeechRecognizer, and from
@@ -90,14 +117,18 @@ class ArabicSpeechModule : Module() {
     }.runOnQueue(Queues.MAIN)
 
     AsyncFunction("start") { options: StartOptions ->
-      engine().start(options.toOptions())
+      val chosen: SpeechEngine = (if (options.engine == "quran") quranEngine() else null) ?: engine()
+      // never two engines on the microphone at once
+      running?.takeIf { it !== chosen && it.isActive }?.cancel()
+      running = chosen
+      chosen.start(options.toOptions())
     }
 
-    AsyncFunction("stop") { engine().stop() }
+    AsyncFunction("stop") { (running ?: engine()).stop() }
 
-    AsyncFunction("cancel") { engine().cancel() }
+    AsyncFunction("cancel") { (running ?: engine()).cancel() }
 
-    AsyncFunction("isActive") { recognizer?.isActive ?: false }
+    AsyncFunction("isActive") { running?.isActive ?: false }
 
     /**
      * Where audio would actually come out, and how loud.
