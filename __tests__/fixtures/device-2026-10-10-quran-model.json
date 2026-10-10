@@ -1,0 +1,606 @@
+{
+ "name": "session-2026-10-10T16:32:36.117Z",
+ "startCursor": 29,
+ "events": [
+  {
+   "kind": "state",
+   "state": "pack-missing:download=failed/LANGUAGE_NOT_SUPPORTED arOnDevice=false arPending=false",
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "starting:QURAN_MODEL",
+   "dt": 68
+  },
+  {
+   "kind": "state",
+   "state": "listening:QURAN_MODEL",
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "ready:QURAN_MODEL",
+   "dt": 24
+  },
+  {
+   "kind": "state",
+   "state": "voice-off:",
+   "dt": 31
+  },
+  {
+   "kind": "state",
+   "state": "voice-on:",
+   "dt": 359
+  },
+  {
+   "kind": "state",
+   "state": "speech-start:QURAN_MODEL",
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "voice-off:",
+   "dt": 360
+  },
+  {
+   "kind": "state",
+   "state": "voice-on:",
+   "dt": 361
+  },
+  {
+   "kind": "state",
+   "state": "pass-258ms-1.1s:QURAN_MODEL",
+   "dt": 379
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "فَجَلْ"
+   ],
+   "dt": 20
+  },
+  {
+   "kind": "state",
+   "state": "pass-306ms-1.4s:QURAN_MODEL",
+   "dt": 331
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "الرَّفْلِ"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "pass-252ms-1.7s:QURAN_MODEL",
+   "dt": 251
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "الر تُلْقُى"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "pass-347ms-2.0s:QURAN_MODEL",
+   "dt": 387
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "فَالْفَانِينَ"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "pass-248ms-2.4s:QURAN_MODEL",
+   "dt": 248
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "الم"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "pass-245ms-2.7s:QURAN_MODEL",
+   "dt": 290
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "الم"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "pass-161ms-3.0s:QURAN_MODEL",
+   "dt": 216
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "الم"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "voice-off:",
+   "dt": 98
+  },
+  {
+   "kind": "state",
+   "state": "voice-on:",
+   "dt": 179
+  },
+  {
+   "kind": "state",
+   "state": "pass-250ms-3.3s:QURAN_MODEL",
+   "dt": 114
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "الم"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "pass-172ms-3.6s:QURAN_MODEL",
+   "dt": 219
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "الم"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "pass-254ms-3.9s:QURAN_MODEL",
+   "dt": 384
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "الم"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "pass-335ms-4.2s:QURAN_MODEL",
+   "dt": 380
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "الرِّفَامِينَ ذَلِكِتَانِ"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "pass-350ms-4.5s:QURAN_MODEL",
+   "dt": 349
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "الرِّفْنَامِينَ ذَلِكَ الْكِتَبُونَ"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "pass-211ms-4.9s:QURAN_MODEL",
+   "dt": 211
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "الرَّلِحُينَ"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "pass-580ms-5.2s:QURAN_MODEL",
+   "dt": 668
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "الرِّفْنَامِينَ ذَلِكَ كِتَابُ لَرَيْبَ فِي"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "pass-215ms-5.7s:QURAN_MODEL",
+   "dt": 214
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "الرَّلِحُينَ"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "voice-off:",
+   "dt": 161
+  },
+  {
+   "kind": "state",
+   "state": "pass-251ms-6.0s:QURAN_MODEL",
+   "dt": 175
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "الرَّلِحُينَ"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "voice-on:",
+   "dt": 72
+  },
+  {
+   "kind": "state",
+   "state": "pass-452ms-6.3s:QURAN_MODEL",
+   "dt": 428
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "الرِّفْنَامِينَ ذَلِكَ كِتَابُ لَرَيْبَ فِيهِ"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "pass-553ms-6.8s:QURAN_MODEL",
+   "dt": 552
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "الرِّفْلَامِينَ ذَلِكَ كِتَابُ لَرَيْبَ فِيهِ مُتَلِّمِينَ"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "pass-640ms-7.3s:QURAN_MODEL",
+   "dt": 641
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "الرَّلِحُينَ مِنَ ذَلِكِ الْكِتَابُ لَرَيْبَ فِيهِ هُدًى لِمُتَقِيمٍ"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "pass-749ms-8.0s:QURAN_MODEL",
+   "dt": 750
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "الرِّفْنَا مِننَ ذَلِكِ الْكِتَابُ لَرَيْبَ فِيهِ هُدًى لِمُتَقِينَ الَّتِينَ"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "pass-215ms-8.7s:QURAN_MODEL",
+   "dt": 214
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "الرَّلِحُينَ"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "pass-251ms-9.0s:QURAN_MODEL",
+   "dt": 322
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "الرَّلِحُينَ"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "pass-1052ms-9.3s:QURAN_MODEL",
+   "dt": 1100
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "الرَّلِحُينَ مِنِينَ لِكِتَوْنَ رَيْبَ فِيهِ مُتَلِّمُ تَقِينَ الَّتِينَ يُؤْمِنُونَ بِالْغَيْبِ"
+   ],
+   "dt": 1
+  },
+  {
+   "kind": "state",
+   "state": "pass-167ms-10.4s:QURAN_MODEL",
+   "dt": 167
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "الرَّلِحُينَ"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "pass-1346ms-10.7s:QURAN_MODEL",
+   "dt": 1469
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "الرِّفْنَا مِنِ ذَلِكِ اكْتَبُ لَرَيْبَ فِيهِ مُدَلِّمُ تَقِينَ الَّتِ لَيُؤْمِنُ لَبِالْغَيْبِ وِيُقِمُونَ الصُّدُدُدُ"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "pass-739ms-12.0s:QURAN_MODEL",
+   "dt": 740
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "الرِّفْنَا مِنِ ذَلِكِ اكْتَبُ لَرَيْبَ فِيهِ مُدَلِّمُ تَقِينَ الَّتِ لَيُؤْمِنُ لَبِالْغَيْبِ وِيُقِمُونَ الصُّؤْتُ مِنْ عَرَ زَقْلَمِينَ"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "voice-off:",
+   "dt": 989
+  },
+  {
+   "kind": "state",
+   "state": "speech-end:QURAN_MODEL",
+   "dt": 380
+  },
+  {
+   "kind": "state",
+   "state": "voice-on:",
+   "dt": 100
+  },
+  {
+   "kind": "state",
+   "state": "speech-start:QURAN_MODEL",
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "pass-1956ms-12.7s:QURAN_MODEL",
+   "dt": 487
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "الرِّفْنَا مِنِ ذَلِكِ اكْتَغُلَ رَيْبَ فِيهِ مُتَلِمُ التَّقِينَاتِ لَيُؤْمِنُ لَبِ الْغَيْبِ وَيُقِمُونَ الصُّوتُ وَمِنْ رَزَقْنَا مُنْفِقُونَ"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "pass-1772ms-14.1s:QURAN_MODEL",
+   "dt": 1772
+  },
+  {
+   "kind": "final",
+   "alternatives": [
+    "الرِّفْنَا مِنِ ذَلِكِ اكْتَغُلَ رَيْبَ فِيهِ مُدَلِ الْمُتَّقِينَ لَتِنَا يُؤْمِنُونَ بِالْغَيْبِ وِيُقِيمُ النُّوتُ وَمِنْ رَزَقْنَا مُنْفِقُونَ"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "pass-477ms-2.3s:QURAN_MODEL",
+   "dt": 478
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "خُلَّتِ لَيُؤْمِنُونَ بِمَا"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "pass-403ms-2.8s:QURAN_MODEL",
+   "dt": 425
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "خُلَّتِ لَيُؤْمِنُ لَبِمَا أُولَئِكَ"
+   ],
+   "dt": 1
+  },
+  {
+   "kind": "state",
+   "state": "pass-612ms-3.2s:QURAN_MODEL",
+   "dt": 590
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "الَّذِينَ يُؤْمِنُونَ بِمَنْ أُنْزِلَيْنِ"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "pass-580ms-3.8s:QURAN_MODEL",
+   "dt": 579
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "خُلَّتِ لَيُؤْمِنُ لَبِمَا أُولُوهُمْ"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "pass-485ms-4.4s:QURAN_MODEL",
+   "dt": 486
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "خُلَّتِ لَيُؤْمِنُ لَبِمَا أُزِلَيْنَكُمُ الْأُجْلُ"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "pass-503ms-4.9s:QURAN_MODEL",
+   "dt": 503
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "خُلَّتِ لَيُؤْمِنُ لَبِمَا أُولُوهُ مُنْزِلَ الْقُلِينَ"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "pass-870ms-5.4s:QURAN_MODEL",
+   "dt": 870
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "الَّذِينَ يُؤْمِنُونَ بِمَنْ أُجْزِلَيْكَ مُنْزِلَ الْقُلِكُونَ"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "pass-949ms-6.3s:QURAN_MODEL",
+   "dt": 950
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "الَّذِينَ يُؤْمِنُونَ بِمَنْ أُنْزِلَيْكَ وَأُولُوهُمْ وَأُجْزِلَ الْقُلِكُ بِلَخِرَةِ"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "voice-off:",
+   "dt": 420
+  },
+  {
+   "kind": "state",
+   "state": "voice-on:",
+   "dt": 479
+  },
+  {
+   "kind": "state",
+   "state": "pass-1198ms-7.2s:QURAN_MODEL",
+   "dt": 300
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "الَّذِينَ يُؤْتَدِي مَنْ أُجْنِي لَكَ يُؤْتِيَنِي مُنْزِلُ الْقُلِكُ بِلَخْرَةِ وَيُؤْتِي"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "pass-1084ms-8.4s:QURAN_MODEL",
+   "dt": 1083
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "الَّذِينَ يُؤْمِنُونَ بِمَنْ أُنْزِلَيْكَ وَأُولُو الْقُلِكَ بِلَكِرَةِ وَيُؤْمِنُونَ"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "voice-off:",
+   "dt": 1377
+  },
+  {
+   "kind": "state",
+   "state": "pass-1448ms-9.5s:QURAN_MODEL",
+   "dt": 71
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "الَّذِينَ يُؤْتَنَ بِمَنْ أُزِلَيْنَكُمُ الْأُجْزِلَ الْقُرِكُ بِلَخْرَتِهِمُ الْيُقِنُونَ أُولَئِكَ لَهُدٌ"
+   ],
+   "dt": 1
+  },
+  {
+   "kind": "state",
+   "state": "voice-on:",
+   "dt": 108
+  },
+  {
+   "kind": "state",
+   "state": "pass-1451ms-11.0s:QURAN_MODEL",
+   "dt": 1343
+  },
+  {
+   "kind": "partial",
+   "alternatives": [
+    "الَّذِينَ يُؤْتَرَيْنَ بِمَنْ أُنْزِلَ الْمُؤْتُنِكَ بِلَخْرَةِ وَيُؤْتُنِ أُولَئِكَ لَهُدَمَا الرَّقِّهِمْ"
+   ],
+   "dt": 0
+  },
+  {
+   "kind": "state",
+   "state": "voice-off:",
+   "dt": 1897
+  },
+  {
+   "kind": "state",
+   "state": "speech-end:QURAN_MODEL",
+   "dt": 340
+  },
+  {
+   "kind": "state",
+   "state": "stopped:QURAN_MODEL",
+   "dt": 388
+  }
+ ]
+}

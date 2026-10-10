@@ -89,7 +89,10 @@ jobs:
   quran-model:
     # Tarteel's Quran speech model, exported for the phone and checked on real
     # recitations before any APK may carry it. Only the test APK below uses
-    # it; the Play bundle never does.
+    # it; the Play bundle never does. On request only (Run workflow): on a
+    # real phone and voice the tiny model did far worse than Android's
+    # recognizer, so it is not built on every push.
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:

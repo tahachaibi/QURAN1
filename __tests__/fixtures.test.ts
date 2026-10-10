@@ -95,6 +95,19 @@ const EXPECTATIONS: Record<string, (out: ReplayOutcome) => void> = {
     const firstFlag = out.frames.findIndex((f) => f.mistakes.length > 0);
     expect(out.frames[firstFlag].cursor - 7).toBeGreaterThan(3);
   },
+  /**
+   * 2:1–2:4 heard by the built-in Quran model (test APK) on a real phone and
+   * voice, transcripts as garbled as the model made them: "الرِّفْنَامِينَ ذَلِكَ
+   * الْكِتَبُونَ" for "الم ذلك الكتاب". The engine still has to follow what it
+   * can into Al-Baqarah and never blame the reciter for the model's mishearing.
+   */
+  'device-2026-10-10-quran-model': (out) => {
+    expect(out.final.cursor).toBe(SURAH_2 + 21);
+    expect(out.mistakes).toEqual([]);
+    for (let i = 1; i < out.cursorPath.length; i++) {
+      expect(out.cursorPath[i]).toBeGreaterThanOrEqual(out.cursorPath[i - 1]);
+    }
+  },
 };
 
 /**

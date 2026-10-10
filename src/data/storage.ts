@@ -64,7 +64,9 @@ export interface Prefs {
   leadUnderline: boolean;
   /**
    * The built-in Quran model or Android's recognizer. Only the test APK has
-   * the model; everywhere else 'quran' falls back to Android's by itself.
+   * the model. Android's is the default: on a real phone and voice
+   * (device recording 2026-10-10) the tiny model misheard much of what
+   * Android's recognizer followed perfectly, and took up to 2 s a pass.
    */
   recognizerEngine: 'google' | 'quran';
   reciter: string;
@@ -111,7 +113,7 @@ export const DEFAULT_PREFS: Prefs = {
   preferOnDevice: true,
   allowSegmented: true,
   leadUnderline: true,
-  recognizerEngine: 'quran',
+  recognizerEngine: 'google',
   // a QuranicAudio folder now, not an alquran.cloud edition id
   reciter: 'yasser_ad-dussary/',
   hiddenMode: false,
