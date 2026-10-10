@@ -303,8 +303,10 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
         if (event.state === 'installed') {
           // Known at once, even mid-recitation, where the status poll waits.
           setLanguageStatus((s) => (s === null ? s : { ...s, localeInstalled: true }));
-          setLanguageNotice(msg('The Arabic offline pack is installed.'));
-        } else if (event.state === 'failed') {
+          // said only to somebody who asked for it, in Settings: the app's own
+          // request at launch stays silent either way
+          if (packAskedByUser.current) setLanguageNotice(msg('The Arabic offline pack is installed.'));
+        } else if (event.state === 'failed' && packAskedByUser.current) {
           setLanguageNotice(msg('The Arabic offline pack could not be downloaded. Try again from Settings.'));
         }
       }),
@@ -569,18 +571,22 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
     nativeStart();
   }, [linked, nativeStart]);
 
-  const requestLanguagePack = useCallback(async () => {
+  /** set when the person asked for the pack (Settings), not the app at launch */
+  const packAskedByUser = useRef(false);
+  const requestPack = useCallback(async (byUser: boolean) => {
     if (!linked) return;
+    if (byUser) packAskedByUser.current = true;
     let outcome: 'requested' | 'unsupported';
     try {
       outcome = await ArabicSpeech().requestLanguageDownload(configRef.current.locale);
     } catch {
-      // Called as `void requestLanguagePack()` from a chip, so a rejection
+      // Called as `void requestLanguagePack()` from a button, so a rejection
       // here would be unhandled and the tap would look ignored.
-      setLanguageNotice(msg('The Arabic offline pack could not be requested. Try again from Settings.'));
+      if (byUser) setLanguageNotice(msg('The Arabic offline pack could not be requested. Try again from Settings.'));
       return;
     }
     if (outcome === 'unsupported') {
+      if (!byUser) return;
       // The "recognising online" chip leads here on phones with no on-device
       // recognition at all (Android 12), where tapping it used to do nothing.
       setLanguageNotice(msg('Offline Arabic is not available on this phone.'));
@@ -598,6 +604,7 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
     };
     await poll();
   }, [linked, refreshLanguageStatus]);
+  const requestLanguagePack = useCallback(() => requestPack(true), [requestPack]);
 
   // Ask for the offline pack by itself, once per run, when it is missing and
   // on-device recognition is wanted. Android downloads it in the background
@@ -607,8 +614,8 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
     if (configRef.current.preferOnDevice === false) return;
     if (languageStatus === null || !languageStatus.supported || languageStatus.localeInstalled !== false) return;
     packAutoRequested = true;
-    void requestLanguagePack();
-  }, [languageStatus, requestLanguagePack]);
+    void requestPack(false);
+  }, [languageStatus, requestPack]);
 
   const readLastVoiceAt = useCallback(() => lastVoiceAt.current, []);
 

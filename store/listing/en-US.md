@@ -110,7 +110,7 @@ Your voice goes to Android's own speech recognition — on the device when the A
 HONEST LIMITS, BEFORE YOU INSTALL
 • Android only for now.
 • The Quran is in Arabic only, no translation or tafsir. Menus in English or Arabic.
-• The follow-along uses Android's own Arabic speech recognition. Install the offline Arabic language pack for best results.
+• The follow-along uses Android's own Arabic speech recognition, with nothing to set up.
 • It does not grade tajweed. It follows which word you said, not how you said it.
 
 Quran, mushaf, hifz, memorize Quran, recitation, prayer times, adhan, hadith, Bukhari, Muslim, azkar, offline Quran.

@@ -345,6 +345,24 @@ describe('notices over the page', () => {
     tree.unmount();
   });
 
+  it('never asks the reciter to install anything', async () => {
+    const tree = await mount({
+      recognizer: {
+        status: 'listening',
+        lastError: null,
+        heardSomething: true,
+        offlineDropped: true,
+        languageStatus: { supported: true, localeInstalled: false },
+        languagePack: { state: 'downloading', percent: 40 },
+        languageNotice: 'The Arabic offline pack is installed.',
+        requestLanguagePack: () => Promise.resolve(),
+      },
+    });
+    const text = textOf(tree);
+    expect(text).not.toMatch(/offline|Install|pack/i);
+    tree.unmount();
+  });
+
   it('shows one notice at a time, the most urgent', async () => {
     const [from] = ayahWordRange(2, 3);
     const tree = await mount({

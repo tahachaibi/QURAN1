@@ -31,7 +31,7 @@ const themes = (t: T): { value: 'system' | 'light' | 'dark'; label: string }[] =
 
 export default function Settings() {
   const { palette, prefs, setPrefs } = useTheme();
-  const { t } = useT();
+  const { t, tr } = useT();
   const { recognizer, session, clearDismissedWords } = useRecitation();
   const billing = useBilling();
   const router = useRouter();
@@ -174,6 +174,11 @@ export default function Settings() {
           >
             <Text style={[styles.buttonLabel, { color: palette.paper }]}>{t('Install Arabic offline pack')}</Text>
           </Pressable>
+        ) : null}
+        {/* what became of a tap on the button above: the reading screen no
+            longer says anything about the pack */}
+        {recognizer.languageNotice !== null ? (
+          <Text style={[styles.hint, { color: palette.textMuted }]}>{tr(recognizer.languageNotice)}</Text>
         ) : null}
         {/* A transient error is already being retried; showing it in red here
             would report a problem that has fixed itself. */}

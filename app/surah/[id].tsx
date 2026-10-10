@@ -518,49 +518,11 @@ export default function SurahScreen() {
         onPress={() => setRange(null)}
       />
     );
-  } else if (recognizer.languageNotice !== null) {
-    // a passing note from the recognizer (e.g. the offline pack just arrived);
-    // it clears itself after a few seconds
-    notice = <Chip label={tr(recognizer.languageNotice)} icon="information-circle-outline" palette={palette} />;
-  } else if (recognizer.languagePack !== null) {
-    // the offline pack on its way, asked for by the app itself
-    notice = (
-      <Chip
-        label={
-          recognizer.languagePack.state === 'scheduled'
-            ? t('The Arabic offline pack will download soon')
-            : t('Downloading the Arabic offline pack… {n}%', { n: recognizer.languagePack.percent })
-        }
-        icon="cloud-download-outline"
-        palette={palette}
-      />
-    );
-  } else if (recognizer.offlineDropped) {
-    notice = (
-      <Chip
-        label={t('No offline Arabic — recognizing online')}
-        icon="cloud-outline"
-        palette={palette}
-        onPress={() => void recognizer.requestLanguagePack()}
-        accessibilityHint={t('Downloads the on-device Arabic model so recitation stays on your phone')}
-      />
-    );
-  } else if (
-    recognizer.languageStatus !== null &&
-    recognizer.languageStatus.supported &&
-    recognizer.languageStatus.localeInstalled === false
-  ) {
-    notice = (
-      <Chip
-        label={t('Install Arabic offline pack')}
-        icon="cloud-download-outline"
-        tone="accent"
-        palette={palette}
-        onPress={() => void recognizer.requestLanguagePack()}
-        accessibilityHint={t('Downloads the on-device Arabic model so recitation works without a network')}
-      />
-    );
   }
+  // Nothing about the offline pack, ever, on this screen. Somebody who
+  // installed the app to recite must never be asked to install anything else:
+  // the app asks Android for the pack by itself, in the background, and
+  // recognition runs online until it is there. Settings still shows its state.
 
   return (
     <View style={[styles.root, { backgroundColor: palette.background }]}>
