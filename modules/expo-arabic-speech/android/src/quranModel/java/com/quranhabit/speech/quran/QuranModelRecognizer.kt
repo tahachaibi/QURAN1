@@ -6,6 +6,8 @@ import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import com.quranhabit.speech.MicPump
 import com.quranhabit.speech.RecitationRecognizer
@@ -32,8 +34,15 @@ import kotlin.concurrent.withLock
  */
 class QuranModelRecognizer(
   private val context: Context,
-  private val emit: (event: String, payload: Bundle) -> Unit,
+  private val send: (event: String, payload: Bundle) -> Unit,
 ) : SpeechEngine {
+
+  private val main = Handler(Looper.getMainLooper())
+
+  /** every event leaves from the main thread, as Android's recognizer's do */
+  private fun emit(event: String, payload: Bundle) {
+    main.post { send(event, payload) }
+  }
 
   private class Utterance {
     var samples = FloatArray(16_000 * 4)
@@ -43,6 +52,10 @@ class QuranModelRecognizer(
     var passed = 0
     /** the last pass's tokens: the draft for the next */
     var draft = IntArray(0)
+    /** the last pass's text, reused as the final when nothing was heard after it */
+    var lastText: String? = null
+    /** frames with a voice in them; a click or a breath has almost none */
+    var voicedFrames = 0
 
     fun append(frame: FloatArray, n: Int) {
       if (size + n > samples.size) samples = samples.copyOf(maxOf(samples.size * 2, size + n))
@@ -68,6 +81,8 @@ class QuranModelRecognizer(
 
   override fun start(options: RecitationRecognizer.Options) {
     if (active) return
+    // the last session's microphone thread lets go of the microphone first
+    runCatching { capture?.join(500) }
     active = true
     val myGeneration = ++generation
     lock.withLock {
@@ -98,16 +113,17 @@ class QuranModelRecognizer(
   // -------------------------------------------------------------------------
 
   private fun work(myGeneration: Int) {
+    // The microphone first: loading the model takes about a second the first
+    // time, and what the reciter says meanwhile is kept for the first pass.
+    if (!openMicrophone(myGeneration)) return
+    emitState("listening")
+    emitState("ready")
     val asr = try {
       QuranAsr.load(context)
     } catch (e: Throwable) {
       fail("model-failed", "The built-in Quran model could not be loaded: ${e.message}")
       return
     }
-    if (!stillMine(myGeneration)) return
-    if (!openMicrophone(myGeneration)) return
-    emitState("listening")
-    emitState("ready")
 
     while (stillMine(myGeneration)) {
       val job: Pair<Utterance, Boolean>? = lock.withLock {
@@ -115,7 +131,8 @@ class QuranModelRecognizer(
         val live = current
         when {
           finishing != null -> finishing to true
-          live != null && live.size - live.passed >= MIN_NEW_SAMPLES -> live to false
+          live != null && live.voicedFrames >= MIN_VOICED_FRAMES && live.size - live.passed >= MIN_NEW_SAMPLES ->
+            live to false
           else -> {
             changed.await(50, TimeUnit.MILLISECONDS)
             null
@@ -126,12 +143,24 @@ class QuranModelRecognizer(
       val (utterance, final) = job
       val (audio, length) = lock.withLock { utterance.samples.copyOf(utterance.size) to utterance.size }
 
+      if (final) {
+        val cached = utterance.lastText
+        val noise = utterance.voicedFrames < MIN_VOICED_FRAMES
+        if (noise || (cached != null && utterance.passed == length)) {
+          // a click or a breath: nothing to say; or nothing heard since the last
+          // pass: its text is the final
+          lock.withLock { ending.pollFirst() }
+          if (!noise && cached != null && stillMine(myGeneration)) emitTranscript("final", cached)
+          continue
+        }
+      }
+
       val started = SystemClock.elapsedRealtime()
       val text = try {
         asr.encode(audio, length).use { states ->
           val tokens = asr.decode(states, utterance.draft)
           utterance.draft = tokens
-          asr.text(tokens)
+          asr.text(tokens).also { utterance.lastText = it }
         }
       } catch (e: Throwable) {
         fail("model-failed", "The built-in Quran model failed: ${e.message}")
@@ -224,12 +253,14 @@ class QuranModelRecognizer(
               live = Utterance()
               for (f in preRoll) live.append(f, f.size)
               preRoll.clear()
+              live.voicedFrames = 1
               current = live
               silentFrames = 0
               emitState("speech-start")
             }
           } else {
             live.append(frame, FRAME_SAMPLES)
+            if (voiced) live.voicedFrames++
             silentFrames = if (voiced) 0 else silentFrames + 1
             val pause = silentFrames >= END_SILENCE_FRAMES
             val long = live.size >= MAX_UTTERANCE_SAMPLES
@@ -310,5 +341,7 @@ class QuranModelRecognizer(
     private const val MAX_UTTERANCE_SAMPLES = SAMPLE_RATE * 25
     /** a new pass once 300 ms more has been heard */
     private const val MIN_NEW_SAMPLES = SAMPLE_RATE * 3 / 10
+    /** 200 ms of voice before anything is transcribed: less is a click or a breath */
+    private const val MIN_VOICED_FRAMES = 10
   }
 }
