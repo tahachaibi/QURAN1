@@ -484,23 +484,29 @@ jobs:
       - name: Prebuild the Android project
         run: npx expo prebuild --platform android --no-install
 
+      - name: Package arm64 only
+        # Every phone of the last several years, and 143 MB instead of 251.
+        # Through the ordinary ABI filter: android.injected.build.abi, which
+        # did the same, is Android Studio's deploy mode and marks the APK
+        # testOnly, which a phone refuses to install ("App not installed").
+        run: printf '\nandroid { defaultConfig { ndk { abiFilters "arm64-v8a" } } }\n' >> android/app/build.gradle
+
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Build the test APK with the model
         working-directory: android
-        # arm64 only: every phone of the last several years. The universal APK
-        # was 251 MB once ONNX Runtime was in it. reactNativeArchitectures alone
-        # does not filter what is packaged in this template; the injected ABI,
-        # which Android Studio uses to build for one device, does.
-        run: >-
-          ./gradlew :app:assembleRelease -PtasmeeQuranModel=true
-          -PreactNativeArchitectures=arm64-v8a -Pandroid.injected.build.abi=arm64-v8a --stacktrace
+        run: ./gradlew :app:assembleRelease -PtasmeeQuranModel=true -PreactNativeArchitectures=arm64-v8a --stacktrace
 
-      - name: Find the APK (built for one ABI, Gradle leaves it under intermediates/)
+      - name: The APK is one a phone will install
         run: |
-          find android/app/build -name '*.apk' -path '*release*' -exec ls -la {} \;
-          APK=$(find android/app/build -name '*.apk' -path '*release*' | head -1)
-          test -f "$APK" || { echo "::error::no APK was built"; exit 1; }
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          test -f "$APK" || { echo "::error::no APK at $APK"; exit 1; }
+          # testOnly makes the package installer refuse it outright
+          if unzip -p "$APK" AndroidManifest.xml | python3 -c "import sys; sys.exit(0 if 'testOnly'.encode('utf-16-le') in sys.stdin.buffer.read() else 1)"; then
+            echo "::error::the test APK is marked testOnly; a phone will not install it"
+            exit 1
+          fi
+          unzip -l "$APK" | grep -oE 'lib/[^/]+/' | sort -u
           echo "APK=$APK" >> "$GITHUB_ENV"
 
       - name: The model and ONNX Runtime are inside
