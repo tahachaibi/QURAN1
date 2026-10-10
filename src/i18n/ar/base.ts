@@ -290,7 +290,7 @@ export const BASE: Record<string, string | ArabicForms> = {
 
   // surah screen
   "Follow mode": "وضع المتابعة",
-  "Everything visible; recited words settle into full ink": "كل الكلمات ظاهرة، وما تلوته يكتمل لونه",
+  "Every word visible; an underline follows your voice": "كل الكلمات ظاهرة، وخطّ تحتها يتبع صوتك",
   "Hidden mode": "وضع الإخفاء",
   "Words are concealed and revealed as you recite them": "الكلمات مخفية وتظهر كلما تلوتها",
   "Already in your revision schedule from earlier today.": "موجودة في جدول مراجعتك منذ وقت سابق اليوم.",

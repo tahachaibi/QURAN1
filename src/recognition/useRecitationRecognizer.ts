@@ -154,6 +154,9 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
   const [capabilities, setCapabilities] = useState<SpeechCapabilities | null>(null);
   const [languageStatus, setLanguageStatus] = useState<LanguageStatus | null>(null);
   const [languagePack, setLanguagePack] = useState<LanguagePackEvent | null>(null);
+  // read at each start, to write the pack's state at the top of the recitation log
+  const languageStatusRef = useRef<LanguageStatus | null>(null);
+  languageStatusRef.current = languageStatus;
   const [lastError, setLastError] = useState<SpeechErrorEvent | null>(null);
   const [lastRelayGapMs, setLastRelayGapMs] = useState(0);
   const [watchdogRestarts, setWatchdogRestarts] = useState(0);
@@ -238,6 +241,10 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
     lastSpeechAt.current = now;
     speechSinceResultAt.current = 0;
     instanceStartedAt.current = now;
+    const status = languageStatusRef.current;
+    const pack =
+      status === null ? 'unknown' : !status.supported ? 'unsupported' : status.localeInstalled === true ? 'installed' : 'missing';
+    callbacks.current.onState?.(`pack-${pack}`, '');
     void ArabicSpeech()
       .start({
         locale: configRef.current.locale,
@@ -272,6 +279,8 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
 
     const subs = [
       speech.addListener('languagePack', (event: LanguagePackEvent) => {
+        // into the recitation log, so a log shows whether the pack was coming
+        callbacks.current.onState?.(`pack-${event.state}`, String(event.percent));
         setLanguagePack(event.state === 'downloading' || event.state === 'scheduled' ? event : null);
         if (event.state === 'installed') {
           // Known at once, even mid-recitation, where the status poll waits.

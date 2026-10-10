@@ -33,7 +33,6 @@ import {
   surahOf,
   TOTAL_WORDS,
   wordIndexOf,
-  words,
 } from '../../src/data/quran';
 import { useLead } from '../../src/hooks/useLead';
 import { PageDeck, type PageDeckHandle } from '../../src/components/PageDeck';
@@ -215,7 +214,6 @@ export default function SurahScreen() {
   // --- the underline a beat ahead of the recognizer (src/engine/lead.ts) ---
   const lead = useLead({
     session,
-    words,
     limit: range === null ? TOTAL_WORDS : range.to + 1,
     lastVoiceAt: recognizer.lastVoiceAt ?? NEVER,
     enabled: prefs.leadUnderline,
@@ -319,7 +317,7 @@ export default function SurahScreen() {
           value: 'follow' as ReadMode,
           icon: 'eye-outline' as const,
           label: t('Follow mode'),
-          hint: t('Everything visible; recited words settle into full ink'),
+          hint: t('Every word visible; an underline follows your voice'),
         },
         {
           value: 'hidden' as ReadMode,

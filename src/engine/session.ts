@@ -10,7 +10,7 @@
  * the router so unmounting a surah screen cannot stop a session.
  */
 import { align, LOCK_ON_PROGRESS, lookAheadFor, type AlignResult } from './align';
-import { localize, MIN_START_JUMP_WORDS, type LocalizeResult } from './localize';
+import { localize, MIN_START_JUMP_WORDS, NEAR_START_WORDS, type LocalizeResult } from './localize';
 import {
   mergeMistakes,
   promotePending,
@@ -856,6 +856,7 @@ function maybeJump(
     floor: config.floor,
     limit: config.limit,
     minWords: atStart ? MIN_START_JUMP_WORDS : undefined,
+    nearWords: atStart ? NEAR_START_WORDS : undefined,
   });
 
   const debug: DebugInfo = {

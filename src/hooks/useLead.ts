@@ -7,16 +7,30 @@
  */
 import { useEffect, useRef, useState } from 'react';
 
-import { confirm, initialLead, tick, type LeadState } from '../engine/lead';
+import { ayahByGlobal, ayahDisplayWords, globalAyahOf, wordInAyahOf } from '../data/quran';
+import { confirm, initialLead, tick, unitsOfSpelling, type LeadState, type TextOf } from '../engine/lead';
 import type { SessionState } from '../engine/session';
+
+const unitsCache = new Map<number, number>();
+/** The mushaf as the lead needs it: each word's length to say, and where ayahs begin. */
+const TEXT: TextOf = {
+  units: (word) => {
+    let units = unitsCache.get(word);
+    if (units === undefined) {
+      const display = ayahDisplayWords(ayahByGlobal(globalAyahOf(word)))[wordInAyahOf(word)] ?? '';
+      units = unitsOfSpelling(display);
+      unitsCache.set(word, units);
+    }
+    return units;
+  },
+  startsAyah: (word) => wordInAyahOf(word) === 0,
+};
 
 /** About 25 steps a second: finer than any word, coarse enough to cost nothing. */
 const TICK_MS = 40;
 
 export interface LeadOptions {
   session: SessionState;
-  /** normalized words, for the pace (letters per word) */
-  words: readonly string[];
   /** exclusive upper bound: the end of a practice range, or of the Quran */
   limit: number;
   /** ms epoch the microphone last heard a voice */
@@ -26,16 +40,16 @@ export interface LeadOptions {
 }
 
 /** The word to underline, or -1 to underline the confirmed position. */
-export function useLead({ session, words, limit, lastVoiceAt, enabled }: LeadOptions): number {
+export function useLead({ session, limit, lastVoiceAt, enabled }: LeadOptions): number {
   const listening = session.status === 'listening';
   const [lead, setLead] = useState(-1);
   const state = useRef<LeadState>(initialLead(session.livePos, Date.now()));
 
   // Every confirmation, at once.
   useEffect(() => {
-    state.current = confirm(state.current, session.livePos, Date.now(), words);
+    state.current = confirm(state.current, session.livePos, Date.now(), TEXT);
     setLead((current) => (current === -1 ? current : state.current.lead));
-  }, [session.livePos, words]);
+  }, [session.livePos]);
 
   // The reciter owes the confirmed word (strict Hidden mode), or has not been
   // found yet: nothing to anticipate.
@@ -50,19 +64,20 @@ export function useLead({ session, words, limit, lastVoiceAt, enabled }: LeadOpt
       return undefined;
     }
     // the pace carries over from the last session: it is the reciter's
-    state.current = { ...initialLead(state.current.confirmed, Date.now()), msPerLetter: state.current.msPerLetter };
+    state.current = { ...initialLead(state.current.confirmed, Date.now()), msPerUnit: state.current.msPerUnit };
+    setLead(state.current.lead);
     const id = setInterval(() => {
       const next = tick(
         state.current,
         { now: Date.now(), lastVoiceAt: lastVoiceAt(), blocked: blockedRef.current, limit },
-        words,
+        TEXT,
       );
       if (next === state.current) return;
       state.current = next;
       setLead(next.lead);
     }, TICK_MS);
     return () => clearInterval(id);
-  }, [enabled, listening, lastVoiceAt, limit, words]);
+  }, [enabled, listening, lastVoiceAt, limit]);
 
   return lead;
 }

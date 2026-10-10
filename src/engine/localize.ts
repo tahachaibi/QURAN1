@@ -44,6 +44,15 @@ export interface LocalizeInput {
    * the reciter's first matched word, where a unique phrase is all there is.
    */
   minWords?: number;
+  /**
+   * At the start of a session: a phrase that occurs more than once in the
+   * Quran may still decide where the reciter is, if it occurs exactly once
+   * within this many words of where they are. Somebody on page 2 who says
+   * «الحمد لله» is reciting Al-Fatiha, not one of the 20 other surahs that say
+   * it. Waiting for a phrase unique in the whole Quran cost 2.7 s on a device
+   * recording, four words, before the page moved.
+   */
+  nearWords?: number;
 }
 
 export interface LocalizeResult {
@@ -79,6 +88,10 @@ export const MIN_START_JUMP_WORDS = 2;
 /** With fewer than this many words, the phrase must be unique in the Quran. */
 export const UNIQUE_REQUIRED_BELOW = 4;
 export const DEFAULT_TAIL = 8;
+/** How well a phrase must align to count as said there word for word (nearWords). */
+export const NEAR_MIN_SCORE = 0.85;
+/** The reach of nearWords at the start of a session: about two pages either side. */
+export const NEAR_START_WORDS = 300;
 
 const NO_RESULT = (localScore: number, reason: string): LocalizeResult => ({
   target: null,
@@ -115,7 +128,22 @@ export function localize(input: LocalizeInput): LocalizeResult {
   const candidates = candidateStarts({ heard: tail });
   if (candidates.length === 0) return NO_RESULT(localScore, 'no indexed anchor words');
 
-  const unique = tail.length >= UNIQUE_REQUIRED_BELOW ? true : fullVoteCount({ heard: tail }) === 1;
+  let unique = tail.length >= UNIQUE_REQUIRED_BELOW ? true : fullVoteCount({ heard: tail }) === 1;
+  let considered = candidates;
+  if (!unique && input.nearWords !== undefined) {
+    // unique near here: exactly one place within reach says it, word for word
+    const near = input.nearWords;
+    const close = candidates.filter((c) => Math.abs(c.start - livePos) <= near && c.start >= floor && c.start < limit);
+    const exact = close.filter(
+      (c) =>
+        align({ words, startCursor: c.start, heard: tail, lookAhead: 0, backtrack: 0, floor, limit }).score >=
+        NEAR_MIN_SCORE,
+    );
+    if (exact.length === 1) {
+      unique = true;
+      considered = exact;
+    }
+  }
   if (!unique) return NO_RESULT(localScore, `${tail.length}-word phrase is not unique`);
 
   /**
@@ -145,7 +173,7 @@ export function localize(input: LocalizeInput): LocalizeResult {
   let bestCredited = -1;
   let bestRank = -Infinity;
 
-  for (const c of candidates) {
+  for (const c of considered) {
     if (c.start < floor || c.start >= limit) continue;
     // ignore candidate jumps of <= 6 words: that is just normal progress
     if (Math.abs(c.start - livePos) <= MIN_JUMP_DISTANCE) continue;
