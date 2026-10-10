@@ -127,6 +127,15 @@ export default function Settings() {
           onChange={(allowSegmented) => setPrefs({ allowSegmented })}
           palette={palette}
         />
+        {recognizer.capabilities?.quranModelAvailable === true ? (
+          <Toggle
+            label={t('Built-in Quran model (test)')}
+            hint={t('Recognizes your recitation on the phone with a model trained on the Quran, instead of Android’s recognizer. Takes effect the next time you tap the microphone.')}
+            value={prefs.recognizerEngine === 'quran'}
+            onChange={(on) => setPrefs({ recognizerEngine: on ? 'quran' : 'google' })}
+            palette={palette}
+          />
+        ) : null}
         <Toggle
           label={t('Underline ahead of the recognizer')}
           hint={t('The recognizer confirms each word a moment after you say it. This moves the underline on with your voice, at your own pace, and the recognizer then confirms it.')}
@@ -541,6 +550,8 @@ function describeLines(p: PendingRestore, t: T): string[] {
  */
 function strategyLabel(strategy: SpeechStrategy | null, t: T): string {
   switch (strategy) {
+    case 'QURAN_MODEL':
+      return t('Built-in Quran model');
     case 'STREAM':
       return t('Continuous microphone stream');
     case 'SEGMENTED':

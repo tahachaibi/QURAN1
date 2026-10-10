@@ -443,13 +443,90 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  apk-quran:
+    # The TEST APK: the same app, plus the built-in Quran model (the files
+    # the quran-model job checked, and ONNX Runtime). Sideloaded for
+    # comparison only: the Play bundle comes from the apk job and never
+    # carries any of it.
+    needs: quran-model
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools build-tools;36.0.0
+
+      - run: npm ci
+
+      - name: Same version code as the apk job
+        run: |
+          code=$(( GITHUB_RUN_NUMBER * 10 + GITHUB_RUN_ATTEMPT ))
+          node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync('app.json','utf8'));j.expo.android.versionCode=$code;fs.writeFileSync('app.json',JSON.stringify(j,null,2)+'\n')"
+
+      - name: Put the checked model where the module's test source set reads it
+        uses: actions/download-artifact@v4
+        with:
+          name: quran-model
+          path: modules/expo-arabic-speech/android/src/quranModel/assets/quran-model
+
+      - name: Prebuild the Android project
+        run: npx expo prebuild --platform android --no-install
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build the test APK with the model
+        working-directory: android
+        run: ./gradlew :app:assembleRelease -PtasmeeQuranModel=true --stacktrace
+
+      - name: The model and ONNX Runtime are inside
+        run: |
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          unzip -l "$APK" | grep -E 'assets/quran-model/|libonnxruntime' | tee /tmp/quran.txt
+          for f in features.onnx encoder.onnx decoder.onnx tokens.bin config.json; do
+            grep -q "assets/quran-model/$f" /tmp/quran.txt || { echo "::error::$f is missing from the test APK"; exit 1; }
+          done
+          grep -q 'lib/arm64-v8a/libonnxruntime' /tmp/quran.txt || { echo "::error::ONNX Runtime is missing from the test APK"; exit 1; }
+          ls -la "$APK"
+
+      - name: 16 KB alignment (informational; this APK is never uploaded to Play)
+        continue-on-error: true
+        run: python3 scripts/check-elf-alignment.py android/app/build/outputs/apk/release/app-release.apk
+
+      - name: Name it
+        run: |
+          mkdir -p out
+          cp android/app/build/outputs/apk/release/app-release.apk "out/tasmee-hifz-quran-${GITHUB_SHA::7}.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tasmee-hifz-quran-apk
+          path: out/*
+          if-no-files-found: error
+          retention-days: 30
+
   publish:
     # Its own job, so it waits for BOTH: a build whose tests failed must never
     # replace the APK on the phone link or the AAB the Play guide says to
     # upload. The apk job still starts at once, in parallel with checks.
     # Only from the development branch, so a pull request can never replace it.
-    needs: [checks, apk]
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/claude/quran-habit-android-jr6hwv'
+    # The test APK is waited for, but a failure there never holds back the
+    # normal APK and the Play bundle.
+    needs: [checks, apk, apk-quran]
+    if: >-
+      always() && needs.checks.result == 'success' && needs.apk.result == 'success' &&
+      github.event_name != 'pull_request' && github.ref == 'refs/heads/claude/quran-habit-android-jr6hwv'
     runs-on: ubuntu-latest
     # write, only so this job can publish the phone download
     permissions:
@@ -458,6 +535,12 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: tasmee-hifz-apk
+          path: out
+
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: tasmee-hifz-quran-apk
           path: out
 
       - name: Publish the APK at one fixed link a phone can open
@@ -478,6 +561,12 @@ jobs:
           if [ -f "out/tasmee-hifz-${GITHUB_SHA::7}.aab" ]; then
             cp "out/tasmee-hifz-${GITHUB_SHA::7}.aab" out/tasmee-hifz.aab
             files+=(out/tasmee-hifz.aab)
+          fi
+          # The test APK with the built-in Quran model, when it built:
+          #   …/releases/download/test-build/tasmee-hifz-quran.apk
+          if [ -f "out/tasmee-hifz-quran-${GITHUB_SHA::7}.apk" ]; then
+            cp "out/tasmee-hifz-quran-${GITHUB_SHA::7}.apk" out/tasmee-hifz-quran.apk
+            files+=(out/tasmee-hifz-quran.apk)
           fi
           gh release delete test-build --yes --cleanup-tag -R "$GITHUB_REPOSITORY" 2>/dev/null || true
           gh release create -R "$GITHUB_REPOSITORY" test-build "${files[@]}" \

@@ -1,5 +1,5 @@
 /** Recognizer strategy actually in use; reported so the UI never has to guess. */
-export type SpeechStrategy = 'STREAM' | 'SEGMENTED' | 'ON_DEVICE' | 'RELAY';
+export type SpeechStrategy = 'STREAM' | 'SEGMENTED' | 'ON_DEVICE' | 'RELAY' | 'QURAN_MODEL';
 
 export interface SpeechCapabilities {
   sdkInt: number;
@@ -9,6 +9,8 @@ export interface SpeechCapabilities {
   strategy: SpeechStrategy;
   /** true once a segment result has actually arrived from this device */
   segmentedProven: boolean;
+  /** this build carries the built-in Quran model (the test APK only) */
+  quranModelAvailable?: boolean;
 }
 
 export interface LanguageStatus {
@@ -92,6 +94,8 @@ export interface StartOptions {
   maxResults?: number;
   preferOnDevice?: boolean;
   allowSegmented?: boolean;
+  /** 'quran' uses the built-in Quran model where the build has it, 'google' (the default) Android's recognizer */
+  engine?: 'google' | 'quran';
   completeSilenceMs?: number;
   possiblyCompleteSilenceMs?: number;
   minimumLengthMs?: number;

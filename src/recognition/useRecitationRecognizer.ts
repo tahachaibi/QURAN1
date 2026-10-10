@@ -145,6 +145,8 @@ export interface RecognizerConfig extends RecognizerCallbacks {
   locale: string;
   preferOnDevice?: boolean;
   allowSegmented?: boolean;
+  /** which recognizer to start: the built-in Quran model is only in the test APK */
+  engine?: 'google' | 'quran';
 }
 
 export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHandle {
@@ -184,6 +186,8 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
    * shows how far the recognizer's words trail the voice.
    */
   const lastVoiceAt = useRef(0);
+  /** the strategy in use, for the watchdog, which must leave the Quran model alone */
+  const strategyRef = useRef<SpeechStrategy | null>(null);
   const voiceOn = useRef(false);
   /**
    * When the voice the recognizer has not answered yet began: the first voiced
@@ -199,8 +203,18 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
   const callbacks = useRef(config);
   callbacks.current = config;
 
-  const configRef = useRef({ locale: config.locale, preferOnDevice: config.preferOnDevice, allowSegmented: config.allowSegmented });
-  configRef.current = { locale: config.locale, preferOnDevice: config.preferOnDevice, allowSegmented: config.allowSegmented };
+  const configRef = useRef({
+    locale: config.locale,
+    preferOnDevice: config.preferOnDevice,
+    allowSegmented: config.allowSegmented,
+    engine: config.engine,
+  });
+  configRef.current = {
+    locale: config.locale,
+    preferOnDevice: config.preferOnDevice,
+    allowSegmented: config.allowSegmented,
+    engine: config.engine,
+  };
 
   /**
    * End this side of a session the recognizer has given up on.
@@ -268,6 +282,7 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
         maxResults: 5,
         preferOnDevice: configRef.current.preferOnDevice ?? true,
         allowSegmented: configRef.current.allowSegmented ?? true,
+        engine: configRef.current.engine ?? 'google',
       })
       .catch((e: unknown) => {
         setStatus('error');
@@ -366,6 +381,7 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
         if (!event.transient && !decidedByState) setStatus('error');
       }),
       speech.addListener('state', (event: SpeechStateEvent) => {
+        strategyRef.current = event.strategy;
         setStrategy(event.strategy);
         callbacks.current.onState?.(event.state, event.strategy);
         if (event.relayGapMs > 0) setLastRelayGapMs(event.relayGapMs);
@@ -443,6 +459,11 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
         callbacks.current.onSilenceTimeout();
         return;
       }
+
+      // The built-in Quran model answers once per pass, and a pass can take
+      // longer than the watchdog's 2.5 s on a slow phone: restarting it would
+      // throw the utterance away. It reports its own failures.
+      if (strategyRef.current === 'QURAN_MODEL') return;
 
       // The watchdog proper: there WAS a voice recently, yet nothing has come
       // back. That is a dead recognizer, not a quiet reciter — but only once the

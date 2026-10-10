@@ -593,6 +593,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
     locale: prefs.locale,
     preferOnDevice: prefs.preferOnDevice,
     allowSegmented: prefs.allowSegmented,
+    engine: prefs.recognizerEngine,
     onPartial: useCallback(
       (event) => {
         const at = Date.now();
