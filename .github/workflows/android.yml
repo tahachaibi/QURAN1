@@ -488,9 +488,13 @@ jobs:
 
       - name: Build the test APK with the model
         working-directory: android
-        # arm64 only: every phone of the last several years, and a quarter of
-        # the size of a universal APK once ONNX Runtime is in it (it was 251 MB)
-        run: ./gradlew :app:assembleRelease -PtasmeeQuranModel=true -PreactNativeArchitectures=arm64-v8a --stacktrace
+        # arm64 only: every phone of the last several years. The universal APK
+        # was 251 MB once ONNX Runtime was in it. reactNativeArchitectures alone
+        # does not filter what is packaged in this template; the injected ABI,
+        # which Android Studio uses to build for one device, does.
+        run: >-
+          ./gradlew :app:assembleRelease -PtasmeeQuranModel=true
+          -PreactNativeArchitectures=arm64-v8a -Pandroid.injected.build.abi=arm64-v8a --stacktrace
 
       - name: The model and ONNX Runtime are inside
         run: |
