@@ -3,7 +3,10 @@
  * skip holds the cursor on the word the reciter owes, marks it as a mistake,
  * and following resumes the moment that word is said.
  */
-import { replay, type ReplayEvent } from '../src/engine/replay';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+import { replay, type ReplayEvent, type ReplayFixture } from '../src/engine/replay';
 import type { SessionConfig } from '../src/engine/session';
 import { surahOf, wordIndexOf, words } from '../src/data/quran';
 import { vocabulary } from '../src/engine/searchIndex';
@@ -73,5 +76,18 @@ describe('strict following in Hidden mode', () => {
   it('leaves Seen mode as it was: a skip is followed past', () => {
     const out = run(base, [final('الحمد لله'), segment, final('العالمين الرحمن الرحيم')]);
     expect(out.final.cursor).toBeGreaterThan(ALAMIN);
+  });
+});
+
+describe('device recordings in Hidden mode', () => {
+  it.each([
+    ['device-2026-10-10-fatiha-stream.json', wordIndexOf(2, 1)],
+    ['device-2026-10-10-baqarah-stream.json', wordIndexOf(2, 8)],
+  ])('follows %s to the end and marks nothing that was said right', (file, end) => {
+    const fx = JSON.parse(readFileSync(join(__dirname, 'fixtures', file), 'utf8')) as ReplayFixture;
+    const out = replay(fx, strict);
+    expect(out.final.cursor).toBe(end);
+    // «ن آمين» after Al-Fatiha is not a mistake on الم
+    expect(out.mistakes).toEqual([]);
   });
 });

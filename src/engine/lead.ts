@@ -21,7 +21,7 @@
  */
 
 /** How far ahead of the confirmed position the underline may run. */
-export const MAX_LEAD = 1;
+export const MAX_LEAD = 2;
 /**
  * How far into the next word the reciter is when a confirmation arrives in
  * the middle of an ayah. Measured on a device recording, the recognizer
@@ -46,9 +46,16 @@ export const DEFAULT_MS_PER_UNIT = 130;
  * reciter going back. Following it made the underline flicker back and forth.
  */
 export const REVISION_MS = 1000;
-/** Confirmations further apart than this span a pause, not speech: no pace from them. */
-const PACE_GAP_MS = 1500;
-const PACE_SMOOTHING = 0.3;
+/**
+ * The pace is measured over a stretch of continuous recitation, from the
+ * moment the voice began to each confirmation, once the stretch holds this
+ * many units: long enough that the recognizer's habit of confirming two or
+ * three words at once, after a delay, cannot pass for a fast reciter. Measured
+ * between consecutive confirmations, those bursts made the pace too fast and
+ * the underline ran a word ahead of the voice.
+ */
+const PACE_MIN_UNITS = 8;
+const PACE_SMOOTHING = 0.5;
 
 /** What the lead needs to know about the text. */
 export interface TextOf {
@@ -72,6 +79,14 @@ export interface LeadState {
   /** when the reciter is taken to have begun the word under the underline */
   leadStartedAt: number;
   msPerUnit: number;
+  /** the voice is silent (as of the last tick) */
+  silent: boolean;
+  /**
+   * The current stretch of continuous recitation: when the voice began, and
+   * the word it began on. null when that word is not known (the underline had
+   * run ahead when the reciter paused).
+   */
+  stretch: { startedAt: number; fromWord: number } | null;
 }
 
 export function initialLead(position: number, now: number): LeadState {
@@ -81,6 +96,8 @@ export function initialLead(position: number, now: number): LeadState {
     lead: position,
     leadStartedAt: now,
     msPerUnit: DEFAULT_MS_PER_UNIT,
+    silent: true,
+    stretch: null,
   };
 }
 
@@ -98,18 +115,19 @@ export function confirm(state: LeadState, position: number, now: number, text: T
   if (position === state.confirmed) return state;
   if (position === state.confirmed - 1 && now - state.confirmedAt < REVISION_MS) return state;
   if (position < state.confirmed || position - state.confirmed > 12) {
-    return { ...initialLead(position, now), msPerUnit: state.msPerUnit };
+    return { ...initialLead(position, now), msPerUnit: state.msPerUnit, silent: state.silent };
   }
 
-  // The time since the last confirmation was spent saying the words between,
-  // unless the first of them opens an ayah: then it includes the pause.
+  // Everything from the stretch's first word up to here was said since the
+  // voice began, less the recognizer's lag in confirming the last of it.
   let msPerUnit = state.msPerUnit;
-  const gap = now - state.confirmedAt;
-  if (gap > 0 && gap < PACE_GAP_MS && !text.startsAyah(state.confirmed)) {
+  const stretch = state.stretch;
+  if (stretch !== null && position > stretch.fromWord) {
     let units = 0;
-    for (let w = state.confirmed; w < position; w++) units += Math.max(2, text.units(w));
-    if (units > 0) {
-      const measured = Math.min(MAX_MS_PER_UNIT, Math.max(MIN_MS_PER_UNIT, gap / units));
+    for (let w = stretch.fromWord; w < position; w++) units += Math.max(2, text.units(w));
+    const elapsed = now - LEAD_LAG_MS - stretch.startedAt;
+    if (units >= PACE_MIN_UNITS && elapsed > 0) {
+      const measured = Math.min(MAX_MS_PER_UNIT, Math.max(MIN_MS_PER_UNIT, elapsed / units));
       msPerUnit = msPerUnit + PACE_SMOOTHING * (measured - msPerUnit);
     }
   }
@@ -119,6 +137,7 @@ export function confirm(state: LeadState, position: number, now: number, text: T
     return { ...state, confirmed: position, confirmedAt: now, msPerUnit };
   }
   return {
+    ...state,
     confirmed: position,
     confirmedAt: now,
     lead: position,
@@ -152,12 +171,22 @@ export function tick(state: LeadState, input: TickInput, text: TextOf): LeadStat
   const silentFor = now - lastVoiceAt;
   if (state.lead > state.confirmed && silentFor > RETRACT_SILENCE_MS) {
     // it guessed ahead and the reciter stopped short of that word
-    return { ...state, lead: state.confirmed, leadStartedAt: now };
+    return { ...state, lead: state.confirmed, leadStartedAt: now, silent: true, stretch: null };
   }
   if (silentFor > VOICE_RECENT_MS) {
     // Nothing is being said, so the word under the underline has not begun:
     // it begins when the voice comes back.
-    return state.leadStartedAt >= now ? state : { ...state, leadStartedAt: now };
+    return { ...state, leadStartedAt: now, silent: true, stretch: null };
+  }
+  if (state.silent) {
+    // The voice is back: a new stretch, starting on the word under the
+    // underline if that is the word the recognizer is on too.
+    return {
+      ...state,
+      silent: false,
+      leadStartedAt: now,
+      stretch: state.lead === state.confirmed ? { startedAt: now, fromWord: state.confirmed } : null,
+    };
   }
   if (state.lead - state.confirmed >= MAX_LEAD || state.lead + 1 >= limit) return state;
   // Never across the end of an ayah: its last word is held (the madd before a

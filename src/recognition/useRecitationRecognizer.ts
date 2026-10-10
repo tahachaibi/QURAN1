@@ -156,6 +156,8 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
   const [languagePack, setLanguagePack] = useState<LanguagePackEvent | null>(null);
   // read at each start, to write the pack's state at the top of the recitation log
   const languageStatusRef = useRef<LanguageStatus | null>(null);
+  /** the last word from the pack's download, which usually happens before any session */
+  const lastPackEvent = useRef<LanguagePackEvent | null>(null);
   languageStatusRef.current = languageStatus;
   const [lastError, setLastError] = useState<SpeechErrorEvent | null>(null);
   const [lastRelayGapMs, setLastRelayGapMs] = useState(0);
@@ -244,7 +246,22 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
     const status = languageStatusRef.current;
     const pack =
       status === null ? 'unknown' : !status.supported ? 'unsupported' : status.localeInstalled === true ? 'installed' : 'missing';
-    callbacks.current.onState?.(`pack-${pack}`, '');
+    // with what became of the download asked for at launch, and what the phone
+    // says it can do on-device, so a recitation log explains a missing pack
+    const download = lastPackEvent.current;
+    const onDevice = status?.supportedOnDevice?.some((l) => l.startsWith('ar')) ?? false;
+    const pending = status?.pending?.some((l) => l.startsWith('ar')) ?? false;
+    callbacks.current.onState?.(
+      `pack-${pack}`,
+      [
+        `download=${download === null ? 'none' : download.state + (download.error ? `/${download.error}` : '')}`,
+        `arOnDevice=${onDevice}`,
+        `arPending=${pending}`,
+        status?.detail ? `detail=${status.detail}` : '',
+      ]
+        .filter(Boolean)
+        .join(' '),
+    );
     void ArabicSpeech()
       .start({
         locale: configRef.current.locale,
@@ -279,6 +296,7 @@ export function useRecitationRecognizer(config: RecognizerConfig): RecognizerHan
 
     const subs = [
       speech.addListener('languagePack', (event: LanguagePackEvent) => {
+        lastPackEvent.current = event;
         // into the recitation log, so a log shows whether the pack was coming
         callbacks.current.onState?.(`pack-${event.state}`, String(event.percent));
         setLanguagePack(event.state === 'downloading' || event.state === 'scheduled' ? event : null);

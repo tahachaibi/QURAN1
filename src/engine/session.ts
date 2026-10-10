@@ -558,7 +558,14 @@ function strictWalk(
     // 3. not a word anywhere in the Quran: a piece of a word or the recognizer's
     //    garble (ون, يع, مربيهم for ملاقوا ربهم), never the reciter's mistake.
     //    Passed over; the words after it put the walk back in step (rule 2).
-    if (!isQuranWord(word, config.vocabulary)) {
+    //    (a single letter is always a piece: ن after الضالين is the end of the
+    //    word, not Surah 68, and the opening letters are recognised by name)
+    if (word.length < 2 || !isQuranWord(word, config.vocabulary)) {
+      i += 1;
+      continue;
+    }
+    //    آمين after Al-Fatiha: said by everyone, and not the next ayah's word
+    if (word === 'امين' && p > 0 && at(p - 1) === 'الضالين') {
       i += 1;
       continue;
     }

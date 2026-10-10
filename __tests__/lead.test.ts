@@ -20,7 +20,9 @@ const open = { blocked: false, limit: 6 };
 
 describe('the lead', () => {
   it('moves on while the voice is on, once the word has had time to be said', () => {
-    let s = confirm(initialLead(0, 0), 1, 1000, text);
+    // the voice is already on when word 0 is confirmed
+    let s = tick(initialLead(0, 0), { ...open, now: 960, lastVoiceAt: 960 }, text);
+    s = confirm(s, 1, 1000, text);
     expect(s.lead).toBe(1);
     const endsAt = 1000 - LEAD_LAG_MS + WORD(s);
     s = tick(s, { ...open, now: endsAt - 10, lastVoiceAt: endsAt - 20 }, text);
@@ -29,20 +31,20 @@ describe('the lead', () => {
     expect(s.lead).toBe(2);
   });
 
-  it('never runs more than one word ahead of what is confirmed', () => {
+  it('never runs more than two words ahead of what is confirmed', () => {
     let s = confirm(initialLead(0, 0), 1, 1000, text);
     for (let t = 1000; t < 6000; t += 40) s = tick(s, { ...open, now: t, lastVoiceAt: t }, text);
-    expect(s.lead).toBe(2);
+    expect(s.lead).toBe(3);
   });
 
   it('holds while the reciter is silent, and moves on once the word has been said after it', () => {
     let s = confirm(initialLead(0, 0), 1, 1000, text);
     for (let t = 1000; t <= 3000; t += 40) s = tick(s, { ...open, now: t, lastVoiceAt: 900 }, text);
     expect(s.lead).toBe(1);
-    // the voice comes back at 3000: word 1 begins then
+    // the voice comes back at 3030 and is seen at 3040: word 1 begins then
     s = tick(s, { ...open, now: 3040, lastVoiceAt: 3030 }, text);
     expect(s.lead).toBe(1);
-    const end = 3000 + WORD(s);
+    const end = 3040 + WORD(s);
     s = tick(s, { ...open, now: end - 40, lastVoiceAt: end - 40 }, text);
     expect(s.lead).toBe(1);
     s = tick(s, { ...open, now: end + 30, lastVoiceAt: end + 30 }, text);
@@ -82,11 +84,24 @@ describe('the lead', () => {
     expect(s.confirmed).toBe(1);
   });
 
-  it('learns a faster pace from the confirmations', () => {
-    let s = initialLead(0, 0);
-    // a word every 300 ms, inside one ayah
-    for (let i = 1; i <= 3; i++) s = confirm(s, i, i * 300, text);
+  it('learns a faster pace from a stretch of recitation', () => {
+    let s = initialLead(1, 0);
+    // the voice begins at 1000 on word 1, and a word is confirmed every 300 ms
+    for (let t = 1000; t <= 2000; t += 20) {
+      if (t > 1000 && (t - 1000) % 300 === 0) s = confirm(s, Math.min(5, 1 + (t - 1000) / 300), t, text);
+      s = tick(s, { ...open, now: t, lastVoiceAt: t }, text);
+    }
     expect(s.msPerUnit).toBeLessThan(DEFAULT_MS_PER_UNIT * 0.8);
+  });
+
+  it('is not fooled by the recognizer confirming words in a burst', () => {
+    let s = initialLead(1, 0);
+    // a slow reciter: the voice begins at 1000, and nothing is confirmed for
+    // 2.2 s, then three words at once
+    for (let t = 1000; t <= 3200; t += 20) s = tick(s, { ...open, now: t, lastVoiceAt: t }, text);
+    s = confirm(s, 4, 3200, text);
+    // 3 words, 15 units, in about 2 s: slower than the default, not faster
+    expect(s.msPerUnit).toBeGreaterThan(DEFAULT_MS_PER_UNIT);
   });
 });
 
