@@ -68,7 +68,6 @@ THE FOLLOW-ALONG
 • Recite aloud and watch the page keep up, word by word.
 • Start anywhere in the Quran. There is no "select the ayah first" step.
 • Missed and misread words are marked as you go and collected into a review sheet at the end — never in red on the sacred text.
-• Android's own speech recognizer follows your voice. Tasmee Hifz records nothing and uploads nothing.
 
 HIDDEN MODE, FOR MEMORIZATION (HIFZ)
 • The page holds its exact shape while the words stay hidden, and each word appears as you say it. Nothing reflows — the page you memorized looks the same hidden or shown.
@@ -100,7 +99,7 @@ LISTEN
 • Recitations from Yasser Al-Dosari, Mahmoud Khalil Al-Husary, Mostafa Ismaeel and more, on the same page view.
 
 FREE, AND NO ADS
-Every part of this app is free. No ads, no sign-up. Worship does not belong behind a paywall.
+The Quran, the follow-along, hidden mode, prayer times, the adhan, the adhkar and the hadith are free, and will stay free. No ads, no sign-up. Worship does not belong behind a paywall.
 
 PRIVACY
 No account. No ads. No analytics, no tracking, no advertising ID.
