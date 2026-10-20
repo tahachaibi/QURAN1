@@ -137,7 +137,7 @@ export default function TrackerScreen() {
     >
       <View style={[styles.hero, { backgroundColor: palette.primary }]}>
         <Text style={[styles.heroLabel, { color: palette.accentSoft }]}>{t('Recitation streak')}</Text>
-        <Text style={styles.heroValue}>
+        <Text style={[styles.heroValue, { color: palette.onPrimary }]}>
           {streak === 1 ? t('1 day') : t('{n} days', { n: streak })}
         </Text>
         <Text style={[styles.heroNote, { color: palette.accentSoft }]}>
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
   content: { padding: space.md, gap: space.sm },
   hero: { borderRadius: radius.lg, padding: space.lg },
   heroLabel: { fontSize: 11, letterSpacing: 1, textTransform: 'uppercase' },
-  heroValue: { fontSize: 34, fontWeight: '700', color: '#FFFFFF', marginTop: 2 },
+  heroValue: { fontSize: 34, fontWeight: '700', marginTop: 2 },
   heroNote: { fontSize: 11, marginTop: 2 },
   statRow: { flexDirection: 'row', gap: space.sm },
   stat: {

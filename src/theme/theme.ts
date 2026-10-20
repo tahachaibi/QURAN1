@@ -8,6 +8,13 @@
 export interface Palette {
   primary: string;
   primaryLight: string;
+  /**
+   * Text on a `primary` card. Not simply white: the dark theme's primary is a
+   * light green, where white measured 2.0:1 and the gold countdown 1.2:1.
+   */
+  onPrimary: string;
+  /** the highlighted line on a `primary` card, such as the prayer countdown */
+  onPrimaryAccent: string;
   accent: string;
   accentSoft: string;
   background: string;
@@ -32,6 +39,8 @@ export interface Palette {
 export const lightPalette: Palette = {
   primary: '#1B4332',
   primaryLight: '#2D6A4F',
+  onPrimary: '#FFFFFF',
+  onPrimaryAccent: '#C9A227',
   accent: '#C9A227',
   accentSoft: '#F3E7C3',
   background: '#F6F2E9',
@@ -55,6 +64,8 @@ export const lightPalette: Palette = {
 export const darkPalette: Palette = {
   primary: '#74C69D',
   primaryLight: '#95D5B2',
+  onPrimary: '#1C1F16',
+  onPrimaryAccent: '#4D3800',
   accent: '#E6C560',
   accentSoft: '#3A331F',
   background: '#14170F',

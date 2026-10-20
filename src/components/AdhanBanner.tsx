@@ -45,9 +45,9 @@ export function AdhanBanner() {
           * is broken and become clutter the moment it is not.
           */}
         <View style={styles.head}>
-          <Ionicons name={quiet ? 'notifications' : 'volume-high'} size={22} color={palette.accent} />
+          <Ionicons name={quiet ? 'notifications' : 'volume-high'} size={22} color={palette.onPrimaryAccent} />
           <View style={styles.headText}>
-            <Text style={[styles.arabic, { color: '#FFFFFF' }]}>{PRAYER_ARABIC[prayer]}</Text>
+            <Text style={[styles.arabic, { color: palette.onPrimary }]}>{PRAYER_ARABIC[prayer]}</Text>
             <Text style={[styles.sub, { color: palette.accentSoft }]}>{t('Adhan')}</Text>
           </View>
         </View>
