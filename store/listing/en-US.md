@@ -104,7 +104,7 @@ Every part of this app is free. No ads, no sign-up. Worship does not belong behi
 
 PRIVACY
 No account. No ads. No analytics, no tracking, no advertising ID.
-The Quran, the hadith, the adhkar and the recitation matching all work in airplane mode. Prayer times are the exception: they are fetched for your approximate location, so that one screen needs a connection.
+The Quran, the hadith and the adhkar all work in airplane mode. Two things need a connection: prayer times, fetched for your approximate location, and the follow-along on phones without Android's offline Arabic speech recognition.
 Your voice goes to Android's own speech recognition — on the device when the Arabic pack is installed, otherwise through Android's service. Tasmee Hifz never records or uploads it.
 
 HONEST LIMITS, BEFORE YOU INSTALL

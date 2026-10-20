@@ -89,7 +89,8 @@ ever appears in the app, so this answer stays true.
 | Account creation | My app does not allow users to create an account |
 | Data deletion request URL | none needed: no account, nothing stored off the phone |
 
-Then data types: tick only **Location → Approximate location**.
+Then data types: tick **Location → Approximate location** and
+**Audio → Voice or sound recordings**.
 
 | For approximate location | Answer |
 |---|---|
@@ -99,9 +100,20 @@ Then data types: tick only **Location → Approximate location**.
 | Required or optional | **Optional**: location is requested only when the user opens the Prayer tab, and they can deny it. The rest of the app works without it. |
 | Purpose | **App functionality** |
 
-Do **not** tick audio. The app never sends audio anywhere itself; the speech
-recognition is Android's own system service. The privacy policy says this in
-its microphone section.
+| For voice or sound recordings | Answer |
+|---|---|
+| Collected | Yes |
+| Shared | **No**. The audio goes to Android's speech recognizer only because the user pressed the microphone to recite, which Play counts as a user-initiated transfer. |
+| Processed ephemerally | **Yes**: the app keeps no recording. |
+| Required or optional | **Optional**: only the follow-along uses the microphone. Reading, listening and prayer times work without it. |
+| Purpose | **App functionality** |
+
+Why tick audio: the app reads the microphone itself and hands the audio to
+Android's speech recognizer. On phones without offline Arabic, which includes
+the phone this app was tested on, that recognizer sends it to Google's servers.
+Play's help pages don't say plainly how to count that. Declaring it is the safe
+side: it costs one line on the store page, and leaving it out could get the app
+rejected. The privacy policy's microphone section already says the same.
 
 **Exact alarm permission.** This declaration may appear after the first
 upload.
