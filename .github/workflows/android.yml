@@ -317,6 +317,22 @@ jobs:
           fi
           echo "AAB signed with a non-debug certificate"
 
+      - name: R8 shrank and renamed the code
+        # Play's "DEX code optimization" check measured 1% obfuscation while
+        # release builds were not minified (docs/decisions.md). The mapping
+        # file is R8's own record that it ran, and the bundle carries a copy so
+        # Play can turn crash reports back into real names.
+        run: |
+          MAP=android/app/build/outputs/mapping/release/mapping.txt
+          [ -s "$MAP" ] || { echo "::error::no R8 mapping file: the release build was not minified"; exit 1; }
+          echo "mapping.txt: $(wc -l < "$MAP") lines"
+          AAB=android/app/build/outputs/bundle/release/app-release.aab
+          if [ -f "$AAB" ]; then
+            unzip -l "$AAB" | grep -q "BUNDLE-METADATA/com.android.tools.build.obfuscation/proguard.map" \
+              || { echo "::error::the bundle carries no deobfuscation map"; exit 1; }
+            echo "the bundle carries its deobfuscation map"
+          fi
+
       - name: The APK asks for exactly the permissions the code uses
         # The MERGED manifest is the only truth, and app.json is not it: the
         # `permissions` array is ADDITIVE into the manifest merge, so a permission
@@ -446,6 +462,45 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  smoke:
+    # Opens the release APK on an emulator and presses through it
+    # (scripts/smoke-android.sh). R8 shrinks and renames the code, and a
+    # missing keep rule shows only when the app runs, so no build reaches the
+    # download link without having been opened once.
+    needs: apk
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: tasmee-hifz-apk
+          path: out
+
+      - name: Let the emulator use KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Open the app on an emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: bash scripts/smoke-android.sh "$(ls out/*.apk | head -1)" smoke
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-screens
+          path: smoke/
+
   apk-quran:
     # The TEST APK: the same app, plus the built-in Quran model (the files
     # the quran-model job checked, and ONNX Runtime). Sideloaded for
@@ -545,9 +600,10 @@ jobs:
     # Only from the development branch, so a pull request can never replace it.
     # The test APK is waited for, but a failure there never holds back the
     # normal APK and the Play bundle.
-    needs: [checks, apk, apk-quran]
+    needs: [checks, apk, smoke, apk-quran]
     if: >-
       always() && needs.checks.result == 'success' && needs.apk.result == 'success' &&
+      needs.smoke.result == 'success' &&
       github.event_name != 'pull_request' && github.ref == 'refs/heads/claude/quran-habit-android-jr6hwv'
     runs-on: ubuntu-latest
     # write, only so this job can publish the phone download

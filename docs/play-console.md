@@ -195,6 +195,20 @@ whether testers actually use it.
 
 ---
 
+## Warnings on the release page
+
+After the first upload Play listed four notices. None of them blocks the
+closed test.
+
+| Notice | What to do |
+|---|---|
+| **Needs attention:** DEX code optimization below threshold (obfuscation 1%), fix by Feb 2027 | Fixed in the build after commit `fae8607`: the code is now shrunk by R8. Upload the newer `tasmee-hifz.aab` to the closed track when you next update. |
+| Edge-to-edge may not display for all users | Nothing. The app already draws under the status bar correctly. |
+| Deprecated APIs for edge-to-edge | Nothing. The calls are inside React Native, not this app's code. |
+| Remove resizability and orientation restrictions | Nothing for phones. On tablets Android 16 lets the app rotate anyway. |
+
+Details in `docs/decisions.md`, "Release builds are minified".
+
 ## 5. After 14 days
 
 The dashboard unlocks **Apply for production**. It asks a few questions

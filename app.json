@@ -51,7 +51,7 @@
             "targetSdkVersion": 36,
             "minSdkVersion": 26,
             "buildToolsVersion": "36.0.0",
-            "enableProguardInReleaseBuilds": false,
+            "enableMinifyInReleaseBuilds": true,
             "enableJetifier": true
           }
         }

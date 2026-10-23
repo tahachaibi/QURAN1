@@ -359,3 +359,35 @@ What *was* changed, all of it backed by a grep or a built manifest:
   falls back to Android's network service. The string now says what actually
   happens, which is both the honest thing and what Play's prominent-disclosure
   rule asks for.
+
+## Release builds are minified (R8), resources are not shrunk
+
+Play Console flagged the first closed-test bundle: "DEX code optimization is
+below our threshold", obfuscation 1%, fix by February 2027. Release builds were
+not minified at all (`enableProguardInReleaseBuilds: false`), so nothing was
+renamed. `enableMinifyInReleaseBuilds` is now on.
+
+- **Resource shrinking stays off.** The adhan notification sound is reached by
+  resource name (`raw/adhan`), not from code, which is exactly what the resource
+  shrinker removes. Play's check is about code, so there is nothing to gain.
+- **Keep rules:** expo-modules-core ships the rules every Expo module relies on;
+  the speech module keeps only the test APK's Quran model classes, the one thing
+  found by name (`modules/expo-arabic-speech/android/proguard-rules.pro`).
+- **What proves it works:** a missing keep rule shows only when the code runs,
+  so CI now opens the release APK on an emulator (`scripts/smoke-android.sh`):
+  launch, Settings, whose "Android API" row comes from the speech module, then
+  Al-Fatiha and the microphone. The download link is updated only if that
+  passes. CI also fails if R8 wrote no mapping file or the bundle lacks its
+  deobfuscation map, which Play uses to make crash reports readable.
+
+The other three notices on the same screen need no change today:
+
+- **Edge-to-edge may not display for all users / deprecated edge-to-edge
+  APIs.** Expo SDK 54 draws edge-to-edge and the screens pad themselves with the
+  safe-area insets, as the phone screenshots show. The deprecated calls
+  (status and navigation bar colours) are inside React Native and Expo, not this
+  app's code, and they do nothing harmful on Android 15+.
+- **Resizability and orientation restrictions.** `orientation: portrait`.
+  Android 16 ignores it on tablets and foldables (600 dp and wider), so there the
+  app can rotate. Phones are unaffected. Worth a look on a tablet before
+  promoting the app for large screens.
